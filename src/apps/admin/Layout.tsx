@@ -10,6 +10,7 @@ import { LangToggle, Logo, ThemeToggle } from '@/shared/ui/brand'
 import { Dropdown, DropdownContent, DropdownItem, DropdownSeparator, DropdownTrigger } from '@/shared/ui/overlay'
 import { EmptyState } from '@/shared/ui/data'
 import { NAV } from './nav'
+import { NotificationsBell } from './Notifications'
 
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { can } = useAuth()
@@ -132,6 +133,7 @@ export function Layout() {
               </span>
             )}
           </div>
+          <NotificationsBell />
           <LangToggle />
           <ThemeToggle />
           <Dropdown>

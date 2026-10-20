@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from 'recharts'
-import { AlertTriangle, Banknote, CreditCard, LayoutDashboard, Percent, Receipt, ShoppingBag, TrendingUp, Trophy } from 'lucide-react'
+import { AlertTriangle, Banknote, CreditCard, HandCoins, LayoutDashboard, Percent, Receipt, ShoppingBag, TrendingUp, Trophy, Truck, Wallet } from 'lucide-react'
 import { addDays, format, startOfDay } from 'date-fns'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -47,6 +47,21 @@ export function DashboardPage() {
   const canSales = can('reports.sales')
   const cur = useQuery({ queryKey: ['dash', range], queryFn: load(from, to), enabled: canSales, refetchInterval: 60_000 })
   const prev = useQuery({ queryKey: ['dash-prev', range], queryFn: load(prevFrom, from), enabled: canSales })
+
+  const extras = useQuery({
+    queryKey: ['dash-extras'],
+    refetchInterval: 60_000,
+    queryFn: async () =>
+      (await sb.rpc('dashboard_extras')).data as {
+        debts_total: number
+        debtors: number
+        suppliers_total: number | null
+        riyad_balance: number | null
+        riyad_low: number
+        open_shifts: { id: string; employee_name: string; color: string; opened_at: string; device_name: string | null; drawer: number | null }[]
+      },
+  })
+  const x = extras.data
 
   const delta = (a?: number, b?: number) => (a === undefined || !b ? null : ((a - b) / b) * 100)
   const s = cur.data
@@ -100,6 +115,39 @@ export function DashboardPage() {
         ) : (
           <StatCard index={3} loading={cur.isLoading} tone="warning" label={t('التخفيضات', 'Remises')} value={money(s?.discounts)} icon={<Percent />} />
         )}
+      </div>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard index={4} tone="danger" label={t('ديون الزبائن', 'Crédits clients')} value={money(x?.debts_total)} icon={<HandCoins />} loading={extras.isLoading} hint={x ? `${x.debtors} ${t('زبون', 'clients')}` : undefined} />
+        {x?.riyad_balance !== null && x?.riyad_balance !== undefined ? (
+          <StatCard index={5} tone={x.riyad_balance < x.riyad_low ? 'danger' : 'success'} label={t('رصيد رياض', 'Solde Riyad')} value={money(x.riyad_balance)} icon={<Wallet />} hint={x.riyad_balance < x.riyad_low ? t('⚠️ منخفض', '⚠️ Bas') : undefined} />
+        ) : (
+          <StatCard index={5} tone="info" label={t('بطاقة بنكية', 'Carte')} value={money(s?.card)} icon={<CreditCard />} loading={cur.isLoading} />
+        )}
+        {x?.suppliers_total !== null && x?.suppliers_total !== undefined ? (
+          <StatCard index={6} tone="warning" label={t('ما عليك للموردين', 'Dû fournisseurs')} value={money(x.suppliers_total)} icon={<Truck />} />
+        ) : (
+          <StatCard index={6} tone="warning" label={t('التخفيضات', 'Remises')} value={money(s?.discounts)} icon={<Percent />} loading={cur.isLoading} />
+        )}
+        <Card className="p-5">
+          <div className="text-sm text-muted">{t('الورديات المفتوحة الآن', 'Caisses ouvertes')}</div>
+          {!x?.open_shifts.length ? (
+            <div className="mt-3 text-sm text-subtle">{t('لا توجد وردية مفتوحة', 'Aucune caisse ouverte')}</div>
+          ) : (
+            <div className="mt-2 space-y-2">
+              {x.open_shifts.map((o) => (
+                <div key={o.id} className="flex items-center gap-2 text-sm">
+                  <span className="relative flex size-2.5">
+                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-60" />
+                    <span className="relative inline-flex size-2.5 rounded-full bg-success" />
+                  </span>
+                  <span className="flex-1 truncate font-medium">{o.employee_name}</span>
+                  {o.drawer !== null && <span className="num text-xs font-semibold">{money(o.drawer)}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-3">

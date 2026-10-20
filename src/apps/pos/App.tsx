@@ -7,6 +7,7 @@ import { deviceStore, type DeviceInfo } from './device'
 import { DeviceSetup } from './DeviceSetup'
 import { PinScreen } from './PinScreen'
 import { SellScreen } from './SellScreen'
+import { ForeignShiftScreen, OpenShiftScreen, useShift } from './shift'
 
 const sb = getSupabase('pos')
 
@@ -23,7 +24,21 @@ function Gate() {
       </div>
     )
   if (!session || !me || !me.can_use_pos) return <PinScreen device={device} onDeviceLost={() => (deviceStore.clear(), setDevice(null))} />
-  return <SellScreen device={device} />
+  return <ShiftGate device={device} />
+}
+
+function ShiftGate({ device }: { device: DeviceInfo }) {
+  const shift = useShift(device)
+  if (shift.isLoading || !shift.data)
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-navy">
+        <Spinner />
+      </div>
+    )
+  const s = shift.data
+  if (!s.open) return <OpenShiftScreen device={device} status={s} onOpened={() => shift.refetch()} />
+  if (!s.mine) return <ForeignShiftScreen device={device} status={s} onClosed={() => shift.refetch()} />
+  return <SellScreen device={device} shift={s} onShiftChange={() => shift.refetch()} />
 }
 
 export function App() {

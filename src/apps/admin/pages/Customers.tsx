@@ -1,16 +1,18 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
-import { Building2, MessageCircle, Phone, Plus, Search, Trash, UserRound } from 'lucide-react'
+import { AlertTriangle, Building2, HandCoins, MessageCircle, Phone, Plus, Search, Trash, UserRound } from 'lucide-react'
+import { money } from '@/shared/lib/money'
+import { CustomerStatement } from './CustomerStatement'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
 import { errorMessage } from '@/shared/lib/errors'
 import type { Customer } from '@/shared/lib/types'
 import { normalizePhone, whatsappLink } from '@/shared/lib/utils'
-import { Avatar, Button, Card, Field, Input, Textarea } from '@/shared/ui/primitives'
+import { Avatar, Badge, Button, Card, Field, Input, Textarea } from '@/shared/ui/primitives'
 import { Sheet, useConfirm } from '@/shared/ui/overlay'
-import { DataTable, PageHeader, type Column } from '@/shared/ui/data'
+import { DataTable, PageHeader, StatCard, type Column } from '@/shared/ui/data'
 
 const blank: Partial<Customer> = { full_name: '', phone: '', email: '', company_name: '', ice: '', address: '', city: 'Tétouan', notes: '' }
 
@@ -22,6 +24,8 @@ export function CustomersPage() {
   const [search, setSearch] = useState('')
   const [edit, setEdit] = useState<Partial<Customer> | null>(null)
   const [busy, setBusy] = useState(false)
+  const [debtorsOnly, setDebtorsOnly] = useState(false)
+  const [statementFor, setStatementFor] = useState<Customer | null>(null)
 
   const customers = useQuery({
     queryKey: ['customers'],
@@ -32,10 +36,18 @@ export function CustomersPage() {
     },
   })
 
+  const balances = useQuery({
+    queryKey: ['customer-balances'],
+    queryFn: async () => Object.fromEntries(((await sb.from('customer_balances').select('id, balance')).data ?? []).map((r) => [r.id, r.balance as number])) as Record<string, number>,
+  })
+  const bal = (c: Customer) => balances.data?.[c.id] ?? 0
+
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return (customers.data ?? []).filter((c) => !q || c.full_name.toLowerCase().includes(q) || c.phone?.includes(q) || c.company_name?.toLowerCase().includes(q))
-  }, [customers.data, search])
+    return (customers.data ?? []).filter((c) => (!debtorsOnly || (balances.data?.[c.id] ?? 0) > 0) && (!q || c.full_name.toLowerCase().includes(q) || c.phone?.includes(q) || c.company_name?.toLowerCase().includes(q)))
+  }, [customers.data, search, debtorsOnly, balances.data])
+  const totalDebt = Object.values(balances.data ?? {}).reduce((a, b) => a + Math.max(0, b), 0)
+  const debtors = Object.values(balances.data ?? {}).filter((b) => b > 0).length
 
   const save = async () => {
     if (!edit?.full_name?.trim()) return toast.error(t('الاسم مطلوب', 'Nom obligatoire'))
@@ -83,6 +95,16 @@ export function CustomersPage() {
     },
     { key: 'phone', header: t('الهاتف', 'Téléphone'), cell: (c) => (c.phone ? <span className="num" dir="ltr">+{c.phone}</span> : '—') },
     { key: 'city', header: t('المدينة', 'Ville'), cell: (c) => c.city ?? '—' },
+    {
+      key: 'balance',
+      header: t('الدين', 'Crédit'),
+      sortValue: (c) => bal(c),
+      cell: (c) => (
+        <button onClick={(e) => (e.stopPropagation(), setStatementFor(c))}>
+          {bal(c) > 0 ? <Badge tone="danger" className="num">{money(bal(c))}</Badge> : bal(c) < 0 ? <Badge tone="success" className="num">{money(bal(c))}</Badge> : <span className="text-subtle">—</span>}
+        </button>
+      ),
+    },
     { key: 'date', header: t('تاريخ الإضافة', 'Ajouté le'), sortValue: (c) => c.created_at, cell: (c) => <span className="num text-muted">{format(new Date(c.created_at), 'dd/MM/yyyy')}</span> },
     {
       key: 'wa',
@@ -105,7 +127,7 @@ export function CustomersPage() {
       <PageHeader
         icon={<UserRound />}
         title={t('الزبائن', 'Clients')}
-        description={t('قاعدة زبائنك. الديون وكشوف الحساب في المرحلة 2', 'Votre fichier clients. Crédits et relevés en phase 2')}
+        description={t('قاعدة زبائنك، ديونهم وكشوف حساباتهم', 'Vos clients, leurs crédits et relevés')}
         actions={
           <Button onClick={() => setEdit({ ...blank })}>
             <Plus />
@@ -113,11 +135,23 @@ export function CustomersPage() {
           </Button>
         }
       />
-      <Card className="mb-4 p-3">
-        <Input icon={<Search />} placeholder={t('ابحث بالاسم أو الهاتف أو الشركة…', 'Nom, téléphone ou société…')} value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="mb-5 grid gap-4 sm:grid-cols-3">
+        <StatCard index={0} label={t('عدد الزبائن', 'Clients')} value={customers.data?.length ?? 0} icon={<UserRound />} loading={customers.isLoading} />
+        <StatCard index={1} tone="danger" label={t('مجموع الديون', 'Total des crédits')} value={money(totalDebt)} icon={<HandCoins />} loading={balances.isLoading} />
+        <StatCard index={2} tone="warning" label={t('زبائن مدينون', 'Clients débiteurs')} value={debtors} icon={<AlertTriangle />} loading={balances.isLoading} />
+      </div>
+      <Card className="mb-4 flex flex-wrap items-center gap-3 p-3">
+        <div className="min-w-56 flex-1">
+          <Input icon={<Search />} placeholder={t('ابحث بالاسم أو الهاتف أو الشركة…', 'Nom, téléphone ou société…')} value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <Button variant={debtorsOnly ? 'navy' : 'outline'} onClick={() => setDebtorsOnly(!debtorsOnly)}>
+          <HandCoins />
+          {t('المدينون فقط', 'Débiteurs')}
+        </Button>
       </Card>
       <DataTable rows={rows} columns={columns} rowKey={(c) => c.id} loading={customers.isLoading} onRowClick={(c) => setEdit(c)} />
 
+      <CustomerStatement customer={statementFor} onClose={() => setStatementFor(null)} />
       <Sheet
         open={!!edit}
         onOpenChange={(o) => !o && setEdit(null)}

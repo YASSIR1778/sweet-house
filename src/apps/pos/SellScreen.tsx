@@ -42,12 +42,14 @@ import { findByBarcode, useCatalog, type PosProduct, type PosService } from './c
 import { cartTotals, lineTotal, toPayload, useCart, type CartLine, type CartState } from './cart'
 import { AmountDialog, CustomerDialog, PayDialog, QtyDialog, VariantDialog } from './dialogs'
 import { beep, type DeviceInfo } from './device'
+import { ShiftSheet, type ShiftStatus } from './shift'
+import { RefundDialog } from './refund'
 
 type PosSettings = { allow_negative_stock: boolean; sound: boolean; auto_print: boolean; quick_cash: number[] }
 type Held = { id: string; at: string; label: string; state: CartState }
 const heldStore = storage<Held[]>('sh-pos-held', [])
 
-export function SellScreen({ device }: { device: DeviceInfo }) {
+export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInfo; shift: Extract<ShiftStatus, { open: true }>; onShiftChange: () => void }) {
   const { sb, me, can, signOut } = useAuth()
   const { t, pick, lang } = useLang()
   const qc = useQueryClient()
@@ -76,6 +78,7 @@ export function SellScreen({ device }: { device: DeviceInfo }) {
   const [discountOpen, setDiscountOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [heldOpen, setHeldOpen] = useState(false)
+  const [shiftOpen, setShiftOpen] = useState(false)
   const [held, setHeld] = useState<Held[]>(heldStore.get)
   const [done, setDone] = useState<Sale | null>(null)
   const [printSale, setPrintSale] = useState<Sale | null>(null)
@@ -198,7 +201,7 @@ export function SellScreen({ device }: { device: DeviceInfo }) {
   }
 
   // ------------------------------------------------ checkout
-  const checkout = async (p: { cash: number; card: number }) => {
+  const checkout = async (p: { cash: number; card: number; credit: number }) => {
     setPaying(true)
     const { data, error } = await sb.rpc('create_sale', { p: toPayload(cart, saleId.current, device.id, p) })
     setPaying(false)
@@ -215,6 +218,7 @@ export function SellScreen({ device }: { device: DeviceInfo }) {
     if (pos?.auto_print !== false) setPrintSale(sale)
     qc.invalidateQueries({ queryKey: ['pos-catalog'] })
     qc.invalidateQueries({ queryKey: ['pos-history'] })
+    qc.invalidateQueries({ queryKey: ['shift', device.id] })
   }
 
   // ------------------------------------------------ keyboard shortcuts
@@ -266,6 +270,12 @@ export function SellScreen({ device }: { device: DeviceInfo }) {
         </div>
         <Tooltip content={online ? t('متصل', 'En ligne') : t('غير متصل بالإنترنت', 'Hors ligne')}>
           <div className={cn('flex size-9 items-center justify-center rounded-lg', online ? 'text-success' : 'animate-pulse bg-danger/10 text-danger')}>{online ? <Wifi className="size-4" /> : <WifiOff className="size-4" />}</div>
+        </Tooltip>
+        <Tooltip content={t('الصندوق والوردية', 'Caisse')}>
+          <Button variant="outline" onClick={() => setShiftOpen(true)} className="gap-2">
+            <Banknote />
+            <span className="num hidden xl:inline">#{shift.shift.number}</span>
+          </Button>
         </Tooltip>
         <Tooltip content={t('المبيعات الأخيرة', 'Ventes récentes')}>
           <Button variant="ghost" size="icon" onClick={() => setHistoryOpen(true)}>
@@ -533,10 +543,11 @@ export function SellScreen({ device }: { device: DeviceInfo }) {
           }
         }}
       />
-      <PayDialog open={!!pay} mode={pay ?? 'cash'} total={totals.total} quickCash={pos?.quick_cash ?? []} onClose={() => setPay(null)} onPay={checkout} busy={paying} />
+      <PayDialog open={!!pay} mode={pay ?? 'cash'} total={totals.total} quickCash={pos?.quick_cash ?? []} onClose={() => setPay(null)} onPay={checkout} busy={paying} customer={cart.customer} allowCredit={can('pos.credit_sale')} onPickCustomer={() => setCustomerOpen(true)} />
       <CustomerDialog open={customerOpen} onClose={() => setCustomerOpen(false)} onPick={(c) => dispatch({ type: 'customer', customer: c })} />
       <CartDiscountDialog open={discountOpen} onClose={() => setDiscountOpen(false)} net={totals.net} subtotal={totals.subtotal} current={cart.discount} maxPercent={maxDisc} onApply={(d) => dispatch({ type: 'discount', discount: d })} />
-      <HistorySheet open={historyOpen} onClose={() => setHistoryOpen(false)} onPrint={setPrintSale} />
+      <HistorySheet open={historyOpen} onClose={() => setHistoryOpen(false)} onPrint={setPrintSale} device={device} />
+      <ShiftSheet device={device} status={shift} open={shiftOpen} onClose={() => setShiftOpen(false)} onClosed={onShiftChange} />
 
       <Sheet open={heldOpen} onOpenChange={setHeldOpen} title={t('المبيعات المعلقة', 'Ventes en attente')} width="max-w-md">
         {!held.length ? (
@@ -734,8 +745,9 @@ function CartDiscountDialog({
   )
 }
 
-function HistorySheet({ open, onClose, onPrint }: { open: boolean; onClose: () => void; onPrint: (s: Sale) => void }) {
-  const { sb } = useAuth()
+function HistorySheet({ open, onClose, onPrint, device }: { open: boolean; onClose: () => void; onPrint: (s: Sale) => void; device: DeviceInfo }) {
+  const { sb, can } = useAuth()
+  const [refunding, setRefunding] = useState(false)
   const { t } = useLang()
   const cfg = useReceiptConfig(sb)
   const [selected, setSelected] = useState<string | null>(null)
@@ -761,10 +773,18 @@ function HistorySheet({ open, onClose, onPrint }: { open: boolean; onClose: () =
               <div className="flex justify-center rounded-xl bg-white p-4 ring-1 ring-border">
                 <Receipt sale={sale.data} cfg={cfg.data} />
               </div>
-              <Button className="w-full" onClick={() => onPrint(sale.data!)}>
-                <Printer />
-                {t('إعادة الطباعة', 'Réimprimer')}
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button onClick={() => onPrint(sale.data!)}>
+                  <Printer />
+                  {t('إعادة الطباعة', 'Réimprimer')}
+                </Button>
+                {can('pos.refund') && sale.data.status === 'completed' && (
+                  <Button variant="danger-soft" onClick={() => setRefunding(true)}>
+                    {t('إرجاع', 'Retour')}
+                  </Button>
+                )}
+              </div>
+              <RefundDialog device={device} sale={refunding ? sale.data : null} onClose={() => setRefunding(false)} onDone={() => (setRefunding(false), sale.refetch(), list.refetch())} />
             </>
           ) : (
             <Spinner />

@@ -156,17 +156,23 @@ export function PayDialog({
   onClose,
   onPay,
   busy,
+  customer,
+  allowCredit,
+  onPickCustomer,
 }: {
   open: boolean
   total: number
   mode: 'cash' | 'card'
   quickCash: number[]
   onClose: () => void
-  onPay: (p: { cash: number; card: number }) => void
+  onPay: (p: { cash: number; card: number; credit: number }) => void
   busy: boolean
+  customer: { id: string; full_name: string } | null
+  allowCredit: boolean
+  onPickCustomer: () => void
 }) {
   const { t } = useLang()
-  const [method, setMethod] = useState<'cash' | 'card' | 'mixed'>(mode)
+  const [method, setMethod] = useState<'cash' | 'card' | 'mixed' | 'credit'>(mode)
   const [cash, setCash] = useState('')
   const [card, setCard] = useState('')
 
@@ -178,11 +184,12 @@ export function PayDialog({
   }, [open, mode, total])
 
   const cashC = parseMoney(cash) ?? 0
-  const cardC = method === 'cash' ? 0 : method === 'card' ? total : (parseMoney(card) ?? 0)
+  const cardC = method === 'cash' || method === 'credit' ? 0 : method === 'card' ? total : (parseMoney(card) ?? 0)
   const effectiveCash = method === 'card' ? 0 : cash === '' && method === 'cash' ? total : cashC
-  const paid = effectiveCash + cardC
+  const creditC = method === 'credit' ? Math.max(0, total - effectiveCash) : 0
+  const paid = effectiveCash + cardC + creditC
   const change = paid - total
-  const ok = paid >= total && cardC <= total
+  const ok = paid >= total && cardC <= total && (method !== 'credit' || !!customer)
 
   const suggestions = useMemo(() => {
     const s = new Set<number>([total])
@@ -192,7 +199,7 @@ export function PayDialog({
     return [...s].filter((x) => x >= total).sort((a, b) => a - b).slice(0, 5)
   }, [total, quickCash])
 
-  const submit = () => ok && !busy && onPay({ cash: effectiveCash, card: cardC })
+  const submit = () => ok && !busy && onPay({ cash: effectiveCash, card: cardC, credit: creditC })
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()} size="md" title={t('الأداء', 'Paiement')}>
@@ -201,12 +208,13 @@ export function PayDialog({
           <div className="text-sm text-white/60">{t('المبلغ المطلوب', 'Montant à payer')}</div>
           <div className="num mt-1 text-4xl font-bold">{money(total)}</div>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className={cn('grid gap-2', allowCredit ? 'grid-cols-4' : 'grid-cols-3')}>
           {(
             [
               ['cash', t('نقداً', 'Espèces'), <Banknote key="c" />, 'F2'],
               ['card', t('بطاقة', 'Carte'), <CreditCard key="b" />, 'F3'],
               ['mixed', t('مختلط', 'Mixte'), <Plus key="m" />, ''],
+              ...(allowCredit ? ([['credit', t('بالدَّين', 'Crédit'), <UserRound key="d" />, '']] as const) : []),
             ] as const
           ).map(([m, label, icon, kbd]) => (
             <button
@@ -224,7 +232,13 @@ export function PayDialog({
 
         {method !== 'card' && (
           <div className="space-y-3">
-            <Field label={method === 'mixed' ? t('المبلغ نقداً', 'Montant espèces') : t('المبلغ المستلم', 'Montant reçu')}>
+            {method === 'credit' && (
+              <button type="button" onClick={onPickCustomer} className={cn('flex w-full items-center gap-2 rounded-xl border p-3 text-start text-sm', customer ? 'border-brand bg-brand-50' : 'border-danger/40 bg-danger/5 text-danger')}>
+                <UserRound className="size-4" />
+                {customer ? customer.full_name : t('يجب اختيار الزبون للبيع بالدين (F4)', 'Choisissez le client (F4)')}
+              </button>
+            )}
+            <Field label={method === 'mixed' ? t('المبلغ نقداً', 'Montant espèces') : method === 'credit' ? t('دفعة نقدية الآن (اختياري)', 'Acompte en espèces (optionnel)') : t('المبلغ المستلم', 'Montant reçu')}>
               <div className="relative">
                 <Input autoFocus value={cash} placeholder={method === 'cash' ? String(total / 100) : '0'} onChange={(e) => setCash(e.target.value.replace(/[^\d.,]/g, ''))} inputMode="decimal" className="num h-14 pe-12 text-center text-2xl font-bold" dir="ltr" />
                 <span className="absolute inset-y-0 end-4 flex items-center text-muted">DH</span>
@@ -247,6 +261,12 @@ export function PayDialog({
           </Field>
         )}
 
+        {method === 'credit' && creditC > 0 && (
+          <div className="flex items-center justify-between rounded-xl bg-warning/10 p-4">
+            <span className="font-medium">{t('يُسجَّل ديناً على الزبون', 'Inscrit au crédit du client')}</span>
+            <span className="num text-2xl font-bold text-warning">{money(creditC)}</span>
+          </div>
+        )}
         <div className={cn('flex items-center justify-between rounded-xl p-4 transition-colors', change > 0 ? 'bg-success/10' : change < 0 ? 'bg-danger/10' : 'bg-surface-2')}>
           <span className="font-medium">{change < 0 ? t('المتبقي', 'Reste à payer') : t('الباقي للزبون', 'À rendre')}</span>
           <span className={cn('num text-2xl font-bold', change > 0 ? 'text-success' : change < 0 ? 'text-danger' : '')}>{money(Math.abs(change))}</span>
@@ -286,7 +306,7 @@ export function CustomerDialog({
   const customers = useQuery({
     queryKey: ['pos-customers'],
     enabled: open,
-    queryFn: async () => (await sb.from('customers').select('id, full_name, phone, company_name').is('deleted_at', null).order('full_name').limit(1000)).data as Pick<Customer, 'id' | 'full_name' | 'phone' | 'company_name'>[],
+    queryFn: async () => (await sb.from('customer_balances').select('id, full_name, phone, company_name, balance').order('full_name').limit(2000)).data as (Pick<Customer, 'id' | 'full_name' | 'phone' | 'company_name'> & { balance: number })[],
   })
   const list = (customers.data ?? []).filter((c) => !q || c.full_name.toLowerCase().includes(q.toLowerCase()) || c.phone?.includes(normalizePhone(q) || q)).slice(0, 30)
 
@@ -343,7 +363,7 @@ export function CustomerDialog({
                     {c.phone ? `+${c.phone}` : ''} {c.company_name ? `· ${c.company_name}` : ''}
                   </div>
                 </div>
-                <UserRound className="size-4 text-subtle" />
+                {c.balance > 0 ? <span className="num rounded-full bg-danger/10 px-2 py-0.5 text-xs font-semibold text-danger">{money(c.balance)}</span> : <UserRound className="size-4 text-subtle" />}
               </button>
             ))}
           </div>

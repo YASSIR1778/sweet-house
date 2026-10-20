@@ -101,11 +101,8 @@ function Dash() {
   return <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
 }
 
-/**
- * Renders the receipt into a print-only area and opens the print dialog.
- * With Chrome started using --kiosk-printing the print is silent.
- */
-export function PrintReceipt({ sale, cfg, onDone }: { sale: Sale; cfg: ReceiptConfig; onDone: () => void }) {
+/** Renders children into a print-only area, opens the print dialog once, then calls onDone. */
+export function PrintArea({ children, onDone, page = '80mm auto' }: { children: React.ReactNode; onDone: () => void; page?: string }) {
   const done = useRef(onDone)
   done.current = onDone
   const started = useRef(false)
@@ -113,7 +110,7 @@ export function PrintReceipt({ sale, cfg, onDone }: { sale: Sale; cfg: ReceiptCo
     if (started.current) return
     started.current = true
     const style = document.createElement('style')
-    style.textContent = '@page { size: 80mm auto; margin: 3mm 4mm; } @media print { html, body { background: #fff !important; } }'
+    style.textContent = `@page { size: ${page}; margin: 3mm 4mm; } @media print { html, body { background: #fff !important; } }`
     document.head.appendChild(style)
     const imgs = Array.from(document.querySelectorAll<HTMLImageElement>('.print-area img'))
     Promise.all(imgs.map((i) => (i.complete ? Promise.resolve() : new Promise((r) => ((i.onload = r), (i.onerror = r)))))).then(() => {
@@ -123,12 +120,21 @@ export function PrintReceipt({ sale, cfg, onDone }: { sale: Sale; cfg: ReceiptCo
         done.current()
       }, 50)
     })
-  }, [])
+  }, [page])
 
   return createPortal(
     <div className="print-area" aria-hidden style={{ position: 'fixed', insetInlineStart: -10000, top: 0 }}>
-      <Receipt sale={sale} cfg={cfg} />
+      {children}
     </div>,
     document.body,
+  )
+}
+
+/** With Chrome started using --kiosk-printing the print is silent. */
+export function PrintReceipt({ sale, cfg, onDone }: { sale: Sale; cfg: ReceiptConfig; onDone: () => void }) {
+  return (
+    <PrintArea onDone={onDone}>
+      <Receipt sale={sale} cfg={cfg} />
+    </PrintArea>
   )
 }

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import {
   Banknote,
+  Coins,
   BarChart3,
   Boxes,
   ClipboardList,
@@ -36,6 +37,13 @@ import { DevicesPage } from './pages/Devices'
 import { ActivityPage } from './pages/Activity'
 import { TrashPage } from './pages/Trash'
 import { SoonPage } from './pages/Soon'
+import { ShiftsPage } from './pages/Shifts'
+import { RiyadPage } from './pages/Riyad'
+import { ExpensesPage } from './pages/Expenses'
+import { PurchasesPage } from './pages/Purchases'
+import { StockPage } from './pages/Stock'
+import { PayrollPage } from './pages/Payroll'
+import { ReportsPage } from './pages/Reports'
 
 export type NavItem = {
   path: string
@@ -62,8 +70,8 @@ export const NAV: NavGroup[] = [
     fr: 'Ventes',
     items: [
       { path: '/sales', ar: 'المبيعات', fr: 'Ventes', icon: Receipt, perm: 'reports.sales', element: <SalesPage /> },
-      { path: '/shifts', ar: 'الورديات والصندوق', fr: 'Caisses', icon: Banknote, perm: 'reports.shifts', soon: 2, element: soon(2, 'الورديات والصندوق', 'Caisses', Banknote) },
-      { path: '/riyad', ar: 'رياض', fr: 'Riyad', icon: Wallet, perm: 'riyad.view_balance', soon: 2, element: soon(2, 'رياض', 'Riyad', Wallet) },
+      { path: '/shifts', ar: 'الورديات والصندوق', fr: 'Caisses', icon: Banknote, perm: 'reports.shifts', element: <ShiftsPage /> },
+      { path: '/riyad', ar: 'رياض', fr: 'Riyad', icon: Wallet, perm: 'riyad.view_balance', element: <RiyadPage /> },
       { path: '/customers', ar: 'الزبائن', fr: 'Clients', icon: UserRound, perm: 'customers.manage', element: <CustomersPage /> },
     ],
   },
@@ -74,8 +82,8 @@ export const NAV: NavGroup[] = [
       { path: '/products', ar: 'المنتجات', fr: 'Produits', icon: Package, perm: 'products.manage', element: <ProductsPage /> },
       { path: '/categories', ar: 'الفئات', fr: 'Catégories', icon: Tags, perm: 'products.manage', element: <CategoriesPage /> },
       { path: '/services', ar: 'الخدمات', fr: 'Services', icon: Sparkles, perm: 'services.manage', element: <ServicesPage /> },
-      { path: '/stock', ar: 'المخزون والجرد', fr: 'Stock & inventaire', icon: Boxes, perm: 'stock.inventory', soon: 2, element: soon(2, 'المخزون والجرد', 'Stock & inventaire', Boxes) },
-      { path: '/purchases', ar: 'المشتريات والموردون', fr: 'Achats & fournisseurs', icon: Truck, perm: 'purchases.manage', soon: 2, element: soon(2, 'المشتريات والموردون', 'Achats & fournisseurs', Truck) },
+      { path: '/stock', ar: 'المخزون والجرد', fr: 'Stock & inventaire', icon: Boxes, perm: 'stock.inventory', element: <StockPage /> },
+      { path: '/purchases', ar: 'المشتريات والموردون', fr: 'Achats & fournisseurs', icon: Truck, perm: 'purchases.manage', element: <PurchasesPage /> },
     ],
   },
   {
@@ -91,9 +99,10 @@ export const NAV: NavGroup[] = [
     ar: 'الإدارة',
     fr: 'Gestion',
     items: [
-      { path: '/reports', ar: 'التقارير', fr: 'Rapports', icon: BarChart3, perm: 'reports.sales', soon: 2, element: soon(2, 'التقارير', 'Rapports', BarChart3) },
-      { path: '/expenses', ar: 'المصاريف', fr: 'Dépenses', icon: FileText, perm: 'expenses.manage', soon: 2, element: soon(2, 'المصاريف', 'Dépenses', FileText) },
+      { path: '/reports', ar: 'التقارير', fr: 'Rapports', icon: BarChart3, perm: 'reports.sales', element: <ReportsPage /> },
+      { path: '/expenses', ar: 'المصاريف', fr: 'Dépenses', icon: FileText, perm: 'expenses.manage', element: <ExpensesPage /> },
       { path: '/employees', ar: 'الموظفون', fr: 'Employés', icon: Users, perm: 'employees.manage', element: <EmployeesPage /> },
+      { path: '/payroll', ar: 'الرواتب والعمولات', fr: 'Salaires', icon: Coins, perm: 'employees.manage', element: <PayrollPage /> },
       { path: '/roles', ar: 'الأدوار والصلاحيات', fr: 'Rôles & permissions', icon: ShieldCheck, perm: 'employees.manage', element: <RolesPage /> },
       { path: '/devices', ar: 'أجهزة نقطة البيع', fr: 'Appareils POS', icon: MonitorSmartphone, perm: 'settings.manage', element: <DevicesPage /> },
       { path: '/activity', ar: 'سجل النشاطات', fr: "Journal d'activité", icon: ScrollText, perm: 'logs.view', element: <ActivityPage /> },

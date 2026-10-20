@@ -125,7 +125,7 @@ export function cartTotals(s: CartState) {
   return { subtotal, net, total, discount: subtotal - total, items }
 }
 
-export function toPayload(s: CartState, id: string, deviceId: string | null, pay: { cash: number; card: number }) {
+export function toPayload(s: CartState, id: string, deviceId: string | null, pay: { cash: number; card: number; credit?: number }) {
   return {
     id,
     device_id: deviceId,
