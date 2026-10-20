@@ -12,7 +12,7 @@
     <script>
       try {
         var t = localStorage.getItem('sh-theme');
-        if (t === 'dark' || (!t && matchMedia('(prefers-color-scheme: dark)').matches && 'site' !== 'site')) document.documentElement.classList.add('dark');
+        /* the public website always uses the light theme */
         var l = localStorage.getItem('sh-lang');
         if (l === 'fr') { document.documentElement.lang = 'fr'; document.documentElement.dir = 'ltr'; }
       } catch (e) {}
