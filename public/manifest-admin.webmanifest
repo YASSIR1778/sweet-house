@@ -1,0 +1,17 @@
+{
+  "name": "لوحة التحكم — Sweet House",
+  "short_name": "Admin Sweet",
+  "id": "/sweet-house/admin/",
+  "start_url": "/sweet-house/admin/",
+  "scope": "/sweet-house/admin/",
+  "display": "standalone",
+  "dir": "rtl",
+  "lang": "ar",
+  "background_color": "#F8FAFC",
+  "theme_color": "#0F172A",
+  "icons": [
+    { "src": "/sweet-house/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/sweet-house/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/sweet-house/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

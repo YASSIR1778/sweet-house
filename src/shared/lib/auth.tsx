@@ -26,8 +26,23 @@ export function AuthProvider({ sb, children }: { sb: SupabaseClient; children: R
         return
       }
       setLoading(true)
-      const { data } = await sb.rpc('me')
-      setMe((data as Me | null) ?? null)
+      const cacheKey = `sh-me-${s.user.id}`
+      const { data, error } = await sb.rpc('me')
+      if (error && !navigator.onLine) {
+        // Offline: keep working with the last known profile of this user.
+        try {
+          setMe(JSON.parse(localStorage.getItem(cacheKey) ?? 'null'))
+        } catch {
+          setMe(null)
+        }
+      } else {
+        setMe((data as Me | null) ?? null)
+        try {
+          if (data) localStorage.setItem(cacheKey, JSON.stringify(data))
+        } catch {
+          /* storage unavailable */
+        }
+      }
       setLoading(false)
     },
     [sb],

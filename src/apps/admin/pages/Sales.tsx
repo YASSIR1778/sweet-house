@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { addDays, format, startOfDay } from 'date-fns'
-import { Ban, Banknote, CreditCard, Printer, Receipt as ReceiptIcon, Search } from 'lucide-react'
+import { Ban, Banknote, CreditCard, FileText, Printer, Receipt as ReceiptIcon, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -13,6 +13,7 @@ import { Badge, Button, Card, Field, Input, Spinner, Textarea } from '@/shared/u
 import { Dialog } from '@/shared/ui/overlay'
 import { DataTable, PageHeader, StatCard, Tabs, type Column } from '@/shared/ui/data'
 import { PrintReceipt, Receipt } from '@/shared/ui/receipt'
+import { CreateInvoiceDialog } from '@/shared/ui/invoice-dialog'
 
 type Row = {
   id: string
@@ -39,6 +40,7 @@ export function SalesPage() {
   const [voiding, setVoiding] = useState(false)
   const [reason, setReason] = useState('')
   const [printing, setPrinting] = useState(false)
+  const [invoicing, setInvoicing] = useState(false)
   const cfg = useReceiptConfig(sb)
 
   const from = useMemo(() => addDays(startOfDay(new Date()), 1 - RANGES[range]), [range])
@@ -186,6 +188,12 @@ export function SalesPage() {
                   {t('إلغاء البيع', 'Annuler la vente')}
                 </Button>
               )}
+              {can('pos.invoice') && sale.status === 'completed' && (
+                <Button variant="outline" onClick={() => setInvoicing(true)}>
+                  <FileText />
+                  {t('فاتورة', 'Facture')}
+                </Button>
+              )}
               <Button variant="outline" onClick={() => setPrinting(true)} disabled={!cfg.data}>
                 <Printer />
                 {t('طباعة', 'Imprimer')}
@@ -226,6 +234,7 @@ export function SalesPage() {
           </div>
         )}
       </Dialog>
+      <CreateInvoiceDialog saleId={sale?.id ?? null} customer={sale?.customer ?? null} open={invoicing} onClose={() => setInvoicing(false)} />
       {printing && sale && cfg.data && <PrintReceipt sale={sale} cfg={cfg.data} onDone={() => setPrinting(false)} />}
     </>
   )

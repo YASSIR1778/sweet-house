@@ -1,0 +1,17 @@
+{
+  "name": "نقطة البيع — Sweet House",
+  "short_name": "POS Sweet",
+  "id": "/sweet-house/pos/",
+  "start_url": "/sweet-house/pos/",
+  "scope": "/sweet-house/pos/",
+  "display": "standalone",
+  "dir": "rtl",
+  "lang": "ar",
+  "background_color": "#F8FAFC",
+  "theme_color": "#0F172A",
+  "icons": [
+    { "src": "/sweet-house/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/sweet-house/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/sweet-house/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

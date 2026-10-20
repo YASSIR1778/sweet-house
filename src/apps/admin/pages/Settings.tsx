@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Banknote, Building2, Hash, MonitorPlay, Receipt as ReceiptIcon, Save, Scale, Settings as SettingsIcon, Store } from 'lucide-react'
+import { Banknote, Building2, Database, FileText, Hash, MonitorPlay, Receipt as ReceiptIcon, Save, Scale, Settings as SettingsIcon, Store } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -13,6 +13,7 @@ import { PageHeader } from '@/shared/ui/data'
 import { MoneyInput } from '@/shared/ui/pickers'
 import { ImageInput } from '@/shared/ui/media'
 import { Receipt } from '@/shared/ui/receipt'
+import { DataSection } from './DataSection'
 
 type Cash = { opening_float: number; blind_count: boolean; diff_alert: number; auto_lock_minutes: number }
 type Pos = { allow_negative_stock: boolean; sound: boolean; auto_print: boolean; quick_cash: number[] }
@@ -23,7 +24,9 @@ const SECTIONS = [
   { id: 'legal', ar: 'المعلومات القانونية', fr: 'Mentions légales', icon: Scale },
   { id: 'cash', ar: 'الصندوق ونقطة البيع', fr: 'Caisse & POS', icon: Banknote },
   { id: 'receipt', ar: 'الوصل', fr: 'Ticket', icon: ReceiptIcon },
+  { id: 'invoice', ar: 'الفواتير', fr: 'Factures', icon: FileText },
   { id: 'numbers', ar: 'الترقيم', fr: 'Numérotation', icon: Hash },
+  { id: 'data', ar: 'البيانات والنسخ', fr: 'Données & sauvegarde', icon: Database },
 ] as const
 
 const DAYS = [
@@ -74,6 +77,7 @@ export function SettingsPage() {
   const [cash, setCash] = useState<Partial<Cash>>({})
   const [pos, setPos] = useState<Partial<Pos>>({})
   const [receipt, setReceipt] = useState<Partial<ReceiptSettings>>({})
+  const [invoice, setInvoice] = useState<{ notes_fr?: string; bank_name?: string; rib?: string; payment_terms_fr?: string }>({})
   const [seqs, setSeqs] = useState<Seq[]>([])
   const [busy, setBusy] = useState(false)
 
@@ -89,6 +93,7 @@ export function SettingsPage() {
     setCash(all.data.cash as Partial<Cash>)
     setPos(all.data.pos as Partial<Pos>)
     setReceipt(all.data.receipt as Partial<ReceiptSettings>)
+    setInvoice((all.data.invoice ?? {}) as typeof invoice)
   }, [all.data])
   useEffect(() => {
     if (sequences.data) setSeqs(sequences.data)
@@ -98,7 +103,7 @@ export function SettingsPage() {
     setBusy(true)
     try {
       const updates: [string, unknown][] =
-        section === 'store' ? [['store', store]] : section === 'legal' ? [['legal', legal]] : section === 'cash' ? [['cash', cash], ['pos', pos]] : section === 'receipt' ? [['receipt', receipt]] : []
+        section === 'store' ? [['store', store]] : section === 'legal' ? [['legal', legal]] : section === 'cash' ? [['cash', cash], ['pos', pos]] : section === 'receipt' ? [['receipt', receipt]] : section === 'invoice' ? [['invoice', invoice]] : []
       for (const [key, value] of updates) {
         const { error } = await sb.from('settings').update({ value }).eq('key', key)
         if (error) throw error
@@ -136,7 +141,7 @@ export function SettingsPage() {
         title={t('الإعدادات', 'Paramètres')}
         description={t('كل ما يخص المكتبة والصندوق والوصل', 'Tout sur la librairie, la caisse et le ticket')}
         actions={
-          <Button onClick={save} loading={busy}>
+          section !== 'data' && <Button onClick={save} loading={busy}>
             <Save />
             {t('حفظ', 'Enregistrer')}
           </Button>
@@ -346,6 +351,28 @@ export function SettingsPage() {
                 </div>
               </div>
             )}
+
+            {section === 'invoice' && (
+              <Card>
+                <CardHeader title={t('الفواتير الرسمية', 'Factures')} description={t('تظهر في أسفل كل فاتورة A4. المعلومات القانونية من قسم "المعلومات القانونية".', 'Affiché en bas de chaque facture')} icon={<FileText />} />
+                <div className="grid gap-4 p-5 sm:grid-cols-2">
+                  <Field label={t('شروط الأداء', 'Conditions de paiement')}>
+                    <Input value={invoice.payment_terms_fr ?? ''} onChange={(e) => setInvoice({ ...invoice, payment_terms_fr: e.target.value })} dir="ltr" />
+                  </Field>
+                  <Field label={t('اسم البنك', 'Banque')}>
+                    <Input value={invoice.bank_name ?? ''} onChange={(e) => setInvoice({ ...invoice, bank_name: e.target.value })} dir="ltr" />
+                  </Field>
+                  <Field label="RIB" className="sm:col-span-2">
+                    <Input value={invoice.rib ?? ''} onChange={(e) => setInvoice({ ...invoice, rib: e.target.value })} dir="ltr" className="num" />
+                  </Field>
+                  <Field label={t('ملاحظة أسفل الفاتورة', 'Mention en bas de facture')} className="sm:col-span-2">
+                    <Textarea value={invoice.notes_fr ?? ''} onChange={(e) => setInvoice({ ...invoice, notes_fr: e.target.value })} dir="ltr" />
+                  </Field>
+                </div>
+              </Card>
+            )}
+
+            {section === 'data' && <DataSection />}
 
             {section === 'numbers' && (
               <Card>

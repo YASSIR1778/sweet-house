@@ -44,7 +44,9 @@ import { cartTotals, lineTotal, toPayload, useCart, type CartLine, type CartStat
 import { AmountDialog, CustomerDialog, PayDialog, QtyDialog, VariantDialog } from './dialogs'
 import { beep, type DeviceInfo } from './device'
 import { ShiftSheet, type ShiftStatus } from './shift'
+import { enqueue, isNetworkError, useOfflineQueue } from './offline'
 import { RefundDialog } from './refund'
+import { CreateInvoiceDialog } from '@/shared/ui/invoice-dialog'
 import { OnlineSheet } from './online'
 import { useOnlinePending } from '@/shared/lib/online'
 
@@ -83,6 +85,8 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
   const [heldOpen, setHeldOpen] = useState(false)
   const [shiftOpen, setShiftOpen] = useState(false)
   const [onlineOpen, setOnlineOpen] = useState(false)
+  const queue = useOfflineQueue(sb, () => (qc.invalidateQueries({ queryKey: ['shift', device.id] }), qc.invalidateQueries({ queryKey: ['pos-history'] }), qc.invalidateQueries({ queryKey: ['pos-catalog'] })))
+  const [queueOpen, setQueueOpen] = useState(false)
   const pending = useOnlinePending(sb, can('requests.manage') || can('orders.manage'))
   const pendingCount = (pending.data?.requests_new ?? 0) + (pending.data?.orders_new ?? 0)
   const [held, setHeld] = useState<Held[]>(heldStore.get)
@@ -209,14 +213,45 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
   // ------------------------------------------------ checkout
   const checkout = async (p: { cash: number; card: number; credit: number }) => {
     setPaying(true)
-    const { data, error } = await sb.rpc('create_sale', { p: toPayload(cart, saleId.current, device.id, p) })
+    const payload = toPayload(cart, saleId.current, device.id, p)
+    const { data, error } = await sb.rpc('create_sale', { p: payload })
     setPaying(false)
+    let sale = data as Sale
     if (error) {
-      sound('error')
-      return toast.error(errorMessage(error, lang))
+      if (!isNetworkError(error)) {
+        sound('error')
+        return toast.error(errorMessage(error, lang))
+      }
+      // No connection: keep the sale locally, print a provisional receipt, sync later.
+      const tt = cartTotals(cart)
+      const paid = p.cash + p.card + p.credit
+      sale = {
+        id: saleId.current,
+        number: `HL-${saleId.current.slice(0, 6).toUpperCase()}`,
+        status: 'completed',
+        customer_id: cart.customer?.id ?? null,
+        employee_id: me?.id ?? '',
+        employee_name: me?.full_name ?? '',
+        customer: cart.customer,
+        subtotal: tt.subtotal,
+        discount_total: tt.subtotal - tt.total,
+        total: tt.total,
+        tax_total: Math.round(cart.lines.reduce((a, l) => { const r = l.product?.tax_rate ?? l.service?.tax_rate ?? 0; return a + (lineTotal(l) * r) / (100 + r) }, 0) * (tt.net ? tt.total / tt.net : 1)),
+        cash_received: p.cash,
+        change_given: Math.max(0, paid - tt.total),
+        paid_cash: p.cash - Math.max(0, paid - tt.total),
+        paid_card: p.card,
+        paid_credit: p.credit,
+        note: null,
+        void_reason: null,
+        voided_at: null,
+        created_at: new Date().toISOString(),
+        items: cart.lines.map((l, i) => ({ line_no: i + 1, item_type: l.type, name_ar: l.name_ar, name_fr: l.name_fr, qty: l.qty, unit_price: l.unit_price, original_unit_price: l.base_price ?? l.unit_price, discount: l.discount, total: lineTotal(l), tax_rate: l.product?.tax_rate ?? l.service?.tax_rate ?? 0 })),
+      }
+      enqueue({ id: saleId.current, payload, local: sale, created_at: sale.created_at })
+      toast.warning(t('لا يوجد إنترنت: حُفظ البيع على الجهاز وسيُرسل تلقائياً عند عودة الاتصال', 'Hors ligne : vente enregistrée localement, envoi automatique au retour du réseau'))
     }
     sound('success')
-    const sale = data as Sale
     saleId.current = uuid()
     dispatch({ type: 'clear' })
     setPay(null)
@@ -274,8 +309,11 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
             <Kbd>F1</Kbd>
           </div>
         </div>
-        <Tooltip content={online ? t('متصل', 'En ligne') : t('غير متصل بالإنترنت', 'Hors ligne')}>
-          <div className={cn('flex size-9 items-center justify-center rounded-lg', online ? 'text-success' : 'animate-pulse bg-danger/10 text-danger')}>{online ? <Wifi className="size-4" /> : <WifiOff className="size-4" />}</div>
+        <Tooltip content={online ? (queue.items.length ? t(`${queue.items.length} بيع بانتظار الإرسال`, `${queue.items.length} ventes en attente`) : t('متصل', 'En ligne')) : t('غير متصل: البيع مستمر وسيُرسل لاحقاً', 'Hors ligne : les ventes seront envoyées plus tard')}>
+          <button onClick={() => queue.items.length && setQueueOpen(true)} className={cn('relative flex h-9 items-center gap-1.5 rounded-lg px-2', online ? 'text-success' : 'animate-pulse bg-danger/10 text-danger')}>
+            {online ? <Wifi className="size-4" /> : <WifiOff className="size-4" />}
+            {queue.items.length > 0 && <span className={cn('num rounded-full px-1.5 text-[11px] font-bold text-white', queue.failed.length ? 'bg-danger' : 'bg-warning')}>{queue.items.length}</span>}
+          </button>
         </Tooltip>
         <Tooltip content={t('الصندوق والوردية', 'Caisse')}>
           <Button variant="outline" onClick={() => setShiftOpen(true)} className="gap-2">
@@ -563,6 +601,30 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
       <HistorySheet open={historyOpen} onClose={() => setHistoryOpen(false)} onPrint={setPrintSale} device={device} />
       <ShiftSheet device={device} status={shift} open={shiftOpen} onClose={() => setShiftOpen(false)} onClosed={onShiftChange} />
       <OnlineSheet device={device} open={onlineOpen} onClose={() => setOnlineOpen(false)} />
+      <Sheet open={queueOpen} onOpenChange={setQueueOpen} title={t('مبيعات بانتظار الإرسال', 'Ventes en attente d’envoi')} width="max-w-md">
+        <div className="space-y-3">
+          <Button className="w-full" onClick={() => queue.sync()} loading={queue.syncing} disabled={!online}>
+            {t('إرسال الآن', 'Envoyer maintenant')}
+          </Button>
+          {queue.items.map((q) => (
+            <div key={q.id} className={cn('rounded-xl border p-3 text-sm', q.error ? 'border-danger/40 bg-danger/5' : 'border-border')}>
+              <div className="flex items-center justify-between">
+                <span className="num font-semibold">{q.local.number}</span>
+                <span className="num font-bold">{money(q.local.total)}</span>
+              </div>
+              <div className="num text-xs text-muted">{format(new Date(q.created_at), 'dd/MM HH:mm')}</div>
+              {q.error && (
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <span className="text-xs text-danger">{errorMessage(q.error, lang)}</span>
+                  <Button size="sm" variant="ghost" onClick={() => queue.discard(q.id)}>
+                    {t('تجاهل', 'Ignorer')}
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </Sheet>
 
       <Sheet open={heldOpen} onOpenChange={setHeldOpen} title={t('المبيعات المعلقة', 'Ventes en attente')} width="max-w-md">
         {!held.length ? (
@@ -763,6 +825,7 @@ function CartDiscountDialog({
 function HistorySheet({ open, onClose, onPrint, device }: { open: boolean; onClose: () => void; onPrint: (s: Sale) => void; device: DeviceInfo }) {
   const { sb, can } = useAuth()
   const [refunding, setRefunding] = useState(false)
+  const [invoicing, setInvoicing] = useState(false)
   const { t } = useLang()
   const cfg = useReceiptConfig(sb)
   const [selected, setSelected] = useState<string | null>(null)
@@ -793,12 +856,18 @@ function HistorySheet({ open, onClose, onPrint, device }: { open: boolean; onClo
                   <Printer />
                   {t('إعادة الطباعة', 'Réimprimer')}
                 </Button>
+                {can('pos.invoice') && sale.data.status === 'completed' && (
+                  <Button variant="outline" onClick={() => setInvoicing(true)}>
+                    {t('فاتورة A4', 'Facture A4')}
+                  </Button>
+                )}
                 {can('pos.refund') && sale.data.status === 'completed' && (
                   <Button variant="danger-soft" onClick={() => setRefunding(true)}>
                     {t('إرجاع', 'Retour')}
                   </Button>
                 )}
               </div>
+              <CreateInvoiceDialog saleId={sale.data.id} customer={sale.data.customer} open={invoicing} onClose={() => setInvoicing(false)} />
               <RefundDialog device={device} sale={refunding ? sale.data : null} onClose={() => setRefunding(false)} onDone={() => (setRefunding(false), sale.refetch(), list.refetch())} />
             </>
           ) : (

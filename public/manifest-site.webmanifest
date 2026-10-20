@@ -1,0 +1,17 @@
+{
+  "name": "مكتبة سويت هاوس",
+  "short_name": "Sweet House",
+  "id": "/sweet-house/",
+  "start_url": "/sweet-house/",
+  "scope": "/sweet-house/",
+  "display": "standalone",
+  "dir": "rtl",
+  "lang": "ar",
+  "background_color": "#F8FAFC",
+  "theme_color": "#FF6B35",
+  "icons": [
+    { "src": "/sweet-house/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/sweet-house/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/sweet-house/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

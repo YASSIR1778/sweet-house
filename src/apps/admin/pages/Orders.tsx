@@ -11,6 +11,7 @@ import { money, qty } from '@/shared/lib/money'
 import { openStaffFile, ORDER_STATUSES, PAYMENT_STATUS, siteTrackUrl } from '@/shared/lib/online'
 import { fillTemplate, whatsappLink } from '@/shared/lib/utils'
 import { Badge, Button, Card, Field, Input, Spinner, Textarea } from '@/shared/ui/primitives'
+import { sendWhatsApp } from '@/shared/lib/whatsapp'
 import { Sheet, useConfirm } from '@/shared/ui/overlay'
 import { DataTable, EmptyState, PageHeader, Tabs, type Column } from '@/shared/ui/data'
 import { PrintArea } from '@/shared/ui/receipt'
@@ -127,7 +128,7 @@ function OrderSheet({ id, onClose }: { id: string | null; onClose: () => void })
     if (error) return toast.error(errorMessage(error, lang))
     setNote('')
     refresh()
-    toast.success(t('تم تحديث الطلب', 'Commande mise à jour'), { action: { label: 'WhatsApp', onClick: () => window.open(whatsappLink(o.phone, wa(s)), '_blank') } })
+    toast.success(t('تم تحديث الطلب', 'Commande mise à jour'), { action: { label: 'WhatsApp', onClick: () => sendWhatsApp(sb, o.phone, wa(s), lang) } })
   }
   const confirmPay = async (method: 'transfer' | 'card') => {
     if (!o) return

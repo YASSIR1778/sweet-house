@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import {
   Banknote,
+  Barcode,
   Coins,
   BarChart3,
   Boxes,
@@ -46,6 +47,8 @@ import { ReportsPage } from './pages/Reports'
 import { OrdersPage } from './pages/Orders'
 import { RequestsPage } from './pages/Requests'
 import { WebsitePage } from './pages/Website'
+import { InvoicesPage } from './pages/Invoices'
+import { LabelsPage } from './pages/Labels'
 
 export type NavItem = {
   path: string
@@ -71,6 +74,7 @@ export const NAV: NavGroup[] = [
     fr: 'Ventes',
     items: [
       { path: '/sales', ar: 'المبيعات', fr: 'Ventes', icon: Receipt, perm: 'reports.sales', element: <SalesPage /> },
+      { path: '/invoices', ar: 'الفواتير', fr: 'Factures', icon: FileText, perm: 'pos.invoice', element: <InvoicesPage /> },
       { path: '/shifts', ar: 'الورديات والصندوق', fr: 'Caisses', icon: Banknote, perm: 'reports.shifts', element: <ShiftsPage /> },
       { path: '/riyad', ar: 'رياض', fr: 'Riyad', icon: Wallet, perm: 'riyad.view_balance', element: <RiyadPage /> },
       { path: '/customers', ar: 'الزبائن', fr: 'Clients', icon: UserRound, perm: 'customers.manage', element: <CustomersPage /> },
@@ -83,6 +87,7 @@ export const NAV: NavGroup[] = [
       { path: '/products', ar: 'المنتجات', fr: 'Produits', icon: Package, perm: 'products.manage', element: <ProductsPage /> },
       { path: '/categories', ar: 'الفئات', fr: 'Catégories', icon: Tags, perm: 'products.manage', element: <CategoriesPage /> },
       { path: '/services', ar: 'الخدمات', fr: 'Services', icon: Sparkles, perm: 'services.manage', element: <ServicesPage /> },
+      { path: '/labels', ar: 'ملصقات الباركود', fr: 'Étiquettes', icon: Barcode, perm: 'labels.print', element: <LabelsPage /> },
       { path: '/stock', ar: 'المخزون والجرد', fr: 'Stock & inventaire', icon: Boxes, perm: 'stock.inventory', element: <StockPage /> },
       { path: '/purchases', ar: 'المشتريات والموردون', fr: 'Achats & fournisseurs', icon: Truck, perm: 'purchases.manage', element: <PurchasesPage /> },
     ],

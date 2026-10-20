@@ -11,6 +11,7 @@ import { money } from '@/shared/lib/money'
 import { openStaffFile, PAYMENT_STATUS, siteTrackUrl, uploadStaffFile, useRequestStatuses, type RequestStatus } from '@/shared/lib/online'
 import { cn, fillTemplate, whatsappLink } from '@/shared/lib/utils'
 import { Badge, Button, Card, Field, Input, Spinner, Textarea } from '@/shared/ui/primitives'
+import { sendWhatsApp } from '@/shared/lib/whatsapp'
 import { Sheet, useConfirm } from '@/shared/ui/overlay'
 import { DataTable, EmptyState, PageHeader, Tabs, type Column } from '@/shared/ui/data'
 import { MoneyInput } from '@/shared/ui/pickers'
@@ -145,7 +146,7 @@ function RequestSheet({ id, onClose, statuses }: { id: string | null; onClose: (
     setNote('')
     refresh()
     const s = statuses.find((x) => x.key === key)
-    toast.success(t('تم تغيير الحالة', 'Statut modifié'), s?.template_ar ? { action: { label: t('إرسال واتساب', 'WhatsApp'), onClick: () => window.open(whatsappLink(r.phone, waText(s)), '_blank') } } : undefined)
+    toast.success(t('تم تغيير الحالة', 'Statut modifié'), s?.template_ar ? { action: { label: t('إرسال واتساب', 'WhatsApp'), onClick: () => sendWhatsApp(sb, r.phone, waText(s), lang) } } : undefined)
   }
   const savePrice = async () => {
     if (!r || price === null) return

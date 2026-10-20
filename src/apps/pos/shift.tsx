@@ -8,7 +8,7 @@ import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
 import { errorMessage } from '@/shared/lib/errors'
 import { money } from '@/shared/lib/money'
-import { cn } from '@/shared/lib/utils'
+import { cn, storage } from '@/shared/lib/utils'
 import { Avatar, Button, Card, Field, Input, Spinner, Textarea } from '@/shared/ui/primitives'
 import { Dialog, Sheet } from '@/shared/ui/overlay'
 import { LogoMark } from '@/shared/ui/brand'
@@ -36,12 +36,20 @@ export type ShiftStatus =
 
 export function useShift(device: DeviceInfo) {
   const { sb } = useAuth()
+  const cache = storage<ShiftStatus | null>(`sh-shift-${device.id}`, null)
   return useQuery({
     queryKey: ['shift', device.id],
     refetchInterval: 60_000,
+    initialData: cache.get() ?? undefined,
+    initialDataUpdatedAt: 0,
     queryFn: async () => {
       const { data, error } = await sb.rpc('shift_status', { p_device: device.id })
-      if (error) throw error
+      if (error) {
+        const cached = cache.get()
+        if (!navigator.onLine && cached) return cached
+        throw error
+      }
+      cache.set(data as ShiftStatus)
       return data as ShiftStatus
     },
   })

@@ -422,3 +422,6 @@ verify_jwt = false
 
 [functions.public-files]
 verify_jwt = false
+
+[functions.whatsapp-send]
+verify_jwt = false

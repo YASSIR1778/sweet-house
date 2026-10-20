@@ -11,6 +11,7 @@ import { Button, Card, CardHeader, Field, Input, Skeleton, SwitchRow, Textarea }
 import { PageHeader } from '@/shared/ui/data'
 import { ColorPicker, IconPicker, MoneyInput } from '@/shared/ui/pickers'
 import { ImageInput } from '@/shared/ui/media'
+import { resetWhatsAppMode } from '@/shared/lib/whatsapp'
 
 type W = {
   announcement: { enabled: boolean; text_ar: string; text_fr: string }
@@ -24,7 +25,7 @@ type W = {
 }
 type D = { enabled: boolean; cod: boolean; default_price: number; free_above: number | null; zones: { city: string; city_ar: string; price: number }[] }
 type P = { cod: boolean; in_store: boolean; bank_transfer: boolean; bank_name: string; rib: string; account_holder: string }
-type WA = { mode: string; number: string; templates: Record<string, string> }
+type WA = { mode: string; number: string; templates: Record<string, string>; template_name?: string; template_lang?: string }
 
 const TABS = [
   { id: 'home', ar: 'الصفحة الرئيسية', fr: "Page d'accueil", icon: LayoutTemplate },
@@ -83,7 +84,7 @@ export function WebsitePage() {
       if (['home', 'faq', 'legal'].includes(tab)) await up('website', w)
       if (tab === 'delivery') await up('delivery', d)
       if (tab === 'payments') await up('online_payments', p)
-      if (tab === 'whatsapp') await up('whatsapp', wa)
+      if (tab === 'whatsapp') (await up('whatsapp', wa), resetWhatsAppMode())
       if (tab === 'statuses')
         for (const s of st) {
           const { error } = await sb.from('request_statuses').update({ name_ar: s.name_ar, name_fr: s.name_fr, color: s.color, sort: s.sort, allow_download: s.allow_download, template_ar: s.template_ar, template_fr: s.template_fr }).eq('key', s.key)
@@ -312,7 +313,37 @@ export function WebsitePage() {
                     <Textarea value={wa.templates[k] ?? ''} onChange={(e) => setWa({ ...wa, templates: { ...wa.templates, [k]: e.target.value } })} className="min-h-24" />
                   </Field>
                 ))}
-                <div className="rounded-xl bg-info/5 p-3 text-xs text-muted">{t('الإرسال حالياً يدوي: زر واتساب يفتح الرسالة جاهزة وتضغط إرسال. الإرسال التلقائي سيُفعّل لاحقاً.', 'Envoi manuel pour le moment ; envoi automatique plus tard.')}</div>
+                <div className="space-y-3 rounded-xl border border-border p-4">
+                  <div className="text-sm font-semibold">{t('طريقة الإرسال', "Mode d'envoi")}</div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {(
+                      [
+                        ['manual', 'يدوي (مجاني)', 'Manuel (gratuit)', 'زر يفتح واتساب برسالة جاهزة', 'Ouvre WhatsApp avec le message'],
+                        ['auto', 'تلقائي (WhatsApp Cloud API)', 'Automatique (Cloud API)', 'يُرسل دون فتح واتساب. يتطلب حساب Meta', 'Envoi direct, compte Meta requis'],
+                      ] as const
+                    ).map(([v, a, f, da, df]) => (
+                      <button key={v} onClick={() => setWa({ ...wa, mode: v })} className={cn('rounded-xl border-2 p-3 text-start', wa.mode === v ? 'border-brand bg-brand-50' : 'border-border')}>
+                        <div className="text-sm font-semibold">{t(a, f)}</div>
+                        <div className="text-xs text-muted">{t(da, df)}</div>
+                      </button>
+                    ))}
+                  </div>
+                  {wa.mode === 'auto' && (
+                    <>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Field label={t('اسم القالب المعتمد من Meta (اختياري)', 'Nom du modèle Meta (optionnel)')}>
+                          <Input value={wa.template_name ?? ''} onChange={(e) => setWa({ ...wa, template_name: e.target.value })} dir="ltr" />
+                        </Field>
+                        <Field label={t('لغة القالب', 'Langue du modèle')}>
+                          <Input value={wa.template_lang ?? 'ar'} onChange={(e) => setWa({ ...wa, template_lang: e.target.value })} dir="ltr" />
+                        </Field>
+                      </div>
+                      <div className="rounded-xl bg-warning/5 p-3 text-xs leading-relaxed text-muted">
+                        {t('للتفعيل: أنشئ تطبيقاً في Meta for Developers وأضف رقم واتساب بزنس، ثم أضف في Supabase ← Edge Functions ← Secrets المفتاحين WHATSAPP_TOKEN و WHATSAPP_PHONE_ID. إن لم يكن مفعّلاً سيفتح النظام واتساب يدوياً كالعادة.', 'Activation : créez une app Meta, puis ajoutez WHATSAPP_TOKEN et WHATSAPP_PHONE_ID dans les secrets Supabase. Sinon l’envoi manuel est utilisé.')}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </Card>
           )}
