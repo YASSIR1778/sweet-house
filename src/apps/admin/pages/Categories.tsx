@@ -13,7 +13,14 @@ import { EmptyState, PageHeader } from '@/shared/ui/data'
 import { ColorPicker, IconPicker } from '@/shared/ui/pickers'
 import { DynamicIcon } from '@/shared/ui/icon'
 
-const blank = { name_ar: '', name_fr: '', icon: 'book-open', color: '#FF6B35', is_online: true, sort: 0 }
+const blank: { name_ar: string; name_fr: string; icon: string | null; color: string; is_online: boolean; sort: number } = {
+  name_ar: '',
+  name_fr: '',
+  icon: 'book-open',
+  color: '#FF6B35',
+  is_online: true,
+  sort: 0,
+}
 
 export function CategoriesPage() {
   const { sb } = useAuth()

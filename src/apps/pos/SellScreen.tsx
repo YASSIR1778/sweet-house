@@ -1,0 +1,793 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { AnimatePresence, motion } from 'motion/react'
+import {
+  Banknote,
+  CheckCircle2,
+  Clock,
+  CreditCard,
+  LayoutGrid,
+  Lock,
+  Minus,
+  Package,
+  PauseCircle,
+  Percent,
+  Plus,
+  Printer,
+  ScanBarcode,
+  Search,
+  ShoppingCart,
+  Trash,
+  UserRound,
+  Wifi,
+  WifiOff,
+  X,
+} from 'lucide-react'
+import { format } from 'date-fns'
+import { toast } from 'sonner'
+import { useAuth } from '@/shared/lib/auth'
+import { useLang } from '@/shared/lib/i18n'
+import { errorMessage } from '@/shared/lib/errors'
+import { money, parseMoney, qty as fmtQty } from '@/shared/lib/money'
+import { cn, storage, uuid } from '@/shared/lib/utils'
+import type { Sale } from '@/shared/lib/types'
+import { useReceiptConfig } from '@/shared/lib/receipt-config'
+import { Avatar, Badge, Button, Input, Kbd, Spinner } from '@/shared/ui/primitives'
+import { Dialog, Sheet, Tooltip } from '@/shared/ui/overlay'
+import { LangToggle, LogoMark, ThemeToggle } from '@/shared/ui/brand'
+import { EmptyState } from '@/shared/ui/data'
+import { DynamicIcon } from '@/shared/ui/icon'
+import { PrintReceipt, Receipt } from '@/shared/ui/receipt'
+import { findByBarcode, useCatalog, type PosProduct, type PosService } from './catalog'
+import { cartTotals, lineTotal, toPayload, useCart, type CartLine, type CartState } from './cart'
+import { AmountDialog, CustomerDialog, PayDialog, QtyDialog, VariantDialog } from './dialogs'
+import { beep, type DeviceInfo } from './device'
+
+type PosSettings = { allow_negative_stock: boolean; sound: boolean; auto_print: boolean; quick_cash: number[] }
+type Held = { id: string; at: string; label: string; state: CartState }
+const heldStore = storage<Held[]>('sh-pos-held', [])
+
+export function SellScreen({ device }: { device: DeviceInfo }) {
+  const { sb, me, can, signOut } = useAuth()
+  const { t, pick, lang } = useLang()
+  const qc = useQueryClient()
+  const catalog = useCatalog(sb)
+  const receiptCfg = useReceiptConfig(sb)
+  const settings = useQuery({
+    queryKey: ['pos-settings'],
+    queryFn: async () => {
+      const { data } = await sb.from('settings').select('key, value').in('key', ['pos', 'cash'])
+      const m = Object.fromEntries((data ?? []).map((r) => [r.key, r.value]))
+      return { pos: (m.pos ?? {}) as PosSettings, cash: (m.cash ?? {}) as { auto_lock_minutes?: number } }
+    },
+  })
+  const pos = settings.data?.pos
+
+  const [cart, dispatch] = useCart()
+  const totals = cartTotals(cart)
+  const [search, setSearch] = useState('')
+  const [cat, setCat] = useState<string | 'services' | null>(null)
+  const [variantFor, setVariantFor] = useState<PosProduct | null>(null)
+  const [amountFor, setAmountFor] = useState<PosService | null>(null)
+  const [qtyFor, setQtyFor] = useState<{ service?: PosService; line?: CartLine } | null>(null)
+  const [pay, setPay] = useState<'cash' | 'card' | null>(null)
+  const [paying, setPaying] = useState(false)
+  const [customerOpen, setCustomerOpen] = useState(false)
+  const [discountOpen, setDiscountOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [heldOpen, setHeldOpen] = useState(false)
+  const [held, setHeld] = useState<Held[]>(heldStore.get)
+  const [done, setDone] = useState<Sale | null>(null)
+  const [printSale, setPrintSale] = useState<Sale | null>(null)
+  const [online, setOnline] = useState(navigator.onLine)
+  const [lastKey, setLastKey] = useState<string | null>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
+  const saleId = useRef(uuid())
+
+  const sound = (k: Parameters<typeof beep>[0]) => pos?.sound !== false && beep(k)
+
+  // ------------------------------------------------ online status & auto-lock
+  useEffect(() => {
+    const on = () => setOnline(true)
+    const off = () => setOnline(false)
+    window.addEventListener('online', on)
+    window.addEventListener('offline', off)
+    return () => (window.removeEventListener('online', on), window.removeEventListener('offline', off))
+  }, [])
+
+  useEffect(() => {
+    const mins = settings.data?.cash.auto_lock_minutes ?? 5
+    if (!mins) return
+    let timer = setTimeout(lock, mins * 60_000)
+    const reset = () => (clearTimeout(timer), (timer = setTimeout(lock, mins * 60_000)))
+    const evs = ['mousedown', 'keydown', 'touchstart']
+    evs.forEach((e) => window.addEventListener(e, reset))
+    return () => (clearTimeout(timer), evs.forEach((e) => window.removeEventListener(e, reset)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.data, cart.lines.length])
+
+  function lock() {
+    if (cart.lines.length) holdCart(true)
+    signOut()
+  }
+
+  // ------------------------------------------------ adding items
+  const addProduct = useCallback(
+    (p: PosProduct) => {
+      if (p.variants.length > 1 || p.variants.some((v) => v.packs.length)) return setVariantFor(p)
+      const v = p.variants[0]
+      if (!v) return
+      if (p.track_stock && v.stock_qty <= 0 && pos?.allow_negative_stock === false) {
+        sound('error')
+        return toast.error(t('نفد المخزون', 'Rupture de stock'))
+      }
+      dispatch({ type: 'addProduct', product: p, variant: v })
+      setLastKey(`p:${v.id}:`)
+      sound('ok')
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pos],
+  )
+
+  const addService = (s: PosService) => {
+    if (s.pricing_mode === 'open') return setAmountFor(s)
+    if (s.pricing_mode === 'tiered' || s.unit_ar) return setQtyFor({ service: s })
+    dispatch({ type: 'addService', service: s, qty: 1 })
+    setLastKey(`s:${s.id}`)
+    sound('ok')
+  }
+
+  const onSearchEnter = () => {
+    const code = search.trim()
+    if (!code) return
+    const hit = findByBarcode(catalog.data, code)
+    if (hit) {
+      dispatch({ type: 'addProduct', product: hit.product, variant: hit.variant, pack: hit.pack })
+      setLastKey(`p:${hit.variant.id}:${hit.pack?.id ?? ''}`)
+      sound('ok')
+      setSearch('')
+      return
+    }
+    if (filtered.products.length === 1 && !filtered.services.length) {
+      addProduct(filtered.products[0])
+      setSearch('')
+      return
+    }
+    if (/^\d{6,}$/.test(code)) {
+      sound('error')
+      toast.error(t(`الباركود ${code} غير موجود`, `Code-barres ${code} introuvable`))
+      setSearch('')
+    }
+  }
+
+  // ------------------------------------------------ filtering
+  const filtered = useMemo(() => {
+    const c = catalog.data
+    if (!c) return { products: [], services: [] }
+    const q = search.trim().toLowerCase()
+    const matches = (o: { name_ar: string; name_fr: string }) => o.name_ar.toLowerCase().includes(q) || o.name_fr.toLowerCase().includes(q)
+    const counter = c.services.filter((s) => s.kind === 'counter')
+    if (q)
+      return {
+        products: c.products.filter((p) => matches(p) || p.variants.some((v) => v.barcode?.includes(q) || v.sku?.toLowerCase().includes(q))).slice(0, 60),
+        services: c.services.filter(matches).slice(0, 20),
+      }
+    if (cat === 'services') return { products: [], services: c.services }
+    return { products: c.products.filter((p) => !cat || p.category_id === cat), services: cat ? [] : counter.filter((s) => !s.pos_quick) }
+  }, [catalog.data, search, cat])
+
+  const quick = useMemo(() => (catalog.data?.services ?? []).filter((s) => s.pos_quick && s.kind === 'counter').sort((a, b) => a.pos_sort - b.pos_sort), [catalog.data])
+
+  // ------------------------------------------------ hold / resume
+  const holdCart = (silent = false) => {
+    if (!cart.lines.length) return
+    const h: Held = { id: uuid(), at: new Date().toISOString(), label: cart.customer?.full_name ?? `${cart.lines.length} ${t('منتجات', 'articles')}`, state: cart }
+    const next = [h, ...held]
+    setHeld(next)
+    heldStore.set(next)
+    dispatch({ type: 'clear' })
+    if (!silent) toast.success(t('تم تعليق البيع', 'Vente mise en attente'))
+  }
+  const resume = (h: Held) => {
+    if (cart.lines.length) holdCart(true)
+    dispatch({ type: 'load', state: h.state })
+    const next = held.filter((x) => x.id !== h.id)
+    setHeld(next)
+    heldStore.set(next)
+    setHeldOpen(false)
+  }
+
+  // ------------------------------------------------ checkout
+  const checkout = async (p: { cash: number; card: number }) => {
+    setPaying(true)
+    const { data, error } = await sb.rpc('create_sale', { p: toPayload(cart, saleId.current, device.id, p) })
+    setPaying(false)
+    if (error) {
+      sound('error')
+      return toast.error(errorMessage(error, lang))
+    }
+    sound('success')
+    const sale = data as Sale
+    saleId.current = uuid()
+    dispatch({ type: 'clear' })
+    setPay(null)
+    setDone(sale)
+    if (pos?.auto_print !== false) setPrintSale(sale)
+    qc.invalidateQueries({ queryKey: ['pos-catalog'] })
+    qc.invalidateQueries({ queryKey: ['pos-history'] })
+  }
+
+  // ------------------------------------------------ keyboard shortcuts
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const modal = document.querySelector('[role="dialog"], [role="alertdialog"]')
+      if (e.key === 'F1') (e.preventDefault(), searchRef.current?.focus())
+      if (modal) return
+      if (e.key === 'F2' && cart.lines.length) (e.preventDefault(), setPay('cash'))
+      if (e.key === 'F3' && cart.lines.length) (e.preventDefault(), setPay('card'))
+      if (e.key === 'F4') (e.preventDefault(), setCustomerOpen(true))
+      if (e.key === 'F8') (e.preventDefault(), holdCart())
+      if (e.key === 'Escape' && document.activeElement === searchRef.current) setSearch('')
+      // Scanner typing anywhere goes to the search box
+      if (/^[\dA-Za-z]$/.test(e.key) && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') searchRef.current?.focus()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+
+  const maxDisc = me?.max_discount_percent ?? 0
+
+  return (
+    <div className="flex h-screen flex-col bg-bg">
+      {/* ---------------------------------------------- Header */}
+      <header className="flex h-16 shrink-0 items-center gap-4 border-b border-border bg-surface px-4">
+        <LogoMark size={36} />
+        <div className="hidden leading-tight md:block">
+          <div className="font-latin text-sm font-extrabold">
+            Sweet <span className="text-brand">House</span>
+          </div>
+          <div className="text-[11px] text-muted">{device.name}</div>
+        </div>
+        <div className="relative mx-auto w-full max-w-xl">
+          <Search className="pointer-events-none absolute inset-y-0 start-3.5 my-auto size-5 text-subtle" />
+          <input
+            ref={searchRef}
+            autoFocus
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && onSearchEnter()}
+            placeholder={t('امسح الباركود أو ابحث عن منتج / خدمة…', 'Scannez ou recherchez un produit / service…')}
+            className="h-11 w-full rounded-xl border border-border bg-surface-2/60 ps-11 pe-20 text-sm transition-all placeholder:text-subtle focus:border-brand focus:bg-surface focus:ring-4 focus:ring-[var(--ring)] focus:outline-none"
+          />
+          <div className="pointer-events-none absolute inset-y-0 end-3 flex items-center gap-1.5 text-subtle">
+            <ScanBarcode className="size-4" />
+            <Kbd>F1</Kbd>
+          </div>
+        </div>
+        <Tooltip content={online ? t('متصل', 'En ligne') : t('غير متصل بالإنترنت', 'Hors ligne')}>
+          <div className={cn('flex size-9 items-center justify-center rounded-lg', online ? 'text-success' : 'animate-pulse bg-danger/10 text-danger')}>{online ? <Wifi className="size-4" /> : <WifiOff className="size-4" />}</div>
+        </Tooltip>
+        <Tooltip content={t('المبيعات الأخيرة', 'Ventes récentes')}>
+          <Button variant="ghost" size="icon" onClick={() => setHistoryOpen(true)}>
+            <Clock />
+          </Button>
+        </Tooltip>
+        <Tooltip content={t('المبيعات المعلقة', 'En attente')}>
+          <Button variant="ghost" size="icon" className="relative" onClick={() => setHeldOpen(true)}>
+            <PauseCircle />
+            {held.length > 0 && <span className="num absolute -end-0.5 -top-0.5 flex size-4.5 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white">{held.length}</span>}
+          </Button>
+        </Tooltip>
+        <LangToggle compact />
+        <ThemeToggle />
+        <div className="flex items-center gap-2.5 border-s border-border ps-4">
+          <Avatar name={me?.full_name ?? ''} color={me?.color} src={me?.avatar_url} size={36} />
+          <div className="hidden leading-tight lg:block">
+            <div className="text-sm font-semibold">{me?.full_name}</div>
+            <div className="text-[11px] text-muted">{me?.role ? pick(me.role, 'name') : t('المالك', 'Propriétaire')}</div>
+          </div>
+          <Tooltip content={t('قفل وتبديل الموظف', 'Verrouiller / changer')}>
+            <Button variant="outline" size="icon" onClick={lock}>
+              <Lock />
+            </Button>
+          </Tooltip>
+        </div>
+      </header>
+
+      <div className="flex min-h-0 flex-1">
+        {/* ---------------------------------------------- Catalog */}
+        <section className="flex min-w-0 flex-1 flex-col">
+          {quick.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto border-b border-border bg-surface/60 px-4 py-3">
+              {quick.map((s) => (
+                <motion.button
+                  key={s.id}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => addService(s)}
+                  className="group flex shrink-0 items-center gap-2.5 rounded-xl px-4 py-2.5 text-start text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                  style={{ background: s.pos_color ?? '#0F172A' }}
+                >
+                  <DynamicIcon name={s.icon} className="size-5 opacity-90" />
+                  <div className="leading-tight">
+                    <div className="text-sm font-semibold whitespace-nowrap">{pick(s, 'name')}</div>
+                    <div className="num text-[11px] opacity-75">{s.pricing_mode === 'open' ? t('مبلغ حر', 'Libre') : money(s.price) + (s.unit_ar ? ` / ${pick(s, 'unit')}` : '')}</div>
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-2 overflow-x-auto px-4 pt-3 pb-1">
+            <CatChip active={!cat} onClick={() => setCat(null)} icon={<LayoutGrid className="size-4" />} label={t('الكل', 'Tout')} />
+            {catalog.data?.categories.map((c) => (
+              <CatChip key={c.id} active={cat === c.id} onClick={() => setCat(c.id)} color={c.color} icon={<DynamicIcon name={c.icon} className="size-4" />} label={pick(c, 'name')} />
+            ))}
+            <CatChip active={cat === 'services'} onClick={() => setCat('services')} icon={<DynamicIcon name="sparkles" className="size-4" />} label={t('الخدمات', 'Services')} />
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4">
+            {catalog.isLoading && !catalog.data ? (
+              <div className="flex justify-center py-20">
+                <Spinner />
+              </div>
+            ) : !filtered.products.length && !filtered.services.length ? (
+              <EmptyState icon={<Package />} title={search ? t('لا نتائج', 'Aucun résultat') : t('لا توجد منتجات', 'Aucun produit')} description={!search ? t('أضف منتجاتك من لوحة التحكم', 'Ajoutez vos produits dans le tableau de bord') : undefined} />
+            ) : (
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3">
+                {filtered.services.map((s) => (
+                  <motion.button key={s.id} layout whileTap={{ scale: 0.96 }} onClick={() => addService(s)} className="flex flex-col items-start gap-3 rounded-2xl border border-border bg-surface p-3.5 text-start shadow-card transition-all hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-pop">
+                    <div className="flex size-10 items-center justify-center rounded-xl bg-brand-50 text-brand">
+                      <DynamicIcon name={s.icon} className="size-5" />
+                    </div>
+                    <div className="line-clamp-2 min-h-10 text-sm leading-snug font-medium">{pick(s, 'name')}</div>
+                    <div className="num text-sm font-bold text-brand">{s.pricing_mode === 'open' ? t('مبلغ حر', 'Libre') : s.price ? money(s.price) : t('السعر عند البيع', 'Prix libre')}</div>
+                  </motion.button>
+                ))}
+                {filtered.products.map((p) => {
+                  const stock = p.variants.reduce((a, v) => a + Number(v.stock_qty), 0)
+                  const low = p.track_stock && stock <= p.low_stock_alert
+                  const price = Math.min(...p.variants.map((v) => v.price))
+                  return (
+                    <motion.button key={p.id} layout whileTap={{ scale: 0.96 }} onClick={() => addProduct(p)} className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-surface text-start shadow-card transition-all hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-pop">
+                      <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface-2">
+                        {p.image ? <img src={p.image} alt="" loading="lazy" className="size-full object-cover transition-transform duration-500 group-hover:scale-105" /> : <Package className="absolute inset-0 m-auto size-9 text-subtle/60" />}
+                        {p.track_stock && (
+                          <span className={cn('num absolute end-2 top-2 rounded-full px-2 py-0.5 text-[11px] font-bold backdrop-blur', stock <= 0 ? 'bg-danger text-white' : low ? 'bg-warning text-white' : 'bg-white/85 text-navy')}>{fmtQty(stock)}</span>
+                        )}
+                        {(p.variants.length > 1 || p.variants.some((v) => v.packs.length)) && <span className="absolute start-2 top-2 rounded-full bg-navy/80 px-2 py-0.5 text-[10px] text-white">{t('خيارات', 'Options')}</span>}
+                      </div>
+                      <div className="flex flex-1 flex-col justify-between gap-1 p-3">
+                        <div className="line-clamp-2 text-sm leading-snug font-medium">{pick(p, 'name')}</div>
+                        <div className="num text-sm font-bold text-brand">{money(price)}</div>
+                      </div>
+                    </motion.button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* ---------------------------------------------- Cart */}
+        <aside className="flex w-[400px] shrink-0 flex-col border-s border-border bg-surface xl:w-[440px]">
+          <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+            <button onClick={() => setCustomerOpen(true)} className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-dashed border-border px-3 py-2 text-start text-sm transition-colors hover:border-brand hover:bg-brand-50/50">
+              <UserRound className="size-4 shrink-0 text-muted" />
+              <span className={cn('truncate', !cart.customer && 'text-muted')}>{cart.customer?.full_name ?? t('زبون عابر', 'Client de passage')}</span>
+              <Kbd>F4</Kbd>
+            </button>
+            <Tooltip content={t('تعليق البيع (F8)', 'Mettre en attente (F8)')}>
+              <Button variant="ghost" size="icon" disabled={!cart.lines.length} onClick={() => holdCart()}>
+                <PauseCircle />
+              </Button>
+            </Tooltip>
+            <Tooltip content={t('إفراغ السلة', 'Vider')}>
+              <Button variant="ghost" size="icon" disabled={!cart.lines.length} onClick={() => dispatch({ type: 'clear' })}>
+                <Trash className="text-danger" />
+              </Button>
+            </Tooltip>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            {!cart.lines.length ? (
+              <div className="flex h-full flex-col items-center justify-center p-8 text-center">
+                <div className="relative mb-4">
+                  <div className="absolute inset-0 scale-150 rounded-full bg-brand/10 blur-2xl" />
+                  <ShoppingCart className="relative size-14 text-brand/40" strokeWidth={1.4} />
+                </div>
+                <div className="font-semibold">{t('السلة فارغة', 'Panier vide')}</div>
+                <div className="mt-1 text-sm text-muted">{t('امسح منتجاً أو اختر من القائمة', 'Scannez ou choisissez un article')}</div>
+              </div>
+            ) : (
+              <ul className="divide-y divide-border">
+                <AnimatePresence initial={false}>
+                  {cart.lines.map((l) => (
+                    <motion.li
+                      key={l.key}
+                      layout
+                      initial={{ opacity: 0, x: 20, backgroundColor: 'rgba(255,107,53,0.12)' }}
+                      animate={{ opacity: 1, x: 0, backgroundColor: lastKey === l.key ? ['rgba(255,107,53,0.12)', 'rgba(255,107,53,0)'] : 'rgba(255,107,53,0)' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="px-4 py-3"
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm leading-snug font-medium">{pick(l, 'name')}</div>
+                          <div className="num mt-0.5 flex items-center gap-1.5 text-xs text-muted">
+                            {can('pos.price_override') && l.base_price !== null ? (
+                              <PriceEdit value={l.unit_price} onChange={(price) => dispatch({ type: 'price', key: l.key, price })} />
+                            ) : (
+                              <span>{money(l.unit_price)}</span>
+                            )}
+                            {l.base_price !== null && l.unit_price !== l.base_price && <span className="text-subtle line-through">{money(l.base_price)}</span>}
+                            {l.discount > 0 && <Badge tone="success">-{money(l.discount)}</Badge>}
+                          </div>
+                        </div>
+                        <div className="num text-sm font-bold">{money(lineTotal(l))}</div>
+                      </div>
+                      <div className="mt-2 flex items-center gap-1.5">
+                        <div className="flex items-center rounded-lg border border-border" dir="ltr">
+                          <button className="flex size-8 items-center justify-center text-muted hover:text-text" onClick={() => dispatch({ type: 'qty', key: l.key, qty: l.qty - 1 })}>
+                            <Minus className="size-3.5" />
+                          </button>
+                          <button className="num min-w-10 px-1 text-sm font-semibold" onClick={() => setQtyFor({ line: l, service: l.service })}>
+                            {fmtQty(l.qty)}
+                          </button>
+                          <button className="flex size-8 items-center justify-center text-muted hover:text-text" onClick={() => dispatch({ type: 'qty', key: l.key, qty: l.qty + 1 })}>
+                            <Plus className="size-3.5" />
+                          </button>
+                        </div>
+                        {can('pos.discount') && (
+                          <LineDiscount
+                            line={l}
+                            maxPercent={maxDisc}
+                            onChange={(discount) => dispatch({ type: 'lineDiscount', key: l.key, discount })}
+                          />
+                        )}
+                        <button className="ms-auto flex size-8 items-center justify-center rounded-lg text-subtle hover:bg-danger/10 hover:text-danger" onClick={() => dispatch({ type: 'remove', key: l.key })}>
+                          <X className="size-4" />
+                        </button>
+                      </div>
+                    </motion.li>
+                  ))}
+                </AnimatePresence>
+              </ul>
+            )}
+          </div>
+
+          {/* totals */}
+          <div className="border-t border-border bg-surface-2/40 p-4">
+            <div className="space-y-1.5 text-sm">
+              <div className="flex justify-between text-muted">
+                <span>
+                  {t('المجموع الفرعي', 'Sous-total')} <span className="num">({fmtQty(totals.items)})</span>
+                </span>
+                <span className="num">{money(totals.subtotal)}</span>
+              </div>
+              {totals.discount > 0 && (
+                <div className="flex justify-between text-success">
+                  <span>{t('التخفيض', 'Remise')}</span>
+                  <span className="num">-{money(totals.discount)}</span>
+                </div>
+              )}
+              {can('pos.discount') && cart.lines.length > 0 && (
+                <button onClick={() => setDiscountOpen(true)} className="flex items-center gap-1 text-xs text-brand hover:underline">
+                  <Percent className="size-3" />
+                  {cart.discount ? t('تعديل تخفيض السلة', 'Modifier la remise') : t('تخفيض على السلة', 'Remise sur le panier')}
+                </button>
+              )}
+            </div>
+            <div className="mt-3 flex items-end justify-between">
+              <span className="text-sm font-medium text-muted">{t('المجموع', 'Total')}</span>
+              <motion.span key={totals.total} initial={{ scale: 1.08 }} animate={{ scale: 1 }} className="num text-3xl font-extrabold tracking-tight">
+                {money(totals.total)}
+              </motion.span>
+            </div>
+            <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
+              <Button size="xl" disabled={!cart.lines.length} onClick={() => setPay('cash')} className="text-base">
+                <Banknote className="!size-5" />
+                {t('نقداً', 'Espèces')}
+                <Kbd>F2</Kbd>
+              </Button>
+              <Button size="xl" variant="navy" disabled={!cart.lines.length} onClick={() => setPay('card')} className="px-5">
+                <CreditCard className="!size-5" />
+                <Kbd>F3</Kbd>
+              </Button>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      {/* ---------------------------------------------- dialogs */}
+      <VariantDialog
+        product={variantFor}
+        onClose={() => setVariantFor(null)}
+        onPick={(v, pack) => {
+          if (!variantFor) return
+          dispatch({ type: 'addProduct', product: variantFor, variant: v, pack })
+          setLastKey(`p:${v.id}:${pack?.id ?? ''}`)
+          sound('ok')
+        }}
+      />
+      <AmountDialog
+        service={amountFor}
+        onClose={() => setAmountFor(null)}
+        onConfirm={(amount) => {
+          if (amountFor) dispatch({ type: 'addService', service: amountFor, qty: 1, amount })
+          sound('ok')
+        }}
+      />
+      <QtyDialog
+        open={!!qtyFor}
+        title={qtyFor?.line ? pick(qtyFor.line, 'name') : qtyFor?.service ? pick(qtyFor.service, 'name') : ''}
+        initial={qtyFor?.line?.qty ?? 1}
+        service={qtyFor?.service}
+        onClose={() => setQtyFor(null)}
+        onConfirm={(q) => {
+          if (qtyFor?.line) dispatch({ type: 'qty', key: qtyFor.line.key, qty: q })
+          else if (qtyFor?.service) {
+            dispatch({ type: 'addService', service: qtyFor.service, qty: q })
+            setLastKey(`s:${qtyFor.service.id}`)
+            sound('ok')
+          }
+        }}
+      />
+      <PayDialog open={!!pay} mode={pay ?? 'cash'} total={totals.total} quickCash={pos?.quick_cash ?? []} onClose={() => setPay(null)} onPay={checkout} busy={paying} />
+      <CustomerDialog open={customerOpen} onClose={() => setCustomerOpen(false)} onPick={(c) => dispatch({ type: 'customer', customer: c })} />
+      <CartDiscountDialog open={discountOpen} onClose={() => setDiscountOpen(false)} net={totals.net} subtotal={totals.subtotal} current={cart.discount} maxPercent={maxDisc} onApply={(d) => dispatch({ type: 'discount', discount: d })} />
+      <HistorySheet open={historyOpen} onClose={() => setHistoryOpen(false)} onPrint={setPrintSale} />
+
+      <Sheet open={heldOpen} onOpenChange={setHeldOpen} title={t('المبيعات المعلقة', 'Ventes en attente')} width="max-w-md">
+        {!held.length ? (
+          <EmptyState icon={<PauseCircle />} title={t('لا توجد مبيعات معلقة', 'Aucune vente en attente')} />
+        ) : (
+          <div className="space-y-2">
+            {held.map((h) => (
+              <div key={h.id} className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium">{h.label}</div>
+                  <div className="num text-xs text-muted">
+                    {format(new Date(h.at), 'HH:mm')} · {money(cartTotals(h.state).total)}
+                  </div>
+                </div>
+                <Button size="sm" onClick={() => resume(h)}>
+                  {t('استئناف', 'Reprendre')}
+                </Button>
+                <Button size="icon-sm" variant="ghost" onClick={() => (setHeld(held.filter((x) => x.id !== h.id)), heldStore.set(held.filter((x) => x.id !== h.id)))}>
+                  <X />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Sheet>
+
+      {/* success */}
+      <AnimatePresence>
+        {done && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-40 flex items-center justify-center bg-navy/60 backdrop-blur-sm" onClick={() => setDone(null)}>
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ type: 'spring', bounce: 0.35 }}
+              className="w-full max-w-sm rounded-3xl bg-surface p-8 text-center shadow-pop"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <motion.div initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ delay: 0.1, type: 'spring', bounce: 0.5 }} className="mx-auto flex size-20 items-center justify-center rounded-full bg-success/10">
+                <CheckCircle2 className="size-11 text-success" />
+              </motion.div>
+              <div className="mt-4 text-xl font-bold">{t('تم البيع بنجاح', 'Vente enregistrée')}</div>
+              <div className="num mt-1 text-sm text-muted">
+                {done.number} · {money(done.total)}
+              </div>
+              {done.change_given > 0 && (
+                <div className="mt-5 rounded-2xl bg-success/10 p-4">
+                  <div className="text-sm text-success">{t('الباقي للزبون', 'À rendre')}</div>
+                  <div className="num text-4xl font-extrabold text-success">{money(done.change_given)}</div>
+                </div>
+              )}
+              <div className="mt-6 grid grid-cols-2 gap-2">
+                <Button variant="outline" onClick={() => setPrintSale(done)}>
+                  <Printer />
+                  {t('طباعة', 'Imprimer')}
+                </Button>
+                <Button autoFocus onClick={() => (setDone(null), searchRef.current?.focus())}>
+                  {t('بيع جديد', 'Nouvelle vente')}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {printSale && receiptCfg.data && <PrintReceipt sale={printSale} cfg={receiptCfg.data} onDone={() => setPrintSale(null)} />}
+    </div>
+  )
+}
+
+function CatChip({ active, onClick, label, icon, color }: { active: boolean; onClick: () => void; label: string; icon: React.ReactNode; color?: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn('flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all', active ? 'border-transparent text-white shadow-md' : 'border-border bg-surface text-muted hover:text-text')}
+      style={active ? { background: color ?? '#0F172A' } : undefined}
+    >
+      {icon}
+      {label}
+    </button>
+  )
+}
+
+function PriceEdit({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [edit, setEdit] = useState(false)
+  const [v, setV] = useState('')
+  if (!edit)
+    return (
+      <button onClick={() => (setV(String(value / 100)), setEdit(true))} className="underline decoration-dotted underline-offset-2 hover:text-brand">
+        {money(value)}
+      </button>
+    )
+  return (
+    <input
+      autoFocus
+      value={v}
+      onChange={(e) => setV(e.target.value.replace(/[^\d.,]/g, ''))}
+      onBlur={() => {
+        const c = parseMoney(v)
+        if (c !== null && c >= 0) onChange(c)
+        setEdit(false)
+      }}
+      onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+      className="num h-6 w-20 rounded border border-brand px-1 text-xs"
+      dir="ltr"
+    />
+  )
+}
+
+function LineDiscount({ line, maxPercent, onChange }: { line: CartLine; maxPercent: number; onChange: (v: number) => void }) {
+  const { t } = useLang()
+  const [open, setOpen] = useState(false)
+  const gross = Math.round(line.unit_price * line.qty)
+  const opts = [5, 10, 15, 20, 50].filter((p) => p <= maxPercent)
+  if (!opts.length && !line.discount) return null
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(!open)} className={cn('flex h-8 items-center gap-1 rounded-lg px-2 text-xs', line.discount ? 'bg-success/10 text-success' : 'text-subtle hover:bg-surface-2 hover:text-text')}>
+        <Percent className="size-3.5" />
+      </button>
+      {open && (
+        <div className="absolute bottom-9 start-0 z-10 flex gap-1 rounded-xl border border-border bg-surface p-1.5 shadow-pop">
+          {opts.map((p) => (
+            <button key={p} onClick={() => (onChange(Math.round((gross * p) / 100)), setOpen(false))} className="num rounded-lg px-2 py-1 text-xs font-semibold hover:bg-brand-50 hover:text-brand">
+              {p}%
+            </button>
+          ))}
+          {line.discount > 0 && (
+            <button onClick={() => (onChange(0), setOpen(false))} className="rounded-lg px-2 py-1 text-xs text-danger hover:bg-danger/10">
+              {t('إزالة', 'Retirer')}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CartDiscountDialog({
+  open,
+  onClose,
+  net,
+  subtotal,
+  current,
+  maxPercent,
+  onApply,
+}: {
+  open: boolean
+  onClose: () => void
+  net: number
+  subtotal: number
+  current: number
+  maxPercent: number
+  onApply: (v: number) => void
+}) {
+  const { t } = useLang()
+  const [mode, setMode] = useState<'percent' | 'amount'>('percent')
+  const [v, setV] = useState('')
+  useEffect(() => setV(open && current ? String(current / 100) : ''), [open, current])
+  useEffect(() => {
+    if (open && current) setMode('amount')
+  }, [open, current])
+  const n = Number(v.replace(',', '.')) || 0
+  const amount = mode === 'percent' ? Math.round((net * n) / 100) : Math.round(n * 100)
+  const pct = subtotal ? ((subtotal - (net - amount)) / subtotal) * 100 : 0
+  const over = pct > maxPercent + 0.001
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()} size="sm" title={t('تخفيض على السلة', 'Remise sur le panier')} description={t(`الحد المسموح لك: ${maxPercent}%`, `Votre limite : ${maxPercent}%`)}>
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant={mode === 'percent' ? 'navy' : 'outline'} onClick={() => setMode('percent')}>
+            %
+          </Button>
+          <Button variant={mode === 'amount' ? 'navy' : 'outline'} onClick={() => setMode('amount')}>
+            DH
+          </Button>
+        </div>
+        <Input autoFocus value={v} onChange={(e) => setV(e.target.value.replace(/[^\d.,]/g, ''))} className="num h-14 text-center text-2xl font-bold" dir="ltr" />
+        <div className={cn('num rounded-xl p-3 text-center text-sm', over ? 'bg-danger/10 text-danger' : 'bg-surface-2')}>
+          -{money(amount)} → {money(Math.max(0, net - amount))}
+          {over && <div className="mt-1 text-xs">{t('يتجاوز الحد المسموح', 'Dépasse votre limite')}</div>}
+        </div>
+        <div className="flex gap-2">
+          {current > 0 && (
+            <Button variant="danger-soft" onClick={() => (onApply(0), onClose())}>
+              {t('إزالة', 'Retirer')}
+            </Button>
+          )}
+          <Button className="flex-1" disabled={over || amount < 0 || amount > net} onClick={() => (onApply(amount), onClose())}>
+            {t('تطبيق', 'Appliquer')}
+          </Button>
+        </div>
+      </div>
+    </Dialog>
+  )
+}
+
+function HistorySheet({ open, onClose, onPrint }: { open: boolean; onClose: () => void; onPrint: (s: Sale) => void }) {
+  const { sb } = useAuth()
+  const { t } = useLang()
+  const cfg = useReceiptConfig(sb)
+  const [selected, setSelected] = useState<string | null>(null)
+  const list = useQuery({
+    queryKey: ['pos-history'],
+    enabled: open,
+    queryFn: async () => (await sb.rpc('recent_sales', { p_limit: 40 })).data as { id: string; number: string; status: string; total: number; created_at: string; employee_name: string; customer_name: string | null }[],
+  })
+  const sale = useQuery({
+    queryKey: ['sale', selected],
+    enabled: !!selected,
+    queryFn: async () => (await sb.rpc('get_sale', { p_id: selected })).data as Sale,
+  })
+  return (
+    <Sheet open={open} onOpenChange={(o) => !o && (onClose(), setSelected(null))} title={t('المبيعات الأخيرة', 'Ventes récentes')} width="max-w-lg">
+      {selected ? (
+        <div className="space-y-4">
+          <Button variant="ghost" size="sm" onClick={() => setSelected(null)}>
+            ← {t('رجوع', 'Retour')}
+          </Button>
+          {sale.data && cfg.data ? (
+            <>
+              <div className="flex justify-center rounded-xl bg-white p-4 ring-1 ring-border">
+                <Receipt sale={sale.data} cfg={cfg.data} />
+              </div>
+              <Button className="w-full" onClick={() => onPrint(sale.data!)}>
+                <Printer />
+                {t('إعادة الطباعة', 'Réimprimer')}
+              </Button>
+            </>
+          ) : (
+            <Spinner />
+          )}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {list.data?.map((s) => (
+            <button key={s.id} onClick={() => setSelected(s.id)} className="flex w-full items-center gap-3 rounded-xl border border-border bg-surface p-3 text-start transition-colors hover:border-brand/40">
+              <div className="min-w-0 flex-1">
+                <div className="num font-semibold">{s.number}</div>
+                <div className="truncate text-xs text-muted">
+                  <span className="num">{format(new Date(s.created_at), 'dd/MM HH:mm')}</span> · {s.employee_name}
+                  {s.customer_name ? ` · ${s.customer_name}` : ''}
+                </div>
+              </div>
+              <div className={cn('num font-bold', s.status === 'voided' && 'text-subtle line-through')}>{money(s.total)}</div>
+            </button>
+          ))}
+          {list.data && !list.data.length && <EmptyState title={t('لا مبيعات بعد', 'Aucune vente')} />}
+        </div>
+      )}
+    </Sheet>
+  )
+}
+

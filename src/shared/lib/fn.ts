@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 /** Invoke an Edge Function and surface its `{error}` body as a thrown Error. */
-export async function callFn<T = Record<string, unknown>>(sb: SupabaseClient, name: string, body: unknown): Promise<T> {
+export async function callFn<T = Record<string, unknown>>(sb: SupabaseClient, name: string, body: Record<string, unknown>): Promise<T> {
   const { data, error } = await sb.functions.invoke(name, { body })
   if (error) {
     let msg = error.message
