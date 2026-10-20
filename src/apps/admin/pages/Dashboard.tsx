@@ -7,6 +7,7 @@ import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
 import { money, qty } from '@/shared/lib/money'
 import { Avatar, Card, CardHeader, Skeleton } from '@/shared/ui/primitives'
+import { TodayTasks } from '../TodayTasks'
 import { EmptyState, PageHeader, StatCard, Tabs } from '@/shared/ui/data'
 
 type Summary = {
@@ -83,6 +84,7 @@ export function DashboardPage() {
     return (
       <>
         <PageHeader icon={<LayoutDashboard />} title={`${greet}، ${me?.full_name ?? ''}`} />
+        <TodayTasks />
         <EmptyState title={t('مرحباً بك', 'Bienvenue')} description={t('استعمل القائمة للوصول إلى الأقسام المسموح لك بها', 'Utilisez le menu pour accéder à vos sections')} />
       </>
     )
@@ -105,6 +107,8 @@ export function DashboardPage() {
           />
         }
       />
+
+      <TodayTasks />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard index={0} loading={cur.isLoading} label={t('رقم المعاملات', "Chiffre d'affaires")} value={money(s?.revenue)} icon={<TrendingUp />} delta={delta(s?.revenue, prev.data?.revenue)} hint={t('مقارنة بالفترة السابقة', 'vs période précédente')} />

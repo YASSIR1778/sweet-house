@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { format } from 'date-fns'
 import type { LegalSettings, ReceiptSettings, Sale, StoreSettings } from '@/shared/lib/types'
 import { money, qty } from '@/shared/lib/money'
+import QRCode from 'qrcode'
 
 export type ReceiptConfig = {
   store: Partial<StoreSettings>
@@ -82,9 +83,30 @@ export function Receipt({ sale, cfg }: { sale: Sale; cfg: ReceiptConfig }) {
       <div style={{ textAlign: 'center', marginTop: 4 }}>
         {ar && r.footer_ar && <div style={{ fontWeight: 600 }}>{r.footer_ar}</div>}
         {fr && r.footer_fr && <div style={{ fontFamily: 'Inter' }}>{r.footer_fr}</div>}
+        {r.show_qr && r.qr_url && (
+          <div style={{ marginTop: 8 }}>
+            <QrSvg text={r.qr_url} />
+            {(r.qr_label_ar || r.qr_label_fr) && <div style={{ fontSize: 10, marginTop: 3 }}>{ar ? r.qr_label_ar : r.qr_label_fr}</div>}
+          </div>
+        )}
         <div style={{ fontSize: 9, marginTop: 6, fontFamily: 'Inter', opacity: 0.7 }}>Sweet House · {sale.id.slice(0, 8)}</div>
       </div>
     </div>
+  )
+}
+
+
+/** Synchronous QR (SVG) so it is ready before printing starts. */
+export function QrSvg({ text, size = 90 }: { text: string; size?: number }) {
+  const q = QRCode.create(text, { errorCorrectionLevel: 'M' })
+  const n = q.modules.size
+  const cells: string[] = []
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (q.modules.get(x, y)) cells.push(`M${x} ${y}h1v1h-1z`)
+  return (
+    <svg width={size} height={size} viewBox={`-1 -1 ${n + 2} ${n + 2}`} style={{ display: 'block', margin: '0 auto' }} shapeRendering="crispEdges">
+      <rect x={-1} y={-1} width={n + 2} height={n + 2} fill="#fff" />
+      <path d={cells.join('')} fill="#000" />
+    </svg>
   )
 }
 

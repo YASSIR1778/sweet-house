@@ -9,6 +9,7 @@ import { NAV } from './nav'
 import { LoginPage } from './pages/Login'
 import { SetupPage } from './pages/Setup'
 import { NoAccessPage } from './pages/NoAccess'
+import { MfaChallenge, useMfaRequired } from './Mfa'
 
 const sb = getSupabase('admin')
 
@@ -26,6 +27,7 @@ const router = createHashRouter([
 
 function Gate() {
   const { session, me, loading } = useAuth()
+  const mfa = useMfaRequired()
   const setup = useQuery({
     queryKey: ['setup-status'],
     queryFn: async () => {
@@ -38,6 +40,8 @@ function Gate() {
   if (loading || setup.isLoading) return <Splash />
   if (setup.data && !setup.data.has_owner) return <SetupPage onDone={() => setup.refetch()} />
   if (!session) return <LoginPage />
+  if (mfa.state === 'checking') return <Splash />
+  if (mfa.state === 'required') return <MfaChallenge onDone={mfa.done} />
   if (!me) return <NoAccessPage />
   if (!me.can_use_admin && !me.permissions.includes('admin.access')) return <NoAccessPage />
   return <RouterProvider router={router} />

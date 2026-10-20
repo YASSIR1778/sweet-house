@@ -227,6 +227,7 @@ export type LegalSettings = {
   cnss: string
   default_tax_rate: number
   tax_rates: number[]
+  cndp?: string
 }
 
 export type ReceiptSettings = {
@@ -239,4 +240,7 @@ export type ReceiptSettings = {
   footer_ar: string
   footer_fr: string
   languages: 'both' | 'ar' | 'fr'
+  qr_url?: string
+  qr_label_ar?: string
+  qr_label_fr?: string
 }

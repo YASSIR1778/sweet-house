@@ -10,6 +10,7 @@ import { useAdminServices, useShop, useSite } from '../data'
 import { ProductCard, SectionTitle, ServiceCard } from '../components'
 import { useSeo } from '../Layout'
 import { CustomRequestBanner } from './Services'
+import { OpenBadge } from '../Layout'
 
 export function HomePage() {
   const { t, pick } = useLang()
@@ -42,6 +43,9 @@ export function HomePage() {
               <Sparkles className="size-4 text-brand" />
               {store ? pick(store, 'name') : 'Sweet House'} · {t('تطوان', 'Tétouan')}
             </motion.div>
+            <div className="mt-3">
+              <OpenBadge big />
+            </div>
             <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="mt-6 text-4xl leading-[1.15] font-extrabold tracking-tight md:text-6xl">
               {w ? pick(w.hero, 'title') : <Skeleton className="h-14 w-full bg-white/10" />}
             </motion.h1>

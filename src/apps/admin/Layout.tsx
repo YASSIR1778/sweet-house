@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { AnimatePresence, motion } from 'motion/react'
-import { ExternalLink, Lock, LogOut, Menu, MonitorPlay, X } from 'lucide-react'
+import { ExternalLink, Lock, LogOut, Menu, MonitorPlay, ShieldCheck, X } from 'lucide-react'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
 import { cn } from '@/shared/lib/utils'
@@ -11,6 +11,7 @@ import { Dropdown, DropdownContent, DropdownItem, DropdownSeparator, DropdownTri
 import { EmptyState } from '@/shared/ui/data'
 import { NAV } from './nav'
 import { NotificationsBell } from './Notifications'
+import { SecurityDialog } from './Mfa'
 import { useOnlinePending } from '@/shared/lib/online'
 
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
@@ -84,6 +85,7 @@ export function Layout() {
   const { t } = useLang()
   const loc = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [security, setSecurity] = useState(false)
 
   const current = NAV.flatMap((g) => g.items).find((i) => loc.pathname.startsWith(i.path))
   const allowed = !current?.perm || can(current.perm)
@@ -124,6 +126,7 @@ export function Layout() {
         )}
       </AnimatePresence>
 
+      <SecurityDialog open={security} onClose={() => setSecurity(false)} />
       <div className="lg:ps-64">
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-surface/80 px-4 backdrop-blur-lg sm:px-6">
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)}>
@@ -153,6 +156,9 @@ export function Layout() {
             <DropdownContent>
               <div className="px-2.5 py-2 text-xs text-muted">{me?.username}</div>
               <DropdownSeparator />
+              <DropdownItem icon={<ShieldCheck />} onSelect={() => setSecurity(true)}>
+                {t('أمان الحساب', 'Sécurité')}
+              </DropdownItem>
               <DropdownItem icon={<LogOut />} danger onSelect={() => signOut()}>
                 {t('تسجيل الخروج', 'Déconnexion')}
               </DropdownItem>

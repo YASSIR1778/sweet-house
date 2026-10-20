@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Copy, Eye, MoreVertical, Package, Pencil, Plus, Search, SlidersHorizontal, Star, Trash } from 'lucide-react'
+import { Copy, Eye, FileSpreadsheet, MoreVertical, Package, Pencil, Plus, Search, SlidersHorizontal, Star, Trash } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -13,6 +13,7 @@ import { DataTable, EmptyState, PageHeader, StatCard, type Column } from '@/shar
 import { Select } from '@/shared/ui/select'
 import { ProductEditor } from './ProductEditor'
 import { StockDialog } from './StockDialog'
+import { ImportProductsDialog } from './ImportProducts'
 
 export type ProductRow = Product & {
   categories: Pick<Category, 'id' | 'name_ar' | 'name_fr' | 'color'> | null
@@ -30,6 +31,7 @@ export function ProductsPage() {
   const [editing, setEditing] = useState<string | 'new' | null>(null)
   const [duplicateOf, setDuplicateOf] = useState<string | null>(null)
   const [stockFor, setStockFor] = useState<ProductRow | null>(null)
+  const [importing, setImporting] = useState(false)
 
   const products = useQuery({
     queryKey: ['products'],
@@ -218,10 +220,16 @@ export function ProductsPage() {
         title={t('المنتجات', 'Produits')}
         description={t('أضف وعدّل منتجاتك، أسعارها، أنواعها ومخزونها', 'Gérez produits, prix, variantes et stock')}
         actions={
-          <Button onClick={() => setEditing('new')}>
-            <Plus />
-            {t('منتج جديد', 'Nouveau produit')}
-          </Button>
+          <>
+            <Button variant="outline" onClick={() => setImporting(true)}>
+              <FileSpreadsheet />
+              {t('استيراد من Excel', 'Importer Excel')}
+            </Button>
+            <Button onClick={() => setEditing('new')}>
+              <Plus />
+              {t('منتج جديد', 'Nouveau produit')}
+            </Button>
+          </>
         }
       />
 
@@ -292,6 +300,7 @@ export function ProductsPage() {
         }}
       />
       <StockDialog product={stockFor} onClose={() => setStockFor(null)} />
+      <ImportProductsDialog open={importing} onClose={() => setImporting(false)} />
     </>
   )
 }

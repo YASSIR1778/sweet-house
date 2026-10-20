@@ -30,7 +30,7 @@ import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
 import { errorMessage } from '@/shared/lib/errors'
 import { money, parseMoney, qty as fmtQty } from '@/shared/lib/money'
-import { cn, storage, uuid } from '@/shared/lib/utils'
+import { cn, storage, uuid, whatsappLink } from '@/shared/lib/utils'
 import type { Sale } from '@/shared/lib/types'
 import { useReceiptConfig } from '@/shared/lib/receipt-config'
 import { Avatar, Badge, Button, Input, Kbd, Spinner } from '@/shared/ui/primitives'
@@ -40,7 +40,7 @@ import { EmptyState } from '@/shared/ui/data'
 import { DynamicIcon } from '@/shared/ui/icon'
 import { PrintReceipt, Receipt } from '@/shared/ui/receipt'
 import { findByBarcode, useCatalog, type PosProduct, type PosService } from './catalog'
-import { cartTotals, lineTotal, toPayload, useCart, type CartLine, type CartState } from './cart'
+import { cartTotals, emptyCart, lineTotal, toPayload, useCart, type CartLine, type CartState } from './cart'
 import { AmountDialog, CustomerDialog, PayDialog, QtyDialog, VariantDialog } from './dialogs'
 import { beep, type DeviceInfo } from './device'
 import { ShiftSheet, type ShiftStatus } from './shift'
@@ -252,6 +252,12 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
       toast.warning(t('لا يوجد إنترنت: حُفظ البيع على الجهاز وسيُرسل تلقائياً عند عودة الاتصال', 'Hors ligne : vente enregistrée localement, envoi automatique au retour du réseau'))
     }
     sound('success')
+    if (cart.request && !error) {
+      const { error: e2 } = await sb.rpc('close_request_with_sale', { p_request: cart.request.id, p_sale: sale.id })
+      if (e2) toast.error(errorMessage(e2, lang))
+      else toast.success(t(`تم إغلاق الطلب ${cart.request.number} ✅`, `Demande ${cart.request.number} clôturée ✅`))
+      qc.invalidateQueries({ queryKey: ['pos-requests'] })
+    }
     saleId.current = uuid()
     dispatch({ type: 'clear' })
     setPay(null)
@@ -260,6 +266,40 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
     qc.invalidateQueries({ queryKey: ['pos-catalog'] })
     qc.invalidateQueries({ queryKey: ['pos-history'] })
     qc.invalidateQueries({ queryKey: ['shift', device.id] })
+  }
+
+  // ------------------------------------------------ prepare an online request (school list…) in the cart
+  useEffect(() => {
+    const on = (e: Event) => {
+      const d = (e as CustomEvent).detail as { id: string; number: string; customer_name: string; phone: string; customer_id: string | null; service: string }
+      if (cart.lines.length && !cart.request) holdCart(true)
+      dispatch({ type: 'load', state: { ...emptyCart, request: { id: d.id, number: d.number, customer_name: d.customer_name, phone: d.phone, service: d.service }, customer: d.customer_id ? { id: d.customer_id, full_name: d.customer_name, phone: d.phone } : null, note: d.number } })
+      setOnlineOpen(false)
+      toast.info(t(`حضّر طلب ${d.number}: امسح المنتجات ثم أرسل الثمن للزبون`, `Préparez ${d.number} : scannez puis envoyez le prix`))
+      searchRef.current?.focus()
+    }
+    window.addEventListener('sh-prepare-request', on)
+    return () => window.removeEventListener('sh-prepare-request', on)
+  })
+
+  const sendPrice = async () => {
+    if (!cart.request) return
+    await sb.from('service_requests').update({ price: totals.total }).eq('id', cart.request.id)
+    const list = cart.lines.map((l) => `• ${pick(l, 'name')} × ${fmtQty(l.qty)} = ${money(lineTotal(l))}`).join('\n')
+    const text = t(
+      `مرحباً ${cart.request.customer_name} 👋
+طلبكم ${cart.request.number} (${cart.request.service}) جاهز:
+${list}
+
+المجموع: ${money(totals.total)}
+ننتظركم في المحل 🌟`,
+      `Bonjour ${cart.request.customer_name} 👋
+Votre demande ${cart.request.number} est prête :
+${list}
+
+Total : ${money(totals.total)}`,
+    )
+    window.open(whatsappLink(cart.request.phone, text), '_blank')
   }
 
   // ------------------------------------------------ keyboard shortcuts
@@ -450,6 +490,30 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
             </Tooltip>
           </div>
 
+          {cart.request && (
+            <div className="border-b border-border bg-brand-50/60 px-4 py-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold">
+                    {t('تحضير', 'Préparation')} <span className="num">{cart.request.number}</span>
+                  </div>
+                  <div className="truncate text-xs text-muted">{cart.request.service} · {cart.request.customer_name}</div>
+                </div>
+                <button onClick={() => dispatch({ type: 'request', request: null })} className="text-subtle hover:text-danger">
+                  <X className="size-4" />
+                </button>
+              </div>
+              <div className="mt-2 flex gap-2">
+                <Button size="sm" variant="success" disabled={!cart.lines.length} onClick={sendPrice}>
+                  {t('إرسال الثمن واتساب', 'Envoyer le prix')}
+                </Button>
+                <Button size="sm" variant="outline" disabled={!cart.lines.length} onClick={() => holdCart()}>
+                  <PauseCircle />
+                  {t('تعليق حتى يأتي', 'En attente')}
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="flex-1 overflow-y-auto">
             {!cart.lines.length ? (
               <div className="flex h-full flex-col items-center justify-center p-8 text-center">

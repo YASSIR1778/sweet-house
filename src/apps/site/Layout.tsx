@@ -8,7 +8,7 @@ import { Button } from '@/shared/ui/primitives'
 import { LangToggle, Logo } from '@/shared/ui/brand'
 import { useCart } from './cart'
 import { CartDrawer } from './pages/Checkout'
-import { useSite } from './data'
+import { openStatus, useSite } from './data'
 
 const LINKS = [
   { to: '/', ar: 'الرئيسية', fr: 'Accueil', end: true },
@@ -72,6 +72,7 @@ export function SiteLayout() {
             ))}
           </nav>
           <div className="ms-auto flex items-center gap-1">
+            <OpenBadge />
             <Button asChild variant="ghost" size="icon" className="hidden sm:inline-flex">
               <Link to="/shop" aria-label="search">
                 <Search />
@@ -177,6 +178,7 @@ export function SiteLayout() {
         </div>
         <div className="border-t border-white/10 py-5 text-center text-xs text-white/40">
           © {new Date().getFullYear()} {store ? pick(store, 'name') : 'Sweet House'}
+          {site.data?.legal.cndp && <span className="num"> · CNDP {site.data.legal.cndp}</span>}
         </div>
       </footer>
 
@@ -186,5 +188,37 @@ export function SiteLayout() {
       </a>
       <CartDrawer />
     </div>
+  )
+}
+
+const DAY: Record<number, [string, string]> = { 0: ['الأحد', 'dimanche'], 1: ['الإثنين', 'lundi'], 2: ['الثلاثاء', 'mardi'], 3: ['الأربعاء', 'mercredi'], 4: ['الخميس', 'jeudi'], 5: ['الجمعة', 'vendredi'], 6: ['السبت', 'samedi'] }
+
+export function OpenBadge({ big }: { big?: boolean }) {
+  const { t } = useLang()
+  const site = useSite()
+  const [, tick] = useState(0)
+  useEffect(() => {
+    const i = setInterval(() => tick((x) => x + 1), 60_000)
+    return () => clearInterval(i)
+  }, [])
+  const st = openStatus(site.data?.store.hours)
+  if (!st) return null
+  const label = st.open
+    ? st.closingSoon
+      ? t(`يغلق قريباً (${st.until})`, `Ferme bientôt (${st.until})`)
+      : t(`مفتوح الآن · حتى ${st.until}`, `Ouvert · jusqu’à ${st.until}`)
+    : st.next
+      ? st.today
+        ? t(`مغلق · يفتح ${st.next}`, `Fermé · ouvre à ${st.next}`)
+        : t(`مغلق · يفتح ${DAY[st.day!]?.[0]} ${st.next}`, `Fermé · ouvre ${DAY[st.day!]?.[1]} ${st.next}`)
+      : t('مغلق', 'Fermé')
+  return (
+    <span className={cn('items-center gap-1.5 rounded-full font-medium', big ? 'inline-flex px-3 py-1.5 text-sm' : 'me-2 hidden px-2.5 py-1 text-xs md:inline-flex', st.open ? (st.closingSoon ? 'bg-warning/10 text-warning' : 'bg-success/10 text-success') : 'bg-danger/10 text-danger')}>
+      <span className="relative flex size-2">
+        {st.open && <span className="absolute inline-flex size-full animate-ping rounded-full bg-current opacity-60" />}
+        <span className="relative inline-flex size-2 rounded-full bg-current" />
+      </span>
+      <span className="num">{label}</span>
+    </span>
   )
 }

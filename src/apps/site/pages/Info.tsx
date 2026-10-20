@@ -5,7 +5,7 @@ import { whatsappLink } from '@/shared/lib/utils'
 import { Button, Card, Skeleton } from '@/shared/ui/primitives'
 import { EmptyState } from '@/shared/ui/data'
 import { useSite } from '../data'
-import { useSeo } from '../Layout'
+import { OpenBadge, useSeo } from '../Layout'
 
 const DAYS: Record<number, [string, string]> = { 1: ['الإثنين', 'Lundi'], 2: ['الثلاثاء', 'Mardi'], 3: ['الأربعاء', 'Mercredi'], 4: ['الخميس', 'Jeudi'], 5: ['الجمعة', 'Vendredi'], 6: ['السبت', 'Samedi'], 0: ['الأحد', 'Dimanche'] }
 
@@ -45,9 +45,12 @@ export function ContactPage() {
             </div>
           </Card>
           <Card className="p-6">
-            <div className="mb-4 flex items-center gap-2 font-bold">
-              <Clock className="size-5 text-brand" />
-              {t('أوقات العمل', 'Horaires')}
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 font-bold">
+                <Clock className="size-5 text-brand" />
+                {t('أوقات العمل', 'Horaires')}
+              </div>
+              <OpenBadge big />
             </div>
             <div className="space-y-2 text-sm">
               {hours.map((h) => (
@@ -92,6 +95,11 @@ export function LegalPage({ kind }: { kind: 'privacy' | 'terms' }) {
       <h1 className="text-4xl font-extrabold">{title}</h1>
       <Card className="mt-8 p-8">
         {legal ? <div className="leading-loose whitespace-pre-line text-muted">{pick(legal, kind)}</div> : <Skeleton className="h-40" />}
+        {kind === 'privacy' && site.data?.legal.cndp && (
+          <div className="mt-6 rounded-xl bg-surface-2 p-4 text-sm">
+            {t('رقم التصريح لدى اللجنة الوطنية لمراقبة حماية المعطيات ذات الطابع الشخصي (CNDP):', 'N° de déclaration auprès de la CNDP :')} <span className="num font-semibold">{site.data.legal.cndp}</span>
+          </div>
+        )}
       </Card>
     </div>
   )

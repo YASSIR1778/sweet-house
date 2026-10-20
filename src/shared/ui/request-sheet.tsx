@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
-import { Banknote, Building2, CheckCheck, Copy, Download, ExternalLink, FileCheck2, FileText, MessageCircle, Phone, Trash, Upload } from 'lucide-react'
+import { Banknote, Building2, CheckCheck, ShoppingCart, Copy, Download, ExternalLink, FileCheck2, FileText, MessageCircle, Phone, Trash, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -22,6 +22,7 @@ type Detail = {
   service_name_ar: string
   service_name_fr: string
   customer_name: string
+  customer_id: string | null
   phone: string
   email: string | null
   status: string
@@ -280,6 +281,21 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
               </div>
             )}
           </Card>
+
+          {deviceId && can('pos.sell') && r.payment_status !== 'paid' && !statuses.data?.find((x) => x.key === r.status)?.is_final && (
+            <Button
+              size="lg"
+              variant="navy"
+              className="w-full"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('sh-prepare-request', { detail: { id: r.id, number: r.number, customer_name: r.customer_name, phone: r.phone, customer_id: r.customer_id, service: pick(r, 'service_name') } }))
+                onClose()
+              }}
+            >
+              <ShoppingCart />
+              {t('تحضير الطلب في سلة نقطة البيع', 'Préparer dans le panier du POS')}
+            </Button>
+          )}
 
           {/* status */}
           {can('requests.manage') && (

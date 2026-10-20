@@ -247,6 +247,9 @@ export function SettingsPage() {
                   <Field label={t('الاسم القانوني للمقاولة', 'Raison sociale')} className="sm:col-span-2">
                     <Input value={legal.company_name ?? ''} onChange={(e) => setLegal({ ...legal, company_name: e.target.value })} />
                   </Field>
+                  <Field label={t('رقم تصريح/إذن CNDP', 'N° de déclaration CNDP')} hint={t('يظهر في صفحة سياسة الخصوصية', 'Affiché dans la politique de confidentialité')}>
+                    <Input value={legal.cndp ?? ''} onChange={(e) => setLegal({ ...legal, cndp: e.target.value })} dir="ltr" className="num" />
+                  </Field>
                   {(['ice', 'if', 'rc', 'patente', 'cnss'] as const).map((k) => (
                     <Field key={k} label={k === 'patente' ? t('الضريبة المهنية (Patente)', 'Patente (TP)') : k.toUpperCase()}>
                       <Input value={(legal[k] as string) ?? ''} onChange={(e) => setLegal({ ...legal, [k]: e.target.value })} dir="ltr" className="num" />
@@ -327,6 +330,20 @@ export function SettingsPage() {
                     <SwitchRow label={t('إظهار الشعار', 'Afficher le logo')} checked={receipt.show_logo ?? true} onCheckedChange={(show_logo) => setReceipt({ ...receipt, show_logo })} />
                     <SwitchRow label={t('إظهار المعلومات القانونية', 'Mentions légales')} checked={receipt.show_legal ?? true} onCheckedChange={(show_legal) => setReceipt({ ...receipt, show_legal })} />
                     <SwitchRow label={t('إظهار اسم البائع', 'Nom du vendeur')} checked={receipt.show_employee ?? true} onCheckedChange={(show_employee) => setReceipt({ ...receipt, show_employee })} />
+                    <SwitchRow label={t('رمز QR في أسفل الوصل', 'QR code en bas du ticket')} description={t('مثلاً رابط تقييم المكتبة في Google Maps أو صفحة الموقع', 'Ex : lien d’avis Google Maps ou site')} checked={receipt.show_qr ?? false} onCheckedChange={(show_qr) => setReceipt({ ...receipt, show_qr })} />
+                    {receipt.show_qr && (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Field label={t('الرابط', 'Lien')} className="sm:col-span-2" hint={t('من Google Maps: صفحة المكتبة ← "طلب تقييمات" ← انسخ الرابط', 'Google Maps → Demander des avis → copier le lien')}>
+                          <Input value={receipt.qr_url ?? ''} onChange={(e) => setReceipt({ ...receipt, qr_url: e.target.value })} dir="ltr" placeholder="https://g.page/r/..." />
+                        </Field>
+                        <Field label={t('النص تحت الرمز (ع)', 'Texte (ar)')}>
+                          <Input value={receipt.qr_label_ar ?? ''} onChange={(e) => setReceipt({ ...receipt, qr_label_ar: e.target.value })} placeholder="قيّمنا على Google ⭐" />
+                        </Field>
+                        <Field label={t('النص تحت الرمز (ف)', 'Texte (fr)')}>
+                          <Input value={receipt.qr_label_fr ?? ''} onChange={(e) => setReceipt({ ...receipt, qr_label_fr: e.target.value })} dir="ltr" placeholder="Notez-nous sur Google ⭐" />
+                        </Field>
+                      </div>
+                    )}
                     <div className="grid gap-3 sm:grid-cols-2">
                       <Field label={t('نص أعلى الوصل (ع)', 'En-tête (ar)')}>
                         <Input value={receipt.header_ar ?? ''} onChange={(e) => setReceipt({ ...receipt, header_ar: e.target.value })} />

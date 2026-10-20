@@ -15,6 +15,7 @@ import { DataTable, PageHeader, StatCard, type Column } from '@/shared/ui/data'
 import { Select } from '@/shared/ui/select'
 import { ColorPicker, MoneyInput } from '@/shared/ui/pickers'
 import { DynamicIcon } from '@/shared/ui/icon'
+import { RecurringExpenses } from './RecurringExpenses'
 
 type Cat = { id: string; name_ar: string; name_fr: string; icon: string | null; color: string; sort: number }
 type Exp = { id: string; category_id: string | null; amount: number; spent_on: string; paid_from: 'drawer' | 'bank' | 'owner'; note: string | null; employees: { full_name: string } | null }
@@ -173,6 +174,7 @@ export function ExpensesPage() {
           </div>
         </Card>
       </div>
+      <RecurringExpenses cats={cats.data ?? []} />
       <DataTable rows={list.data ?? []} columns={columns} rowKey={(e) => e.id} loading={list.isLoading} />
 
       <Dialog open={!!form} onOpenChange={(o) => !o && setForm(null)} size="sm" title={t('مصروف جديد', 'Nouvelle dépense')} description={t('مصاريف الدرج تُسجَّل من نقطة البيع', 'Les dépenses de caisse se saisissent au POS')}>

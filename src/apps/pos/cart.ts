@@ -18,7 +18,8 @@ export type CartLine = {
   discount: number
 }
 
-export type CartState = { lines: CartLine[]; discount: number; customer: { id: string; full_name: string; phone: string | null } | null; note: string }
+export type LinkedRequest = { id: string; number: string; customer_name: string; phone: string; service: string }
+export type CartState = { lines: CartLine[]; discount: number; customer: { id: string; full_name: string; phone: string | null } | null; note: string; request?: LinkedRequest | null }
 
 type Action =
   | { type: 'addProduct'; product: PosProduct; variant: PosVariant; pack?: PosPack | null; qty?: number }
@@ -30,10 +31,11 @@ type Action =
   | { type: 'discount'; discount: number }
   | { type: 'customer'; customer: CartState['customer'] }
   | { type: 'note'; note: string }
+  | { type: 'request'; request: LinkedRequest | null }
   | { type: 'load'; state: CartState }
   | { type: 'clear' }
 
-export const emptyCart: CartState = { lines: [], discount: 0, customer: null, note: '' }
+export const emptyCart: CartState = { lines: [], discount: 0, customer: null, note: '', request: null }
 
 function reprice(l: CartLine): CartLine {
   if (l.type === 'service' && l.service && l.service.pricing_mode === 'tiered' && l.unit_price === l.base_price) {
@@ -102,6 +104,8 @@ function reducer(s: CartState, a: Action): CartState {
       return { ...s, customer: a.customer }
     case 'note':
       return { ...s, note: a.note }
+    case 'request':
+      return { ...s, request: a.request }
     case 'load':
       return a.state
     case 'clear':

@@ -17,17 +17,36 @@ export type WebsiteSettings = {
 export type DeliverySettings = { enabled: boolean; cod: boolean; default_price: number; free_above: number | null; zones: { city: string; city_ar: string; price: number }[] }
 export type PaymentSettings = { cod: boolean; in_store: boolean; bank_transfer: boolean; bank_name: string; rib: string; account_holder: string }
 
-export type SiteData = { store: StoreSettings; website: WebsiteSettings; delivery: DeliverySettings; payments: PaymentSettings }
+export type SiteData = { store: StoreSettings; website: WebsiteSettings; delivery: DeliverySettings; payments: PaymentSettings; legal: { cndp?: string; company_name?: string; ice?: string } }
+
+/** Opening status from the weekly hours (Morocco local time). */
+export function openStatus(hours: StoreSettings['hours'] | undefined, now = new Date()) {
+  if (!hours?.length) return null
+  const local = new Date(now.toLocaleString('en-US', { timeZone: 'Africa/Casablanca' }))
+  const day = local.getDay()
+  const mins = local.getHours() * 60 + local.getMinutes()
+  const toMin = (s: string | null) => (s ? Number(s.slice(0, 2)) * 60 + Number(s.slice(3, 5)) : null)
+  const today = hours.find((h) => h.day === day)
+  const o = toMin(today?.open ?? null)
+  const c = toMin(today?.close ?? null)
+  if (o !== null && c !== null && mins >= o && mins < c) return { open: true, until: today!.close as string, closingSoon: c - mins <= 30 }
+  if (o !== null && mins < o) return { open: false, next: today!.open as string, today: true }
+  for (let i = 1; i <= 7; i++) {
+    const h = hours.find((x) => x.day === (day + i) % 7)
+    if (h?.open) return { open: false, next: h.open, day: (day + i) % 7, today: false }
+  }
+  return { open: false }
+}
 
 export function useSite() {
   return useQuery({
     queryKey: ['site-settings'],
     staleTime: 5 * 60_000,
     queryFn: async () => {
-      const { data, error } = await sb.from('settings').select('key, value').in('key', ['store', 'website', 'delivery', 'online_payments'])
+      const { data, error } = await sb.from('settings').select('key, value').in('key', ['store', 'website', 'delivery', 'online_payments', 'legal'])
       if (error) throw error
       const m = Object.fromEntries((data ?? []).map((r) => [r.key, r.value]))
-      return { store: m.store, website: m.website, delivery: m.delivery, payments: m.online_payments } as SiteData
+      return { store: m.store, website: m.website, delivery: m.delivery, payments: m.online_payments, legal: m.legal ?? {} } as SiteData
     },
   })
 }
