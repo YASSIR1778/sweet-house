@@ -76,6 +76,10 @@ export function ReportsPage() {
     queryKey: ['online-summary', from.toISOString(), to.toISOString()],
     queryFn: async () => (await sb.rpc('online_summary', { p_from: from.toISOString(), p_to: to.toISOString() })).data as { orders_count: number; orders_paid: number; requests_count: number; requests_paid: number; by_service: { name_ar: string; name_fr: string; count: number; paid: number }[] },
   })
+  const custom = useQuery({
+    queryKey: ['custom-items', from.toISOString(), to.toISOString()],
+    queryFn: async () => (await sb.rpc('custom_items_report', { p_from: from.toISOString(), p_to: to.toISOString() })).data as { name: string; count: number; qty: number; revenue: number; avg_price: number }[],
+  })
   const d = r.data
   const profit = can('reports.profit')
 
@@ -264,6 +268,22 @@ export function ReportsPage() {
           </Card>
         </div>
       </div>
+
+      {(custom.data?.length ?? 0) > 0 && (
+        <Card className="mt-4">
+          <CardHeader title={t('مبيعات يدوية (غير موجودة في القائمة)', 'Articles vendus hors catalogue')} description={t('ما يتكرر هنا أضفه إلى المنتجات أو الخدمات ليصبح البيع أسرع وتُحسب أرباحه', 'Ajoutez au catalogue ce qui revient souvent')} />
+          <div className="divide-y divide-border">
+            {custom.data!.slice(0, 15).map((c) => (
+              <div key={c.name} className="flex items-center gap-3 px-5 py-2.5 text-sm">
+                <span className="min-w-0 flex-1 truncate font-medium">{c.name}</span>
+                <span className="num text-muted">× {qty(c.qty)}</span>
+                <span className="num text-xs text-muted">{t('متوسط', 'moy.')} {money(c.avg_price)}</span>
+                <span className="num w-28 text-end font-semibold">{money(c.revenue)}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <Card className="mt-4">
         <CardHeader title={t('الأونلاين', 'En ligne')} description={t('المبالغ المدفوعة من طلبات الموقع خلال الفترة', 'Montants payés via le site')} />

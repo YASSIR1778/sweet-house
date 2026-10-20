@@ -4,7 +4,8 @@ import { servicePrice } from './catalog'
 
 export type CartLine = {
   key: string
-  type: 'product' | 'service'
+  type: 'product' | 'service' | 'custom'
+  tax_rate?: number
   product?: PosProduct
   variant?: PosVariant
   pack?: PosPack | null
@@ -24,6 +25,7 @@ export type CartState = { lines: CartLine[]; discount: number; customer: { id: s
 type Action =
   | { type: 'addProduct'; product: PosProduct; variant: PosVariant; pack?: PosPack | null; qty?: number }
   | { type: 'addService'; service: PosService; qty: number; amount?: number }
+  | { type: 'addCustom'; name: string; price: number; qty: number; tax_rate: number }
   | { type: 'qty'; key: string; qty: number }
   | { type: 'price'; key: string; price: number }
   | { type: 'lineDiscount'; key: string; discount: number }
@@ -90,6 +92,11 @@ function reducer(s: CartState, a: Action): CartState {
         ],
       }
     }
+    case 'addCustom':
+      return {
+        ...s,
+        lines: [...s.lines, { key: `c:${crypto.randomUUID()}`, type: 'custom', name_ar: a.name, name_fr: a.name, qty: a.qty, unit_price: a.price, base_price: null, discount: 0, tax_rate: a.tax_rate }],
+      }
     case 'qty':
       return { ...s, lines: a.qty <= 0 ? s.lines.filter((l) => l.key !== a.key) : s.lines.map((l) => (l.key === a.key ? reprice({ ...l, qty: a.qty }) : l)) }
     case 'price':
@@ -140,7 +147,9 @@ export function toPayload(s: CartState, id: string, deviceId: string | null, pay
     items: s.lines.map((l) =>
       l.type === 'product'
         ? { type: 'product', variant_id: l.variant!.id, pack_id: l.pack?.id ?? null, qty: l.qty, unit_price: l.unit_price, discount: l.discount }
-        : { type: 'service', service_id: l.service!.id, qty: l.qty, unit_price: l.unit_price, discount: l.discount },
+        : l.type === 'custom'
+          ? { type: 'custom', name: l.name_ar, qty: l.qty, unit_price: l.unit_price, discount: l.discount, tax_rate: l.tax_rate ?? 20 }
+          : { type: 'service', service_id: l.service!.id, qty: l.qty, unit_price: l.unit_price, discount: l.discount },
     ),
   }
 }

@@ -152,7 +152,7 @@ export type Permission = { key: string; group_key: string; name_ar: string; name
 
 export type SaleItem = {
   line_no: number
-  item_type: 'product' | 'service'
+  item_type: 'product' | 'service' | 'custom'
   name_ar: string
   name_fr: string
   qty: number

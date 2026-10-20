@@ -372,3 +372,56 @@ export function CustomerDialog({
     </Dialog>
   )
 }
+
+// ---------------------------------------------------------------- Hand-typed item (not in the catalog)
+export function CustomItemDialog({ open, onClose, onAdd, taxRates, defaultTax }: { open: boolean; onClose: () => void; onAdd: (i: { name: string; price: number; qty: number; tax_rate: number }) => void; taxRates: number[]; defaultTax: number }) {
+  const { t } = useLang()
+  const [name, setName] = useState('')
+  const [price, setPrice] = useState('')
+  const [qtyV, setQtyV] = useState('1')
+  const [tax, setTax] = useState(defaultTax)
+  useEffect(() => {
+    if (open) (setName(''), setPrice(''), setQtyV('1'), setTax(defaultTax))
+  }, [open, defaultTax])
+  const cents = parseMoney(price) ?? 0
+  const q = Number(qtyV.replace(',', '.')) || 0
+  const ok = name.trim().length >= 2 && cents > 0 && q > 0
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!ok) return
+    onAdd({ name: name.trim(), price: cents, qty: q, tax_rate: tax })
+    onClose()
+  }
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()} size="sm" title={t('بيع يدوي', 'Article libre')} description={t('سلعة أو خدمة غير موجودة في القائمة', 'Produit ou service hors catalogue')}>
+      <form onSubmit={submit} className="space-y-4">
+        <Field label={t('الاسم', 'Désignation')} required>
+          <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus placeholder={t('مثلاً: كتابة طلب، قلم خاص…', 'ex : rédaction, stylo…')} />
+        </Field>
+        <div className="grid grid-cols-[1fr_6rem] gap-3">
+          <Field label={t('الثمن للوحدة', 'Prix unitaire')} required>
+            <div className="relative">
+              <Input value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d.,]/g, ''))} inputMode="decimal" dir="ltr" className="num h-12 pe-12 text-center text-xl font-bold" />
+              <span className="absolute inset-y-0 end-3 flex items-center text-xs text-muted">DH</span>
+            </div>
+          </Field>
+          <Field label={t('الكمية', 'Qté')}>
+            <Input value={qtyV} onChange={(e) => setQtyV(e.target.value.replace(/[^\d.,]/g, ''))} inputMode="decimal" dir="ltr" className="num h-12 text-center text-xl" />
+          </Field>
+        </div>
+        <Field label={t('الضريبة', 'TVA')}>
+          <div className="flex gap-1.5">
+            {taxRates.map((r) => (
+              <button key={r} type="button" onClick={() => setTax(r)} className={cn('num flex-1 rounded-lg border py-1.5 text-sm', tax === r ? 'border-brand bg-brand-50 text-brand' : 'border-border')}>
+                {r}%
+              </button>
+            ))}
+          </div>
+        </Field>
+        <Button type="submit" size="lg" className="w-full" disabled={!ok}>
+          {t('إضافة إلى السلة', 'Ajouter au panier')} {ok && <span className="num opacity-80">· {money(Math.round(cents * q))}</span>}
+        </Button>
+      </form>
+    </Dialog>
+  )
+}

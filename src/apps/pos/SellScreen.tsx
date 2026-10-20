@@ -41,7 +41,7 @@ import { DynamicIcon } from '@/shared/ui/icon'
 import { PrintReceipt, Receipt } from '@/shared/ui/receipt'
 import { findByBarcode, useCatalog, type PosProduct, type PosService } from './catalog'
 import { cartTotals, emptyCart, lineTotal, toPayload, useCart, type CartLine, type CartState } from './cart'
-import { AmountDialog, CustomerDialog, PayDialog, QtyDialog, VariantDialog } from './dialogs'
+import { AmountDialog, CustomItemDialog, CustomerDialog, PayDialog, QtyDialog, VariantDialog } from './dialogs'
 import { beep, type DeviceInfo } from './device'
 import { ShiftSheet, type ShiftStatus } from './shift'
 import { enqueue, isNetworkError, useOfflineQueue } from './offline'
@@ -84,6 +84,8 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
   const [historyOpen, setHistoryOpen] = useState(false)
   const [heldOpen, setHeldOpen] = useState(false)
   const [shiftOpen, setShiftOpen] = useState(false)
+  const [customOpen, setCustomOpen] = useState(false)
+  const legal = receiptCfg.data?.legal as { tax_rates?: number[]; default_tax_rate?: number } | undefined
   const [onlineOpen, setOnlineOpen] = useState(false)
   const queue = useOfflineQueue(sb, () => (qc.invalidateQueries({ queryKey: ['shift', device.id] }), qc.invalidateQueries({ queryKey: ['pos-history'] }), qc.invalidateQueries({ queryKey: ['pos-catalog'] })))
   const [queueOpen, setQueueOpen] = useState(false)
@@ -236,7 +238,7 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
         subtotal: tt.subtotal,
         discount_total: tt.subtotal - tt.total,
         total: tt.total,
-        tax_total: Math.round(cart.lines.reduce((a, l) => { const r = l.product?.tax_rate ?? l.service?.tax_rate ?? 0; return a + (lineTotal(l) * r) / (100 + r) }, 0) * (tt.net ? tt.total / tt.net : 1)),
+        tax_total: Math.round(cart.lines.reduce((a, l) => { const r = l.product?.tax_rate ?? l.service?.tax_rate ?? l.tax_rate ?? 0; return a + (lineTotal(l) * r) / (100 + r) }, 0) * (tt.net ? tt.total / tt.net : 1)),
         cash_received: p.cash,
         change_given: Math.max(0, paid - tt.total),
         paid_cash: p.cash - Math.max(0, paid - tt.total),
@@ -246,7 +248,7 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
         void_reason: null,
         voided_at: null,
         created_at: new Date().toISOString(),
-        items: cart.lines.map((l, i) => ({ line_no: i + 1, item_type: l.type, name_ar: l.name_ar, name_fr: l.name_fr, qty: l.qty, unit_price: l.unit_price, original_unit_price: l.base_price ?? l.unit_price, discount: l.discount, total: lineTotal(l), tax_rate: l.product?.tax_rate ?? l.service?.tax_rate ?? 0 })),
+        items: cart.lines.map((l, i) => ({ line_no: i + 1, item_type: l.type, name_ar: l.name_ar, name_fr: l.name_fr, qty: l.qty, unit_price: l.unit_price, original_unit_price: l.base_price ?? l.unit_price, discount: l.discount, total: lineTotal(l), tax_rate: l.product?.tax_rate ?? l.service?.tax_rate ?? l.tax_rate ?? 0 })),
       }
       enqueue({ id: saleId.current, payload, local: sale, created_at: sale.created_at })
       toast.warning(t('لا يوجد إنترنت: حُفظ البيع على الجهاز وسيُرسل تلقائياً عند عودة الاتصال', 'Hors ligne : vente enregistrée localement, envoi automatique au retour du réseau'))
@@ -312,6 +314,7 @@ Total : ${money(totals.total)}`,
       if (e.key === 'F3' && cart.lines.length) (e.preventDefault(), setPay('card'))
       if (e.key === 'F4') (e.preventDefault(), setCustomerOpen(true))
       if (e.key === 'F8') (e.preventDefault(), holdCart())
+      if (e.key === 'F6' && can('pos.custom_item')) (e.preventDefault(), setCustomOpen(true))
       if (e.key === 'Escape' && document.activeElement === searchRef.current) setSearch('')
       // Scanner typing anywhere goes to the search box
       if (/^[\dA-Za-z]$/.test(e.key) && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') searchRef.current?.focus()
@@ -399,8 +402,17 @@ Total : ${money(totals.total)}`,
       <div className="flex min-h-0 flex-1">
         {/* ---------------------------------------------- Catalog */}
         <section className="flex min-w-0 flex-1 flex-col">
-          {quick.length > 0 && (
+          {(quick.length > 0 || can('pos.custom_item')) && (
             <div className="flex gap-2 overflow-x-auto border-b border-border bg-surface/60 px-4 py-3">
+              {can('pos.custom_item') && (
+                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setCustomOpen(true)} className="flex shrink-0 items-center gap-2.5 rounded-xl border-2 border-dashed border-brand/50 bg-brand-50 px-4 py-2.5 text-start text-brand transition-all hover:-translate-y-0.5 hover:border-brand">
+                  <Plus className="size-5" />
+                  <div className="leading-tight">
+                    <div className="text-sm font-semibold whitespace-nowrap">{t('بيع يدوي', 'Article libre')}</div>
+                    <div className="text-[11px] opacity-75">{t('غير موجود في القائمة', 'Hors catalogue')} · F6</div>
+                  </div>
+                </motion.button>
+              )}
               {quick.map((s) => (
                 <motion.button
                   key={s.id}
@@ -658,6 +670,13 @@ Total : ${money(totals.total)}`,
             sound('ok')
           }
         }}
+      />
+      <CustomItemDialog
+        open={customOpen}
+        onClose={() => (setCustomOpen(false), searchRef.current?.focus())}
+        taxRates={legal?.tax_rates ?? [0, 7, 10, 14, 20]}
+        defaultTax={legal?.default_tax_rate ?? 20}
+        onAdd={(i) => (dispatch({ type: 'addCustom', ...i }), sound('ok'))}
       />
       <PayDialog open={!!pay} mode={pay ?? 'cash'} total={totals.total} quickCash={pos?.quick_cash ?? []} onClose={() => setPay(null)} onPay={checkout} busy={paying} customer={cart.customer} allowCredit={can('pos.credit_sale')} onPickCustomer={() => setCustomerOpen(true)} />
       <CustomerDialog open={customerOpen} onClose={() => setCustomerOpen(false)} onPick={(c) => dispatch({ type: 'customer', customer: c })} />
