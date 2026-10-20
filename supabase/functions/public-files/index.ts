@@ -65,10 +65,11 @@ Deno.serve(async (req) => {
 
     if (action === 'download') {
       if (t.kind !== 'request' || !t.can_download) return fail('not_ready', 403)
-      const { data: file } = await admin.from('request_files').select('path, name').eq('id', body.file_id).eq('request_id', t.id).eq('kind', 'deliverable').is('deleted_at', null).single()
+      const { data: file } = await admin.from('request_files').select('id, path, name').eq('id', body.file_id).eq('request_id', t.id).eq('kind', 'deliverable').is('deleted_at', null).single()
       if (!file) return fail('not_found', 404)
       const { data, error } = await admin.storage.from(BUCKET).createSignedUrl(file.path, 120, { download: file.name })
       if (error) return fail(error.message, 500)
+      await admin.rpc('record_download', { p_file: body.file_id })
       return json({ url: data.signedUrl })
     }
 
