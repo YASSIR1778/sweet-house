@@ -419,3 +419,6 @@ verify_jwt = false
 
 [functions.bootstrap-owner]
 verify_jwt = false
+
+[functions.public-files]
+verify_jwt = false
