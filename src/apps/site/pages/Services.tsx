@@ -278,9 +278,9 @@ export function ServiceRequestPage() {
               {pm?.in_store !== false && <PayOpt active={pay === 'in_store'} onClick={() => setPay('in_store')} icon={<Store />} title={t('في المحل', 'En boutique')} text={t('عند استلام الوثيقة', 'Au retrait')} />}
               {pm?.bank_transfer !== false && <PayOpt active={pay === 'bank_transfer'} onClick={() => setPay('bank_transfer')} icon={<Building2 />} title={t('تحويل بنكي', 'Virement')} text={t('للتحميل أونلاين بعد الأداء', 'Pour télécharger en ligne')} />}
             </div>
-            <Field label={t('تفاصيل إضافية أو شرح لطلبك (اختياري)', 'Précisions sur votre demande (optionnel)')} hint={t('اكتب أي معلومة تساعدنا على إنجاز طلبك بسرعة', 'Toute information utile pour traiter votre demande')}>
+            {s.system_key !== 'custom_request' && <Field label={t('تفاصيل إضافية أو شرح لطلبك (اختياري)', 'Précisions sur votre demande (optionnel)')} hint={t('اكتب أي معلومة تساعدنا على إنجاز طلبك بسرعة', 'Toute information utile pour traiter votre demande')}>
               <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder={t('مثلاً: أحتاج نسختين، أو الوثيقة باسم شخص آخر…', 'ex : deux exemplaires, au nom d’un tiers…')} />
-            </Field>
+            </Field>}
             <label className="flex cursor-pointer items-start gap-2.5 text-sm text-muted">
               <Checkbox checked={consent} onCheckedChange={setConsent} />
               <span>
