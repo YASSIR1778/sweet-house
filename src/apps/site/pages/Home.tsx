@@ -105,9 +105,9 @@ export function HomePage() {
       {/* features */}
       {sec.features && w && (
         <section className="relative z-10 mx-auto -mt-10 max-w-6xl px-4">
-          <div className="grid gap-4 rounded-3xl border border-border bg-surface p-4 shadow-pop sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 rounded-3xl border border-border bg-surface p-3 shadow-pop sm:gap-4 sm:p-4 lg:grid-cols-4">
             {w.features.map((f, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }} className="flex items-start gap-3 rounded-2xl p-4">
+              <motion.div key={i} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }} className="flex flex-col items-start gap-2 rounded-2xl p-3 sm:flex-row sm:gap-3 sm:p-4">
                 <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand">
                   <DynamicIcon name={f.icon} className="size-5" />
                 </div>

@@ -32,6 +32,8 @@ const messages: Record<string, [string, string]> = {
   owner_exists: ['حساب المالك موجود مسبقاً', 'Le compte propriétaire existe déjà'],
   weak_password: ['كلمة السر ضعيفة (8 أحرف على الأقل)', 'Mot de passe trop faible (8 caractères min.)'],
   'Failed to fetch': ['تعذر الاتصال بالخادم. تحقق من الإنترنت', 'Connexion au serveur impossible'],
+  void_closed_shift: ['الوردية مغلقة ومعدودة، استعمل الإرجاع بدل الإلغاء', 'Caisse clôturée : utilisez un retour'],
+  sale_invoiced: ['هذا البيع له فاتورة، ألغِ الفاتورة أولاً بفاتورة مضادة', 'Vente facturée : faites d’abord un avoir'],
   no_open_shift: ['يجب فتح الوردية أولاً من نقطة البيع', "Ouvrez d'abord la caisse au POS"],
   shift_already_open: ['توجد وردية مفتوحة على هذا الجهاز', 'Une caisse est déjà ouverte'],
   shift_not_open: ['هذه الوردية مغلقة', 'Caisse déjà clôturée'],

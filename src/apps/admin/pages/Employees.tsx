@@ -31,7 +31,7 @@ export function EmployeesPage() {
   const employees = useQuery({
     queryKey: ['employees'],
     queryFn: async () => {
-      const { data, error } = await sb.from('employees').select('*').is('deleted_at', null).order('is_owner', { ascending: false }).order('full_name')
+      const { data, error } = await sb.rpc('employees_admin')
       if (error) throw error
       return data as Employee[]
     },

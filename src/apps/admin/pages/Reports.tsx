@@ -36,6 +36,8 @@ type Report = {
   debts_total: number
   suppliers_total: number
   riyad_balance: number | null
+  online_revenue: number
+  online_cogs: number
 }
 
 export function ReportsPage() {
@@ -65,7 +67,7 @@ export function ReportsPage() {
   const r = useQuery({
     queryKey: ['report', from.toISOString(), to.toISOString()],
     queryFn: async () => {
-      const { data, error } = await sb.rpc('report', { p_from: from.toISOString(), p_to: to.toISOString() })
+      const { data, error } = await sb.rpc('report_full', { p_from: from.toISOString(), p_to: to.toISOString() })
       if (error) throw error
       return data as Report
     },
@@ -156,7 +158,8 @@ export function ReportsPage() {
           <div className="grid gap-x-10 gap-y-2 p-5 text-sm md:grid-cols-2">
             <PL label={t('رقم المعاملات', "Chiffre d'affaires")} v={d.revenue} />
             <PL label={t('− الإرجاعات', '− Retours')} v={-d.refunds} />
-            <PL label={t('− ثمن شراء السلع المبيعة', '− Coût des ventes')} v={-(d.cogs ?? 0)} />
+            <PL label={t('+ مبيعات الأونلاين المدفوعة (متجر وخدمات)', '+ Ventes en ligne payées')} v={d.online_revenue ?? 0} />
+            <PL label={t('− ثمن شراء السلع المبيعة', '− Coût des ventes')} v={-((d.cogs ?? 0) + (d.online_cogs ?? 0))} />
             <PL label={t('= الربح الإجمالي', '= Marge brute')} v={d.gross_profit ?? 0} bold />
             <PL label={t('− المصاريف', '− Dépenses')} v={-(d.expenses ?? 0)} />
             <PL label={t('− الرواتب المدفوعة', '− Salaires payés')} v={-(d.salaries ?? 0)} />

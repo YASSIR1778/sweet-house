@@ -407,6 +407,12 @@ export function CloseShiftDialog({ status, open, onClose, onClosed }: { device: 
 
   const submit = async () => {
     if (counted === null) return toast.error(t('أدخل المبلغ المعدود', 'Saisissez le montant compté'))
+    try {
+      const pending = JSON.parse(localStorage.getItem('sh-pos-queue') ?? '[]') as unknown[]
+      if (pending.length) return toast.error(t(`يوجد ${pending.length} بيع لم يُرسل بعد (بدون إنترنت). انتظر عودة الاتصال قبل إغلاق الوردية.`, `${pending.length} ventes hors ligne non envoyées. Attendez la connexion.`))
+    } catch {
+      /* storage unavailable */
+    }
     setBusy(true)
     const { data, error } = await sb.rpc('close_shift', {
       p_shift: status.shift.id,
@@ -491,8 +497,8 @@ export function CloseShiftDialog({ status, open, onClose, onClosed }: { device: 
             <Stat label={t('المعدود', 'Compté')} value={money(result.counted)} />
             <Stat label={t('المبيعات', 'Ventes')} value={money(result.totals.sales_total)} />
             <Stat label={t('رسوم رياض', 'Frais Riyad')} value={money(result.totals.riyad_fees)} />
-            <Stat label={t('رصيد رياض المتوقع', 'Solde Riyad attendu')} value={money(result.riyad_expected)} />
-            {result.riyad_reported !== null && <Stat label={t('رصيد رياض المُبلغ عنه', 'Solde Riyad déclaré')} value={money(result.riyad_reported)} hint={result.riyad_reported !== result.riyad_expected ? `${t('فرق', 'Écart')}: ${money(result.riyad_reported - result.riyad_expected)}` : '✓'} />}
+            {can('riyad.view_balance') && <Stat label={t('رصيد رياض المتوقع', 'Solde Riyad attendu')} value={money(result.riyad_expected)} />}
+            {can('riyad.view_balance') && result.riyad_reported !== null && <Stat label={t('رصيد رياض المُبلغ عنه', 'Solde Riyad déclaré')} value={money(result.riyad_reported)} hint={result.riyad_reported !== result.riyad_expected ? `${t('فرق', 'Écart')}: ${money(result.riyad_reported - result.riyad_expected)}` : '✓'} />}
           </div>
           <div className="grid grid-cols-2 gap-2">
             <Button variant="outline" onClick={() => setPrinting(true)}>
