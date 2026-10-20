@@ -9,6 +9,7 @@ import { DynamicIcon } from '@/shared/ui/icon'
 import { useAdminServices, useShop, useSite } from '../data'
 import { ProductCard, SectionTitle, ServiceCard } from '../components'
 import { useSeo } from '../Layout'
+import { CustomRequestBanner } from './Services'
 
 export function HomePage() {
   const { t, pick } = useLang()
@@ -25,7 +26,7 @@ export function HomePage() {
   const sec = w?.sections ?? { features: true, featured: true, services: true, about: true, faq: true }
   const featured = (shop.data?.products ?? []).filter((p) => p.is_featured).slice(0, 8)
   const latest = featured.length ? featured : (shop.data?.products ?? []).slice(0, 8)
-  const popular = (services.data?.services ?? []).slice(0, 6)
+  const popular = (services.data?.services ?? []).filter((x) => x.system_key !== 'custom_request').slice(0, 6)
   const catColor = (id: string | null) => services.data?.categories.find((c) => c.id === id)?.color
 
   return (
@@ -138,6 +139,9 @@ export function HomePage() {
           />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {services.isLoading ? Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-36" />) : popular.map((s, i) => <ServiceCard key={s.id} s={s} color={catColor(s.category_id)} index={i} />)}
+          </div>
+          <div className="mt-4">
+            <CustomRequestBanner compact />
           </div>
         </section>
       )}

@@ -26,7 +26,7 @@ export function ServicesPage() {
 
   const groups = useMemo(() => {
     const s = q.trim().toLowerCase()
-    const list = (data.data?.services ?? []).filter((x) => !s || x.name_ar.includes(s) || x.name_fr.toLowerCase().includes(s) || (x.description_ar ?? '').includes(s))
+    const list = (data.data?.services ?? []).filter((x) => x.system_key !== 'custom_request').filter((x) => !s || x.name_ar.includes(s) || x.name_fr.toLowerCase().includes(s) || (x.description_ar ?? '').includes(s))
     return (data.data?.categories ?? []).filter((c) => !cat || c.id === cat).map((c) => ({ c, items: list.filter((x) => x.category_id === c.id) })).filter((g) => g.items.length)
   }, [data.data, q, cat])
 
@@ -47,6 +47,9 @@ export function ServicesPage() {
         </div>
       </section>
       <div className="mx-auto max-w-6xl px-4 py-10">
+        <div className="mb-8">
+          <CustomRequestBanner />
+        </div>
         <div className="mb-8 flex gap-2 overflow-x-auto pb-1">
           <button onClick={() => setCat(null)} className={cn('shrink-0 rounded-full border px-4 py-2 text-sm font-medium', !cat ? 'border-transparent bg-navy text-white' : 'border-border bg-surface text-muted')}>
             {t('الكل', 'Tout')}
@@ -65,7 +68,10 @@ export function ServicesPage() {
             ))}
           </div>
         ) : !groups.length ? (
-          <EmptyState icon={<FileText />} title={t('لم نجد هذه الخدمة', 'Service introuvable')} description={t('تواصل معنا على واتساب وسنساعدك', 'Contactez-nous sur WhatsApp')} />
+          <div className="mx-auto max-w-2xl space-y-4">
+            <EmptyState icon={<FileText />} title={t('لم نجد هذه الخدمة في القائمة', 'Service introuvable')} />
+            <CustomRequestBanner />
+          </div>
         ) : (
           <div className="space-y-12">
             {groups.map((g) => (
@@ -87,6 +93,25 @@ export function ServicesPage() {
         )}
       </div>
     </>
+  )
+}
+
+export function CustomRequestBanner({ compact }: { compact?: boolean }) {
+  const { t } = useLang()
+  const data = useAdminServices()
+  const custom = data.data?.services.find((x) => x.system_key === 'custom_request')
+  if (!custom) return null
+  return (
+    <Link to={`/services/${custom.id}`} className={cn('group flex items-center gap-4 overflow-hidden rounded-2xl border-2 border-dashed border-brand/40 bg-brand-50/60 transition-all hover:border-brand hover:bg-brand-50', compact ? 'p-4' : 'p-6')}>
+      <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand text-white shadow-lg shadow-brand/30 transition-transform group-hover:scale-110">
+        <MessageCircle className="size-6" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="font-bold">{t('لم تجد الوثيقة أو الخدمة التي تبحث عنها؟', 'Vous ne trouvez pas votre document ?')}</div>
+        <div className="text-sm text-muted">{t('اشرح لنا طلبك بكلماتك وارفع ما لديك من وثائق، وسنتواصل معك بالسعر والمدة.', 'Décrivez votre besoin, nous vous recontactons avec le prix et le délai.')}</div>
+      </div>
+      <span className="hidden shrink-0 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white sm:block">{t('اشرح طلبك', 'Décrire ma demande')}</span>
+    </Link>
   )
 }
 
@@ -253,8 +278,8 @@ export function ServiceRequestPage() {
               {pm?.in_store !== false && <PayOpt active={pay === 'in_store'} onClick={() => setPay('in_store')} icon={<Store />} title={t('في المحل', 'En boutique')} text={t('عند استلام الوثيقة', 'Au retrait')} />}
               {pm?.bank_transfer !== false && <PayOpt active={pay === 'bank_transfer'} onClick={() => setPay('bank_transfer')} icon={<Building2 />} title={t('تحويل بنكي', 'Virement')} text={t('للتحميل أونلاين بعد الأداء', 'Pour télécharger en ligne')} />}
             </div>
-            <Field label={t('ملاحظات (اختياري)', 'Notes (optionnel)')}>
-              <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            <Field label={t('تفاصيل إضافية أو شرح لطلبك (اختياري)', 'Précisions sur votre demande (optionnel)')} hint={t('اكتب أي معلومة تساعدنا على إنجاز طلبك بسرعة', 'Toute information utile pour traiter votre demande')}>
+              <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder={t('مثلاً: أحتاج نسختين، أو الوثيقة باسم شخص آخر…', 'ex : deux exemplaires, au nom d’un tiers…')} />
             </Field>
             <label className="flex cursor-pointer items-start gap-2.5 text-sm text-muted">
               <Checkbox checked={consent} onCheckedChange={setConsent} />
