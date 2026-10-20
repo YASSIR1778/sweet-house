@@ -70,6 +70,10 @@ export function ReportsPage() {
       return data as Report
     },
   })
+  const online = useQuery({
+    queryKey: ['online-summary', from.toISOString(), to.toISOString()],
+    queryFn: async () => (await sb.rpc('online_summary', { p_from: from.toISOString(), p_to: to.toISOString() })).data as { orders_count: number; orders_paid: number; requests_count: number; requests_paid: number; by_service: { name_ar: string; name_fr: string; count: number; paid: number }[] },
+  })
   const d = r.data
   const profit = can('reports.profit')
 
@@ -257,6 +261,28 @@ export function ReportsPage() {
           </Card>
         </div>
       </div>
+
+      <Card className="mt-4">
+        <CardHeader title={t('الأونلاين', 'En ligne')} description={t('المبالغ المدفوعة من طلبات الموقع خلال الفترة', 'Montants payés via le site')} />
+        <div className="grid gap-4 p-5 md:grid-cols-[1fr_1fr_2fr]">
+          <div className="rounded-xl bg-surface-2 p-4">
+            <div className="text-xs text-muted">{t('طلبات المتجر', 'Commandes')} · <span className="num">{online.data?.orders_count ?? 0}</span></div>
+            <div className="num mt-1 text-xl font-bold">{money(online.data?.orders_paid)}</div>
+          </div>
+          <div className="rounded-xl bg-surface-2 p-4">
+            <div className="text-xs text-muted">{t('طلبات الخدمات', 'Demandes')} · <span className="num">{online.data?.requests_count ?? 0}</span></div>
+            <div className="num mt-1 text-xl font-bold">{money(online.data?.requests_paid)}</div>
+          </div>
+          <div className="space-y-1.5 text-sm">
+            {(online.data?.by_service ?? []).slice(0, 6).map((x, i) => (
+              <div key={i} className="flex justify-between gap-3">
+                <span className="truncate">{pick(x, 'name')} <span className="num text-muted">× {x.count}</span></span>
+                <span className="num font-semibold">{money(x.paid)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
         <Card>

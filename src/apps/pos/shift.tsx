@@ -169,6 +169,7 @@ export function ShiftSheet({ device, status, open, onClose, onClosed }: { device
             {tot.sales_credit > 0 && <Stat label={t('بالدين', 'Crédit')} value={money(tot.sales_credit)} />}
             {mv('riyad_credit') !== 0 && <Stat label={t('رياض بالدين', 'Riyad crédit')} value={money(-mv('riyad_credit'))} />}
             {mv('debt_payment') !== 0 && <Stat label={t('تسديد ديون', 'Dettes encaissées')} value={money(mv('debt_payment'))} />}
+            {mv('online_payment') !== 0 && <Stat label={t('طلبات أونلاين', 'Commandes en ligne')} value={money(mv('online_payment'))} />}
             {mv('expense') !== 0 && <Stat label={t('مصاريف', 'Dépenses')} value={money(-mv('expense'))} />}
             {mv('refund') !== 0 && <Stat label={t('إرجاعات', 'Retours')} value={money(-mv('refund'))} />}
             {mv('owner_withdrawal') !== 0 && <Stat label={t('سحب المالك', 'Retraits')} value={money(-mv('owner_withdrawal'))} />}

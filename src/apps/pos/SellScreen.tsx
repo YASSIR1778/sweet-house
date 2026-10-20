@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Clock,
   CreditCard,
+  Globe,
   LayoutGrid,
   Lock,
   Minus,
@@ -44,6 +45,8 @@ import { AmountDialog, CustomerDialog, PayDialog, QtyDialog, VariantDialog } fro
 import { beep, type DeviceInfo } from './device'
 import { ShiftSheet, type ShiftStatus } from './shift'
 import { RefundDialog } from './refund'
+import { OnlineSheet } from './online'
+import { useOnlinePending } from '@/shared/lib/online'
 
 type PosSettings = { allow_negative_stock: boolean; sound: boolean; auto_print: boolean; quick_cash: number[] }
 type Held = { id: string; at: string; label: string; state: CartState }
@@ -79,6 +82,9 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
   const [historyOpen, setHistoryOpen] = useState(false)
   const [heldOpen, setHeldOpen] = useState(false)
   const [shiftOpen, setShiftOpen] = useState(false)
+  const [onlineOpen, setOnlineOpen] = useState(false)
+  const pending = useOnlinePending(sb, can('requests.manage') || can('orders.manage'))
+  const pendingCount = (pending.data?.requests_new ?? 0) + (pending.data?.orders_new ?? 0)
   const [held, setHeld] = useState<Held[]>(heldStore.get)
   const [done, setDone] = useState<Sale | null>(null)
   const [printSale, setPrintSale] = useState<Sale | null>(null)
@@ -277,6 +283,14 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
             <span className="num hidden xl:inline">#{shift.shift.number}</span>
           </Button>
         </Tooltip>
+        {(can('requests.manage') || can('orders.manage')) && (
+          <Tooltip content={t('الطلبات الأونلاين', 'Commandes en ligne')}>
+            <Button variant="ghost" size="icon" className="relative" onClick={() => setOnlineOpen(true)}>
+              <Globe />
+              {pendingCount > 0 && <span className="num absolute -end-0.5 -top-0.5 flex size-4.5 animate-pulse items-center justify-center rounded-full bg-danger text-[10px] font-bold text-white">{pendingCount}</span>}
+            </Button>
+          </Tooltip>
+        )}
         <Tooltip content={t('المبيعات الأخيرة', 'Ventes récentes')}>
           <Button variant="ghost" size="icon" onClick={() => setHistoryOpen(true)}>
             <Clock />
@@ -548,6 +562,7 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
       <CartDiscountDialog open={discountOpen} onClose={() => setDiscountOpen(false)} net={totals.net} subtotal={totals.subtotal} current={cart.discount} maxPercent={maxDisc} onApply={(d) => dispatch({ type: 'discount', discount: d })} />
       <HistorySheet open={historyOpen} onClose={() => setHistoryOpen(false)} onPrint={setPrintSale} device={device} />
       <ShiftSheet device={device} status={shift} open={shiftOpen} onClose={() => setShiftOpen(false)} onClosed={onShiftChange} />
+      <OnlineSheet device={device} open={onlineOpen} onClose={() => setOnlineOpen(false)} />
 
       <Sheet open={heldOpen} onOpenChange={setHeldOpen} title={t('المبيعات المعلقة', 'Ventes en attente')} width="max-w-md">
         {!held.length ? (

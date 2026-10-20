@@ -11,9 +11,12 @@ import { Dropdown, DropdownContent, DropdownItem, DropdownSeparator, DropdownTri
 import { EmptyState } from '@/shared/ui/data'
 import { NAV } from './nav'
 import { NotificationsBell } from './Notifications'
+import { useOnlinePending } from '@/shared/lib/online'
 
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
-  const { can } = useAuth()
+  const { can, sb } = useAuth()
+  const pending = useOnlinePending(sb, can('requests.manage') || can('orders.manage'))
+  const badge: Record<string, number> = { '/requests': pending.data?.requests_new ?? 0, '/orders': pending.data?.orders_new ?? 0 }
   const { t } = useLang()
   return (
     <div className="flex h-full flex-col">
@@ -45,6 +48,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                         {isActive && <motion.span layoutId="nav-active" className="absolute inset-y-1.5 start-0 w-1 rounded-full bg-brand" />}
                         <it.icon className="size-[18px] shrink-0" />
                         <span className="flex-1 truncate">{t(it.ar, it.fr)}</span>
+                        {badge[it.path] > 0 && <span className="num rounded-full bg-danger px-1.5 text-[11px] font-bold text-white">{badge[it.path]}</span>}
                         {it.soon && (
                           <Badge tone="neutral" className="px-1.5 py-0 text-[10px]">
                             {t(`المرحلة ${it.soon}`, `Phase ${it.soon}`)}

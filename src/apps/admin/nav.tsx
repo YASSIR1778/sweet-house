@@ -36,7 +36,6 @@ import { SettingsPage } from './pages/Settings'
 import { DevicesPage } from './pages/Devices'
 import { ActivityPage } from './pages/Activity'
 import { TrashPage } from './pages/Trash'
-import { SoonPage } from './pages/Soon'
 import { ShiftsPage } from './pages/Shifts'
 import { RiyadPage } from './pages/Riyad'
 import { ExpensesPage } from './pages/Expenses'
@@ -44,6 +43,9 @@ import { PurchasesPage } from './pages/Purchases'
 import { StockPage } from './pages/Stock'
 import { PayrollPage } from './pages/Payroll'
 import { ReportsPage } from './pages/Reports'
+import { OrdersPage } from './pages/Orders'
+import { RequestsPage } from './pages/Requests'
+import { WebsitePage } from './pages/Website'
 
 export type NavItem = {
   path: string
@@ -57,7 +59,6 @@ export type NavItem = {
 
 export type NavGroup = { ar: string; fr: string; items: NavItem[] }
 
-const soon = (phase: number, ar: string, fr: string, icon: LucideIcon) => <SoonPage phase={phase} ar={ar} fr={fr} icon={icon} />
 
 export const NAV: NavGroup[] = [
   {
@@ -90,9 +91,9 @@ export const NAV: NavGroup[] = [
     ar: 'الأونلاين',
     fr: 'En ligne',
     items: [
-      { path: '/orders', ar: 'طلبات المتجر', fr: 'Commandes', icon: ShoppingCart, perm: 'orders.manage', soon: 3, element: soon(3, 'طلبات المتجر', 'Commandes', ShoppingCart) },
-      { path: '/requests', ar: 'طلبات الخدمات', fr: 'Demandes de services', icon: ClipboardList, perm: 'requests.manage', soon: 3, element: soon(3, 'طلبات الخدمات', 'Demandes de services', ClipboardList) },
-      { path: '/website', ar: 'محرر الموقع', fr: 'Éditeur du site', icon: Globe, perm: 'website.edit', soon: 3, element: soon(3, 'محرر الموقع', 'Éditeur du site', Globe) },
+      { path: '/orders', ar: 'طلبات المتجر', fr: 'Commandes', icon: ShoppingCart, perm: 'orders.manage', element: <OrdersPage /> },
+      { path: '/requests', ar: 'طلبات الخدمات', fr: 'Demandes de services', icon: ClipboardList, perm: 'requests.manage', element: <RequestsPage /> },
+      { path: '/website', ar: 'محرر الموقع', fr: 'Éditeur du site', icon: Globe, perm: 'website.edit', element: <WebsitePage /> },
     ],
   },
   {

@@ -39,6 +39,7 @@ const MV: Record<string, [string, string]> = {
   supplier_payment: ['تسديد مورد', 'Fournisseur'],
   salary_advance: ['تسبيق راتب', 'Avance'],
   adjustment: ['تعديل', 'Ajustement'],
+  online_payment: ['أداء طلب أونلاين', 'Paiement en ligne'],
 }
 
 export function ShiftsPage() {
