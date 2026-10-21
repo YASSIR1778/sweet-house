@@ -20,7 +20,7 @@ create table public.attendance (
   note        text,
   edited_by   uuid references public.employees(id),
   created_at  timestamptz not null default now(),
-  check (check_out is null or check_out > check_in)
+  constraint attendance_check check (check_out is null or check_out >= check_in)
 );
 create index attendance_emp_idx on public.attendance (employee_id, check_in desc);
 create unique index attendance_one_open on public.attendance (employee_id) where check_out is null;
