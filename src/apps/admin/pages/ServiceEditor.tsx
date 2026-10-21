@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { BookOpen, Clock, FileText, HelpCircle, ListPlus, Plus, Sparkles, Trash } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
 import { errorMessage } from '@/shared/lib/errors'
 import { money } from '@/shared/lib/money'
-import type { DocReq, Service, ServiceCategory, ServiceField, ServiceGuide } from '@/shared/lib/types'
+import type { DocReq, GuideStep, Service, ServiceCategory, ServiceField, ServiceGuide } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
 import { Button, Card, Checkbox, Field, Input, SwitchRow, Textarea } from '@/shared/ui/primitives'
 import { Sheet, useConfirm } from '@/shared/ui/overlay'
@@ -18,7 +18,7 @@ import { aiServiceDocs } from '@/shared/lib/ai'
 type Tier = { min_qty: number; unit_price: number }
 type Form = Omit<Service, 'id' | 'deleted_at' | 'service_price_tiers' | 'system_key'> & { id?: string; system_key?: string | null; tiers: Tier[]; guide: ServiceGuide }
 
-const blankGuide = (): ServiceGuide => ({ steps_ar: '', tips_ar: '', links: [], images: [] })
+const blankGuide = (): ServiceGuide => ({ tips_ar: '', links: [], images: [], steps: [], video_url: '', templates: [], require_ref: true, require_proof: false })
 
 const blank = (kind: 'counter' | 'admin'): Form => ({
   category_id: null,
@@ -100,7 +100,7 @@ export function ServiceEditor({
       setF({ ...rest, guide: blankGuide(), tiers: (service_price_tiers ?? []).map((x) => ({ min_qty: Number(x.min_qty), unit_price: x.unit_price })).sort((a, b) => a.min_qty - b.min_qty) })
       if (service.kind === 'admin')
         sb.from('service_guides')
-          .select('steps_ar, tips_ar, links, images')
+          .select('tips_ar, links, images, steps, video_url, templates, require_ref, require_proof')
           .eq('service_id', service.id)
           .maybeSingle()
           .then(({ data }) => data && setF((x) => (x.id === service.id ? { ...x, guide: data as ServiceGuide } : x)))
@@ -113,7 +113,12 @@ export function ServiceEditor({
   const save = async () => {
     if (!f.name_ar.trim()) return toast.error(t('اسم الخدمة مطلوب', 'Nom obligatoire'))
     setBusy(true)
-    const { error } = await sb.rpc('save_service', { p: f })
+    const { guide, ...svc } = f
+    const { data: sid, error } = await sb.rpc('save_service', { p: svc })
+    if (!error && f.kind === 'admin') {
+      const r = await sb.rpc('save_service_guide', { p_service: sid, p: { ...guide, steps: guide.steps.filter((s) => s.title.trim()) } })
+      if (r.error) (setBusy(false), toast.error(errorMessage(r.error, lang)))
+    }
     setBusy(false)
     if (error) return toast.error(errorMessage(error, lang))
     toast.success(t('تم الحفظ', 'Enregistré'))
@@ -136,6 +141,23 @@ export function ServiceEditor({
   const setFld = (i: number, p: Partial<ServiceField>) => set('fields', fields.map((d, j) => (j === i ? { ...d, ...p } : d)))
   const g = f.guide
   const setGuide = (p: Partial<ServiceGuide>) => set('guide', { ...g, ...p })
+  const setStep = (i: number, p: Partial<GuideStep>) => setGuide({ steps: g.steps.map((x, j) => (j === i ? { ...x, ...p } : x)) })
+  const move = <T,>(arr: T[], i: number, d: number) => {
+    const j = i + d
+    if (j < 0 || j >= arr.length) return arr
+    const c = [...arr]
+    ;[c[i], c[j]] = [c[j], c[i]]
+    return c
+  }
+  const suggestions = useQuery({
+    queryKey: ['guide-suggestions', f.id],
+    enabled: !!f.id && f.kind === 'admin',
+    queryFn: async () => (await sb.from('guide_suggestions').select('id, text, created_at, status, employees(full_name)').eq('service_id', f.id!).eq('status', 'pending').order('created_at')).data as unknown as { id: string; text: string; created_at: string; employees: { full_name: string } | null }[],
+  })
+  const closeSuggestion = async (id: string, status: 'applied' | 'dismissed') => {
+    await sb.from('guide_suggestions').update({ status }).eq('id', id)
+    suggestions.refetch()
+  }
 
   const modes = [
     { v: 'fixed', ar: 'سعر ثابت', fr: 'Prix fixe', d_ar: 'نفس السعر لكل وحدة', d_fr: 'Même prix par unité' },
@@ -346,7 +368,7 @@ export function ServiceEditor({
                 {t('المعلومات التي يملؤها الزبون', 'Champs à remplir par le client')}
               </div>
               {fields.map((fl, i) => (
-                <div key={i} className="grid items-center gap-2 sm:grid-cols-[1fr_1fr_8rem_auto_auto]">
+                <div key={i} className="grid items-center gap-2 sm:grid-cols-[1fr_1fr_8rem_auto_auto_auto]">
                   <Input value={fl.label_ar} onChange={(e) => setFld(i, { label_ar: e.target.value, key: fl.key || `f${Date.now()}` })} placeholder={t('العنوان بالعربية', 'Libellé (ar)')} />
                   <Input value={fl.label_fr} onChange={(e) => setFld(i, { label_fr: e.target.value })} placeholder={t('بالفرنسية', 'Libellé (fr)')} dir="ltr" />
                   <Select
@@ -364,6 +386,10 @@ export function ServiceEditor({
                     <Checkbox checked={fl.required} onCheckedChange={(v) => setFld(i, { required: v })} />
                     {t('إلزامي', 'Requis')}
                   </label>
+                  <span className="flex">
+                    <Button variant="ghost" size="icon-sm" title={t('رتّب الخانات كما في البوابة الرسمية', 'Même ordre que le portail')} onClick={() => set('fields', move(fields, i, -1))}>↑</Button>
+                    <Button variant="ghost" size="icon-sm" onClick={() => set('fields', move(fields, i, 1))}>↓</Button>
+                  </span>
                   <Button variant="ghost" size="icon-sm" onClick={() => set('fields', fields.filter((_, j) => j !== i))}>
                     <Trash className="text-danger" />
                   </Button>
@@ -450,8 +476,54 @@ export function ServiceEditor({
                 {t('دليل الموظف (داخلي)', 'Guide interne pour l’employé')}
               </div>
               <p className="text-xs text-muted">{t('يظهر للموظف داخل صفحة الطلب فقط، ولا يظهر أبداً في الموقع.', 'Affiché à l’employé dans la demande, jamais sur le site.')}</p>
-              <Field label={t('خطوات الإنجاز (خطوة في كل سطر)', 'Étapes (une par ligne)')}>
-                <Textarea rows={6} value={g.steps_ar ?? ''} onChange={(e) => setGuide({ steps_ar: e.target.value })} placeholder={t('ادخل إلى البوابة الرسمية', 'Ouvrir le portail officiel')} />
+              {(suggestions.data?.length ?? 0) > 0 && (
+                <div className="space-y-2 rounded-xl bg-info/5 p-3">
+                  <div className="text-xs font-semibold text-info">{t('اقتراحات الموظفين لتحسين هذا الدليل', 'Suggestions de l’équipe')}</div>
+                  {suggestions.data!.map((s) => (
+                    <div key={s.id} className="flex items-start gap-2 text-sm">
+                      <span className="flex-1">
+                        «{s.text}» <span className="text-xs text-muted">— {s.employees?.full_name}</span>
+                      </span>
+                      <Button size="sm" variant="ghost" onClick={() => closeSuggestion(s.id, 'applied')}>{t('طُبّق', 'Appliqué')}</Button>
+                      <Button size="sm" variant="ghost" onClick={() => closeSuggestion(s.id, 'dismissed')}>{t('تجاهل', 'Ignorer')}</Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="space-y-2">
+                <div className="text-xs font-medium text-muted">{t('خطوات الإنجاز: يضغطها الموظف واحدة واحدة داخل الطلب', 'Étapes : cochées une à une par l’employé')}</div>
+                {g.steps.map((st, i) => (
+                  <div key={i} className="space-y-2 rounded-xl border border-border p-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="num flex size-6 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-white">{i + 1}</span>
+                      <Input value={st.title} onChange={(e) => setStep(i, { title: e.target.value })} placeholder={t('مثلاً: افتح البوابة واختر «طلب جديد»', 'ex. Ouvrir le portail')} />
+                      <Button variant="ghost" size="icon-sm" onClick={() => setGuide({ steps: move(g.steps, i, -1) })}>↑</Button>
+                      <Button variant="ghost" size="icon-sm" onClick={() => setGuide({ steps: move(g.steps, i, 1) })}>↓</Button>
+                      <Button variant="ghost" size="icon-sm" onClick={() => setGuide({ steps: g.steps.filter((_, j) => j !== i) })}>
+                        <Trash className="text-danger" />
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 ps-8">
+                      <Input value={st.url ?? ''} onChange={(e) => setStep(i, { url: e.target.value })} placeholder={t('رابط هذه الخطوة (اختياري) https://', 'Lien (optionnel)')} dir="ltr" className="min-w-48 flex-1 text-xs" />
+                      <Input value={st.url_label ?? ''} onChange={(e) => setStep(i, { url_label: e.target.value })} placeholder={t('اسم الزر', 'Texte du bouton')} className="w-36 text-xs" />
+                      <label className="flex items-center gap-1.5 text-xs text-muted">
+                        <Checkbox checked={st.required} onCheckedChange={(required) => setStep(i, { required })} />
+                        {t('إلزامية', 'Obligatoire')}
+                      </label>
+                    </div>
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={() => setGuide({ steps: [...g.steps, { title: '', url: '', url_label: '', required: true }] })}>
+                  <Plus />
+                  {t('إضافة خطوة', 'Ajouter une étape')}
+                </Button>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <SwitchRow label={t('رقم الطلب في البوابة إلزامي قبل «جاهز»', 'N° du portail obligatoire avant « Prêt »')} checked={g.require_ref} onCheckedChange={(require_ref) => setGuide({ require_ref })} />
+                <SwitchRow label={t('لقطة شاشة للتأكيد إلزامية', 'Capture d’écran obligatoire')} checked={g.require_proof} onCheckedChange={(require_proof) => setGuide({ require_proof })} />
+              </div>
+              <Field label={t('فيديو الشرح (رابط YouTube أو Google Drive)', 'Vidéo explicative (lien)')}>
+                <Input value={g.video_url ?? ''} onChange={(e) => setGuide({ video_url: e.target.value })} dir="ltr" placeholder="https://youtu.be/..." />
               </Field>
               <Field label={t('أخطاء شائعة وملاحظات', 'Erreurs fréquentes et remarques')}>
                 <Textarea rows={3} value={g.tips_ar ?? ''} onChange={(e) => setGuide({ tips_ar: e.target.value })} />
@@ -480,6 +552,24 @@ export function ServiceEditor({
                   ))}
                   <ImageInput key={`new-${g.images.length}`} sb={sb} folder="guides" value={null} aspect="aspect-video" onChange={(u) => u && setGuide({ images: [...g.images, u] })} />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-xs font-medium text-muted">{t('رسائل واتساب جاهزة لهذه الخدمة — {name} {number} {link} {service}', 'Messages WhatsApp prêts — {name} {number} {link} {service}')}</div>
+                {g.templates.map((tp, i) => (
+                  <div key={i} className="space-y-1.5 rounded-xl border border-border p-2.5">
+                    <div className="flex gap-2">
+                      <Input value={tp.label} onChange={(e) => setGuide({ templates: g.templates.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)) })} placeholder={t('اسم الرسالة، مثلاً: صورة غير واضحة', 'Titre')} />
+                      <Button variant="ghost" size="icon-sm" onClick={() => setGuide({ templates: g.templates.filter((_, j) => j !== i) })}>
+                        <Trash className="text-danger" />
+                      </Button>
+                    </div>
+                    <Textarea rows={3} value={tp.text} onChange={(e) => setGuide({ templates: g.templates.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)) })} />
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={() => setGuide({ templates: [...g.templates, { label: '', text: 'مرحباً {name} 👋\nبخصوص طلبكم {number} ({service}): ' }] })}>
+                  <Plus />
+                  {t('إضافة رسالة', 'Ajouter un message')}
+                </Button>
               </div>
             </Card>
           </>

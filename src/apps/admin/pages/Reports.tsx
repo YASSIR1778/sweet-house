@@ -10,7 +10,7 @@ import { csvMoney, downloadCsv } from '@/shared/lib/export'
 import { cn } from '@/shared/lib/utils'
 import { Button, Card, CardHeader, Input, Skeleton } from '@/shared/ui/primitives'
 import { PageHeader, StatCard, Tabs } from '@/shared/ui/data'
-import { DurationsCard, PerformanceCard, SectionsCard } from './ReportsExtra'
+import { BlockersCard, DurationsCard, PerformanceCard, SectionsCard } from './ReportsExtra'
 
 type Report = {
   revenue: number
@@ -342,6 +342,7 @@ export function ReportsPage() {
 
       <PerformanceCard range={{ from, to }} />
       <DurationsCard range={{ from, to }} />
+      <BlockersCard range={{ from, to }} />
     </>
   )
 }

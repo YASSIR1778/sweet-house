@@ -34,6 +34,9 @@ export type RequestRow = {
   new_docs: number
   late: boolean
   assignee: AssigneeMini
+  blocked_reason: string | null
+  steps_total: number | null
+  steps_done: number
   due_at: string | null
   abroad: boolean
   country: string | null
@@ -68,6 +71,7 @@ export function RequestsPage() {
       if (tab === 'proof' && r.payment_status !== 'proof_uploaded') return false
       if (tab === 'received' && r.status !== 'received') return false
       if (tab === 'late' && !r.late) return false
+      if (tab === 'blocked' && !r.blocked_reason) return false
       if (tab === 'mine' && r.assignee?.id !== me?.id) return false
       if (tab === 'free' && (r.assignee || st(r.status)?.is_final)) return false
       if (tab === 'abroad' && !r.abroad) return false
@@ -120,6 +124,8 @@ export function RequestsPage() {
               {t('متأخر', 'En retard')}
             </Badge>
           )}
+          {r.blocked_reason && <Badge tone="danger">🚧 {t('متعثّر', 'Bloquée')}</Badge>}
+          {(r.steps_total ?? 0) > 0 && !st(r.status)?.is_final && <Badge className="num">{r.steps_done}/{r.steps_total}</Badge>}
         </div>
       ),
     },
@@ -152,6 +158,7 @@ export function RequestsPage() {
             { value: 'free', label: t('بدون مسؤول', 'Sans responsable'), count: count((r) => !r.assignee && !st(r.status)?.is_final) },
             { value: 'received', label: t('جديدة', 'Nouvelles'), count: count((r) => r.status === 'received') },
             { value: 'late', label: t('متأخرة', 'En retard'), count: count((r) => r.late) },
+            { value: 'blocked', label: t('متعثّرة', 'Bloquées'), count: count((r) => !!r.blocked_reason) },
             { value: 'docs', label: t('وثائق جديدة', 'Nouveaux docs'), count: count((r) => r.new_docs > 0) },
             { value: 'proof', label: t('تحويلات للتأكيد', 'Virements'), count: count((r) => r.payment_status === 'proof_uploaded') },
             ...(count((r) => r.abroad) ? [{ value: 'abroad', label: t('🌍 من الخارج', '🌍 Étranger'), count: count((r) => r.abroad) }] : []),

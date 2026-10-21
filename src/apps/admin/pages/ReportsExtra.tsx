@@ -245,3 +245,46 @@ export function PerformanceCard({ range }: { range: Range }) {
     </Card>
   )
 }
+
+type Blockers = { open: number; by_reason: Record<string, number>; by_service: { name_ar: string; name_fr: string; n: number }[] }
+const REASONS: Record<string, [string, string]> = {
+  portal_down: ['البوابة لا تعمل', 'Portail en panne'],
+  missing_info: ['نقص من الزبون', 'Info manquante'],
+  rejected: ['رفض الإدارة', 'Refus'],
+  payment: ['مشكل أداء', 'Paiement'],
+  dont_know: ['لا أعرف الطريقة', 'Ne sait pas'],
+  other: ['أخرى', 'Autre'],
+}
+
+/** 6 · Where the team gets stuck, to improve the guides. */
+export function BlockersCard({ range }: { range: Range }) {
+  const { sb } = useAuth()
+  const { t, pick } = useLang()
+  const q = useQuery({ queryKey: ['blockers', range.from.toISOString(), range.to.toISOString()], queryFn: async () => (await sb.rpc('blockers_report', iso(range))).data as Blockers })
+  const d = q.data
+  if (!d || (!d.by_service.length && !d.open)) return null
+  return (
+    <Card className="mt-4">
+      <CardHeader title={t('التعثّرات في إنجاز الطلبات', 'Blocages sur les demandes')} description={t('الخدمات التي تحتاج دليلاً أوضح أو حلاً', 'Services dont le guide est à améliorer')} icon={<AlarmClock />} />
+      <div className="grid gap-4 p-5 md:grid-cols-2">
+        <div className="space-y-1.5 text-sm">
+          {d.by_service.map((s) => (
+            <div key={s.name_ar} className="flex justify-between gap-3">
+              <span className="truncate">{pick(s, 'name')}</span>
+              <Badge tone="danger">{s.n}</Badge>
+            </div>
+          ))}
+        </div>
+        <div className="space-y-1.5 text-sm">
+          {Object.entries(d.by_reason).map(([k, n]) => (
+            <div key={k} className="flex justify-between gap-3">
+              <span className="text-muted">{t(...(REASONS[k] ?? [k, k]))}</span>
+              <span className="num font-semibold">{n}</span>
+            </div>
+          ))}
+          <div className="pt-2 text-xs text-muted">{t('متعثّرة الآن', 'Bloquées actuellement')}: <span className="num font-semibold text-danger">{d.open}</span></div>
+        </div>
+      </div>
+    </Card>
+  )
+}

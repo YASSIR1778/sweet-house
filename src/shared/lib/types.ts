@@ -120,11 +120,17 @@ export type Service = {
 }
 
 /** Internal, staff-only how-to for an administrative service. */
+export type GuideStep = { title: string; url?: string | null; url_label?: string | null; required: boolean }
 export type ServiceGuide = {
-  steps_ar: string | null
+  steps_ar?: string | null
   tips_ar: string | null
   links: { label: string; url: string }[]
   images: string[]
+  steps: GuideStep[]
+  video_url: string | null
+  templates: { label: string; text: string }[]
+  require_ref: boolean
+  require_proof: boolean
 }
 
 export type Role = {

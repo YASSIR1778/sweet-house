@@ -34,11 +34,13 @@ export function TodayTasks() {
   const q = useQuery({ queryKey: ['today-tasks'], refetchInterval: 60_000, queryFn: async () => (await sb.rpc('today_tasks')).data as Tasks })
   const mine = useQuery({ queryKey: ['my-tasks'], refetchInterval: 60_000, queryFn: async () => (await sb.rpc('my_tasks_summary')).data as { mine_requests: number; mine_orders: number; free_requests: number | null; free_orders: number | null } })
   const help = useQuery({ queryKey: ['help-counts'], refetchInterval: 30_000, enabled: can('requests.manage'), queryFn: async () => (await sb.rpc('help_counts')).data as { new: number; late: number; mine: number } })
+  const blocked = useQuery({ queryKey: ['blocked-count'], refetchInterval: 60_000, enabled: can('requests.manage'), queryFn: async () => (await sb.from('service_requests').select('id', { count: 'exact', head: true }).not('blocked_reason', 'is', null)).count ?? 0 })
   const d = q.data
   const m = mine.data
   if (!d) return null
 
   const items: { n: number; ar: string; fr: string; to: string; icon: LucideIcon; tone: string }[] = [
+    { n: blocked.data ?? 0, ar: 'طلبات متعثّرة تحتاج تدخّلك', fr: 'Demandes bloquées', to: '/requests', icon: AlertTriangle, tone: '#DC2626' },
     { n: help.data?.new ?? 0, ar: help.data?.late ? `زبائن ينتظرون المساعدة (${help.data.late} منذ مدة!)` : 'زبائن ينتظرون المساعدة', fr: 'Clients en attente d’aide', to: '/help', icon: LifeBuoy, tone: '#DC2626' },
     { n: (m?.mine_requests ?? 0) + (m?.mine_orders ?? 0), ar: 'طلبات أنا المسؤول عنها', fr: 'Mes tâches en cours', to: '/requests', icon: UserCheck, tone: '#16A34A' },
     { n: (m?.free_requests ?? 0) + (m?.free_orders ?? 0), ar: 'طلبات بدون مسؤول — تكفّل بها', fr: 'Sans responsable', to: '/requests', icon: UserX, tone: '#D97706' },

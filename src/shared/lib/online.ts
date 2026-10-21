@@ -40,7 +40,7 @@ export async function openStaffFile(sb: SupabaseClient, path: string) {
   window.open(data.signedUrl, '_blank')
 }
 
-export async function uploadStaffFile(sb: SupabaseClient, target: { request?: string; order?: string }, file: File, kind: 'deliverable' | 'upload' | 'payment_proof') {
+export async function uploadStaffFile(sb: SupabaseClient, target: { request?: string; order?: string }, file: File, kind: 'deliverable' | 'upload' | 'payment_proof' | 'portal_proof') {
   const ext = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5) || 'bin'
   const folder = target.request ? `requests/${target.request}` : `orders/${target.order}`
   const path = `${folder}/${kind}-${uuid()}.${ext}`

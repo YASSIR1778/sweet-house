@@ -86,6 +86,8 @@ export function OnlineSheet({ device, open, onClose }: { device: DeviceInfo; ope
                       {r.new_docs > 0 && <Badge tone="danger">+{r.new_docs} {t('جديدة', 'nouv.')}</Badge>}
                       {!st(r.status)?.is_final && <AssigneeBadge a={r.assignee} />}
                       {r.late && <Badge tone="danger"><AlarmClock />{t('متأخر', 'En retard')}</Badge>}
+                      {r.blocked_reason && <Badge tone="danger">🚧 {t('متعثّر', 'Bloquée')}</Badge>}
+                      {(r.steps_total ?? 0) > 0 && <Badge className="num">{r.steps_done}/{r.steps_total}</Badge>}
                       {r.abroad && <Badge tone="info"><Globe2 />{r.country ?? t('من الخارج', 'Étranger')}</Badge>}
                       {r.deliverables_count > 0 && <Badge tone="success"><FileCheck2 />{t('الوثيقة الجاهزة مرفوعة', 'Livrable prêt')}</Badge>}
                       {r.downloaded && <Badge tone="success"><CheckCheck />{t('حمّلها الزبون', 'Téléchargé')}</Badge>}

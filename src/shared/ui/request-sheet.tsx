@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, formatDistanceToNowStrict } from 'date-fns'
 import { ar as arLocale, fr as frLocale } from 'date-fns/locale'
-import { AlarmClock, Banknote, BookOpen, Sparkles, Building2, CheckCheck, ChevronDown, ShoppingCart, Copy, Download, ExternalLink, FileCheck2, FileText, Globe2, Mail, MessageCircle, Package, Phone, Store, Trash, Upload } from 'lucide-react'
+import { AlarmClock, Banknote, Sparkles, Building2, CheckCheck, ShoppingCart, Copy, Download, ExternalLink, FileCheck2, FileText, Globe2, Mail, MessageCircle, Package, Phone, Store, Trash, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -16,6 +16,7 @@ import { Sheet, useConfirm } from './overlay'
 import { MoneyInput } from './pickers'
 import { IdCardResult, IdCardScanButton, WritingButton } from './ai-tools'
 import { AssignmentCard } from './assignment'
+import { BlockerBar, CopyPanel, ReferenceCard, TemplatesMenu, WorkflowCard, type WorkflowGuide, type WorkflowRequest } from './workflow'
 import { readIdCard, type IdCard } from '@/shared/lib/ai'
 
 type FileRow = { id: string; kind: 'upload' | 'deliverable' | 'payment_proof'; name: string; path: string; size: number | null; mime: string | null; created_at: string; downloaded_at?: string | null; download_count?: number }
@@ -40,7 +41,13 @@ type Detail = {
   service: { official_url: string | null; required_documents: { name_ar: string; name_fr: string; required: boolean }[] } | null
   history: { status: string; note: string | null; created_at: string; employee_name: string | null }[]
   files: FileRow[]
-  guide: { steps_ar: string | null; tips_ar: string | null; links: { label: string; url: string }[]; images: string[] } | null
+  guide: WorkflowGuide | null
+  progress: Record<string, { at: string; name: string | null }>
+  portal_ref: string | null
+  portal_code: string | null
+  blocked_reason: string | null
+  blocked_note: string | null
+  blocked_at: string | null
   due_at: string | null
   done_at: string | null
   abroad: boolean
@@ -73,62 +80,6 @@ function DueBanner({ due, done }: { due: string | null; done: string | null }) {
         : t(`يجب إنجازه خلال ${formatDistanceToNowStrict(dueD, { locale })}`, `À terminer dans ${formatDistanceToNowStrict(dueD, { locale })}`)}
       <span className="num ms-auto text-xs opacity-80">{format(dueD, 'dd/MM HH:mm')}</span>
     </div>
-  )
-}
-
-/** Internal how-to written once by the owner for this service. */
-function GuideCard({ guide }: { guide: NonNullable<Detail['guide']> }) {
-  const { t } = useLang()
-  const [open, setOpen] = useState(true)
-  const steps = (guide.steps_ar ?? '').split('\n').map((x) => x.replace(/^\s*\d+[.)-]\s*/, '').trim()).filter(Boolean)
-  if (!steps.length && !guide.tips_ar && !guide.links.length && !guide.images.length) return null
-  return (
-    <Card className="overflow-hidden border-brand/30">
-      <button onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-2 bg-brand-50 px-4 py-3 text-sm font-semibold text-brand">
-        <BookOpen className="size-4" />
-        {t('دليل الإنجاز', 'Guide de traitement')}
-        <ChevronDown className={cn('ms-auto size-4 transition-transform', open && 'rotate-180')} />
-      </button>
-      {open && (
-        <div className="space-y-3 p-4">
-          {steps.length > 0 && (
-            <ol className="space-y-2">
-              {steps.map((x, i) => (
-                <li key={i} className="flex gap-3 text-sm">
-                  <span className="num flex size-6 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-white">{i + 1}</span>
-                  <span className="pt-0.5">{x}</span>
-                </li>
-              ))}
-            </ol>
-          )}
-          {guide.tips_ar && (
-            <div className="rounded-xl bg-warning/10 p-3 text-sm whitespace-pre-line">
-              <div className="mb-1 text-xs font-semibold text-warning">{t('انتبه', 'Attention')}</div>
-              {guide.tips_ar}
-            </div>
-          )}
-          {guide.links.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {guide.links.filter((l) => l.url).map((l, i) => (
-                <a key={i} href={l.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs text-brand hover:bg-surface-2">
-                  <ExternalLink className="size-3.5" />
-                  {l.label || l.url}
-                </a>
-              ))}
-            </div>
-          )}
-          {guide.images.length > 0 && (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {guide.images.map((u) => (
-                <a key={u} href={u} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-border">
-                  <img src={u} alt="" className="aspect-video w-full object-cover" />
-                </a>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </Card>
   )
 }
 
@@ -266,12 +217,13 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
   }
 
   const meta = (f: FileRow) => extra.data?.find((x) => x.id === f.id)
-  const uploads = (r?.files ?? []).filter((f) => f.kind !== 'deliverable')
+  const uploads = (r?.files ?? []).filter((f) => f.kind === 'upload' || f.kind === 'payment_proof')
   const deliverables = (r?.files ?? []).filter((f) => f.kind === 'deliverable')
 
   const historyLabel = (h: Detail['history'][number]) => {
     if (h.note === 'payment_confirmed') return t('تأكيد الأداء', 'Paiement confirmé')
     if (h.note === 'staff_created') return t('أنشأه موظف نيابة عن الزبون', 'Créée par l’équipe pour le client')
+    if (h.note?.startsWith('blocked:')) return t(`🚧 تعثّر: ${h.note.split(':').slice(1).join(' — ')}`, `🚧 Blocage : ${h.note.slice(8)}`)
     if (h.note?.startsWith('customer_downloaded:')) return t(`الزبون حمّل: ${h.note.slice(20)}`, `Téléchargé par le client : ${h.note.slice(20)}`)
     if (h.note === 'auto_after_download') return t('تم التسليم تلقائياً بعد التحميل', 'Livrée automatiquement après téléchargement')
     const s = statuses.data?.find((x) => x.key === h.status)
@@ -301,6 +253,7 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
                 <Phone />
               </a>
             </Button>
+            {r.guide?.templates?.length ? <TemplatesMenu r={r as unknown as WorkflowRequest} templates={r.guide.templates} /> : null}
             <Button asChild variant="success" size="sm">
               <a href={whatsappLink(r.phone, waText(status))} target="_blank" rel="noreferrer">
                 <MessageCircle />
@@ -346,7 +299,8 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
             </Card>
           )}
 
-          {r.guide && <GuideCard guide={r.guide} />}
+          {r.guide && <WorkflowCard r={r as unknown as WorkflowRequest} guide={r.guide} />}
+          {can('requests.manage') && <CopyPanel r={r as unknown as WorkflowRequest} />}
 
           {/* what the customer asked */}
           <Card className="space-y-3 p-4">
@@ -451,10 +405,15 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
             </Button>
           )}
 
+          {can('requests.manage') && <ReferenceCard r={r as unknown as WorkflowRequest} guide={r.guide} />}
+
           {/* status */}
           {can('requests.manage') && (
             <Card className="space-y-3 p-4">
-              <div className="text-sm font-semibold">{t('تغيير الحالة', 'Changer le statut')}</div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-semibold">{t('تغيير الحالة', 'Changer le statut')}</div>
+                <BlockerBar r={r as unknown as WorkflowRequest} />
+              </div>
               <div className="flex flex-wrap gap-2">
                 {(statuses.data ?? [])
                   .filter((s) => s.key !== r.status)
