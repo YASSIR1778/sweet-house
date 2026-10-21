@@ -12,6 +12,7 @@ import { cn } from '@/shared/lib/utils'
 import { Badge, Button, Card, CardHeader, Field, Input, Skeleton, SwitchRow } from '@/shared/ui/primitives'
 import { Dialog } from '@/shared/ui/overlay'
 import { EmptyState, PageHeader, StatCard } from '@/shared/ui/data'
+import { RiyadCorrections } from './ShiftExtras'
 import { MoneyInput } from '@/shared/ui/pickers'
 
 type Overview = {
@@ -100,6 +101,8 @@ export function RiyadPage() {
           )
         }
       />
+
+      <RiyadCorrections />
 
       {empty && can('riyad.manage') && (
         <Card className="mb-5 flex flex-wrap items-center gap-4 border-brand/30 bg-brand-50/50 p-5">

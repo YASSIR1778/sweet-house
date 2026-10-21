@@ -277,7 +277,7 @@ export function SettingsPage() {
                   <CardHeader title={t('الصندوق', 'Caisse')} icon={<Banknote />} />
                   <div className="space-y-4 p-5">
                     <div className="grid gap-4 sm:grid-cols-3">
-                      <Field label={t('المبلغ الافتتاحي (Fond de caisse)', 'Fond de caisse')}>
+                      <Field label={t('مبلغ الدرج الثابت في بداية كل وردية', 'Fond fixe du tiroir')} hint={t('الباقي يذهب للخزنة عند الإغلاق', 'Le reste va au coffre')}>
                         <MoneyInput value={cash.opening_float} onChange={(v) => setCash({ ...cash, opening_float: v ?? 0 })} />
                       </Field>
                       <Field label={t('تنبيه عند فرق يتجاوز', 'Alerte si écart >')}>
@@ -287,7 +287,7 @@ export function SettingsPage() {
                         <Input type="number" min={0} value={cash.auto_lock_minutes ?? 5} onChange={(e) => setCash({ ...cash, auto_lock_minutes: Number(e.target.value) })} className="num" />
                       </Field>
                     </div>
-                    <SwitchRow label={t('العدّ الأعمى عند الإغلاق', 'Comptage à l’aveugle')} description={t('الموظف يكتب المبلغ المعدود قبل أن يرى المبلغ المتوقع', "L'employé saisit le montant compté avant de voir l'attendu")} checked={cash.blind_count ?? true} onCheckedChange={(blind_count) => setCash({ ...cash, blind_count })} />
+                    <SwitchRow label={t('العدّ الأعمى عند الإغلاق', 'Comptage à l’aveugle')} description={t('الموظف يكتب المبلغ المعدود قبل أن يرى المبلغ المتوقع', "L'employé saisit le montant compté avant de voir l'attendu")} checked={cash.blind_count ?? false} onCheckedChange={(blind_count) => setCash({ ...cash, blind_count })} />
                   </div>
                 </Card>
                 <Card>

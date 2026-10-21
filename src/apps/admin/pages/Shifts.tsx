@@ -10,6 +10,7 @@ import { cn } from '@/shared/lib/utils'
 import { Avatar, Badge, Button, Card, Spinner } from '@/shared/ui/primitives'
 import { Dialog } from '@/shared/ui/overlay'
 import { DataTable, PageHeader, StatCard, Tabs, type Column } from '@/shared/ui/data'
+import { SafeBalanceCard, ShiftCarryDetail } from './ShiftExtras'
 
 type Row = {
   id: string
@@ -26,6 +27,10 @@ type Row = {
   riyad_balance_reported: number | null
   riyad_balance_expected: number | null
   handed_over: number
+  opening_safe?: number | null
+  opening_riyad?: number | null
+  closing_drawer?: number | null
+  closing_safe?: number | null
   employees: { full_name: string; color: string } | null
 }
 
@@ -156,6 +161,7 @@ export function ShiftsPage() {
           </>
         }
       />
+      <SafeBalanceCard />
       <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard index={0} label={t('ورديات مغلقة', 'Caisses clôturées')} value={stats.count} icon={<Banknote />} loading={shifts.isLoading} />
         <StatCard index={1} tone={stats.diff < 0 ? 'danger' : 'success'} label={t('مجموع الفروقات', 'Total des écarts')} value={money(stats.diff)} icon={<AlertTriangle />} loading={shifts.isLoading} />
@@ -171,9 +177,9 @@ export function ShiftsPage() {
           </div>
         ) : (
           <div className="space-y-5">
+            <ShiftCarryDetail shift={d} />
             <div className="grid gap-3 sm:grid-cols-4">
               {[
-                [t('المبلغ الافتتاحي', 'Fond'), d.opening_float],
                 [t('المبيعات', 'Ventes'), d.totals.sales_total],
                 [t('نقداً', 'Espèces'), d.totals.sales_cash],
                 [t('بطاقة', 'Carte'), d.totals.sales_card],

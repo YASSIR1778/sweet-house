@@ -30,10 +30,13 @@ export type ShiftTotals = {
   movements: Record<string, { amount: number; count: number }>
   movements_total: number
   expected_before_riyad?: number
+  opening_drawer?: number
+  opening_safe?: number
+  opening_riyad?: number | null
 }
 export type ShiftStatus =
-  | { open: true; shift: { id: string; number: number; employee_id: string; opened_at: string; opening_float: number }; employee_name: string; mine: boolean; blind: boolean; totals: ShiftTotals }
-  | { open: false; suggested_float: number; default_float: number; last_closed_at: string | null }
+  | { open: true; shift: { id: string; number: number; employee_id: string; opened_at: string; opening_float: number; opening_safe?: number; opening_riyad?: number | null }; employee_name: string; mine: boolean; blind: boolean; float?: number; totals: ShiftTotals }
+  | { open: false; suggested_float: number; default_float: number; last_closed_at?: string | null; carry?: Carry }
 
 export function useShift(device: DeviceInfo) {
   const { sb } = useAuth()
@@ -56,40 +59,143 @@ export function useShift(device: DeviceInfo) {
   })
 }
 
-// ---------------------------------------------------------------- Open shift screen
+// ---------------------------------------------------------------- Open shift screen ("استلام الوردية")
+type Carry = { drawer: number; safe: number; riyad: number; float: number; last_closed_at: string | null; last_employee: string | null }
+const CASH_REASONS: [string, string, string][] = [
+  ['previous_count', 'خطأ في عدّ الوردية السابقة', 'Erreur de comptage précédente'],
+  ['owner_withdrawal', 'أخذ المالك نقوداً', 'Retrait du propriétaire'],
+  ['other', 'سبب آخر', 'Autre'],
+]
+const RIYAD_REASONS: [string, string, string][] = [
+  ['owner_recharge', 'شحن الرصيد من المالك', 'Recharge par le propriétaire'],
+  ['missing_operation', 'عملية لم تُسجَّل', 'Opération non saisie'],
+  ['other', 'سبب آخر', 'Autre'],
+]
+
+/** One line: expected amount, ✅ to confirm or ✏️ to type what is really there. */
+function CheckRow({ label, hint, expected, value, onChange, confirmed, onConfirm }: { label: string; hint?: string; expected: number; value: number | null; onChange: (v: number | null) => void; confirmed: boolean; onConfirm: () => void }) {
+  const { t } = useLang()
+  const [edit, setEdit] = useState(false)
+  const differs = value !== null && value !== expected
+  return (
+    <div className={cn('rounded-xl border-2 p-3 transition-colors', confirmed && !differs ? 'border-success/50 bg-success/5' : differs ? 'border-warning/60 bg-warning/5' : 'border-border')}>
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold">{label}</div>
+          {hint && <div className="text-xs text-muted">{hint}</div>}
+        </div>
+        <div className="num text-lg font-bold">{money(expected)}</div>
+        <Button size="sm" variant={confirmed && !differs ? 'success' : 'outline'} onClick={() => (onChange(expected), setEdit(false), onConfirm())}>
+          <CheckCircle2 />
+          {t('صحيح', 'OK')}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => (setEdit(true), onConfirm())}>
+          {t('تصحيح', 'Corriger')}
+        </Button>
+      </div>
+      {(edit || differs) && (
+        <div className="mt-3 flex items-center gap-2">
+          <span className="shrink-0 text-xs text-muted">{t('الموجود فعلاً:', 'Réel :')}</span>
+          <MoneyInput value={value} onChange={onChange} autoFocus className="flex-1" />
+          {differs && (
+            <span className={cn('num shrink-0 text-xs font-bold', (value ?? 0) > expected ? 'text-info' : 'text-danger')}>
+              {(value ?? 0) > expected ? '+' : ''}
+              {money((value ?? 0) - expected)}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ReasonPicker({ reasons, reason, note, onReason, onNote }: { reasons: [string, string, string][]; reason: string; note: string; onReason: (r: string) => void; onNote: (n: string) => void }) {
+  const { t } = useLang()
+  return (
+    <div className="space-y-2 rounded-xl bg-warning/5 p-3">
+      <div className="text-xs font-semibold text-warning">{t('سبب التصحيح (إلزامي)', 'Motif (obligatoire)')}</div>
+      <div className="flex flex-wrap gap-2">
+        {reasons.map(([k, ar, fr]) => (
+          <button key={k} type="button" onClick={() => onReason(k)} className={cn('rounded-full border px-3 py-1.5 text-xs', reason === k ? 'border-warning bg-warning text-white' : 'border-border bg-surface')}>
+            {t(ar, fr)}
+          </button>
+        ))}
+      </div>
+      <Input value={note} onChange={(e) => onNote(e.target.value)} placeholder={t('شرح قصير', 'Précision')} />
+    </div>
+  )
+}
+
 export function OpenShiftScreen({ device, status, onOpened }: { device: DeviceInfo; status: Extract<ShiftStatus, { open: false }>; onOpened: () => void }) {
   const { sb, me, can, signOut } = useAuth()
   const { t, lang } = useLang()
-  const [amount, setAmount] = useState<number | null>(status.suggested_float)
+  const c = status.carry
+  const [drawer, setDrawer] = useState<number | null>(c?.drawer ?? status.suggested_float)
+  const [safe, setSafe] = useState<number | null>(c?.safe ?? 0)
+  const [riyad, setRiyad] = useState<number | null>(c?.riyad ?? null)
+  const [ok, setOk] = useState({ drawer: false, safe: false, riyad: false })
+  const [cashReason, setCashReason] = useState({ reason: '', note: '' })
+  const [riyadReason, setRiyadReason] = useState({ reason: '', note: '' })
   const [busy, setBusy] = useState(false)
+
+  const cashExpected = (c?.drawer ?? 0) + (c?.safe ?? 0)
+  const cashDiff = (drawer ?? 0) + (safe ?? 0) - cashExpected
+  const riyadDiff = c && riyad !== null ? riyad - c.riyad : 0
+  const showRiyad = can('riyad.view_balance') || can('riyad.fee')
+  const allChecked = ok.drawer && ok.safe && (!showRiyad || ok.riyad)
+  const missingReason = (cashDiff !== 0 && !cashReason.reason) || (showRiyad && riyadDiff !== 0 && !riyadReason.reason)
 
   const open = async () => {
     setBusy(true)
-    const { error } = await sb.rpc('open_shift', { p_device: device.id, p_float: amount ?? 0 })
+    const corrections = [
+      ...(cashDiff !== 0 ? [{ kind: 'cash', ...cashReason }] : []),
+      ...(showRiyad && riyadDiff !== 0 ? [{ kind: 'riyad', ...riyadReason }] : []),
+    ]
+    const { error } = await sb.rpc('open_shift_checked', { p_device: device.id, p_drawer: drawer ?? 0, p_safe: safe ?? 0, p_riyad: showRiyad ? riyad : null, p_corrections: corrections })
     setBusy(false)
     if (error) return toast.error(errorMessage(error, lang))
-    toast.success(t('تم فتح الوردية. عمل موفق 💪', 'Caisse ouverte. Bon travail 💪'))
+    toast.success(corrections.length ? t('تم استلام الوردية، وأُرسل التصحيح للمالك', 'Caisse ouverte, correction envoyée au propriétaire') : t('تم استلام الوردية. عمل موفق 💪', 'Caisse ouverte. Bon travail 💪'))
     onOpened()
   }
 
   return (
     <ShiftFrame>
       <div className="text-center">
-        <Avatar name={me?.full_name ?? ''} color={me?.color} src={me?.avatar_url} size={72} />
-        <h1 className="mt-4 text-2xl font-bold">
+        <Avatar name={me?.full_name ?? ''} color={me?.color} src={me?.avatar_url} size={64} />
+        <h1 className="mt-3 text-2xl font-bold">
           {t('مرحباً', 'Bonjour')} {me?.full_name} 👋
         </h1>
-        <p className="mt-1 text-white/60">{t('افتح الوردية للبدء في البيع', 'Ouvrez la caisse pour commencer')}</p>
+        <p className="mt-1 text-white/60">
+          {c?.last_employee
+            ? t(`استلام الوردية من ${c.last_employee}: تأكدي من المبالغ التالية`, `Reprise de la caisse de ${c.last_employee} : vérifiez les montants`)
+            : t('تأكدي من المبالغ التالية قبل البدء', 'Vérifiez les montants avant de commencer')}
+        </p>
       </div>
       {can('cash.shift') ? (
-        <Card className="mt-8 w-full max-w-sm p-6 text-text">
-          <Field label={t('المبلغ الموجود في الدرج الآن', 'Montant présent dans le tiroir')} hint={status.last_closed_at ? t('مقترح حسب ما تُرك في آخر إغلاق', 'Suggéré selon la dernière clôture') : t('المبلغ الافتتاحي الافتراضي', 'Fond de caisse par défaut')}>
-            <MoneyInput value={amount} onChange={setAmount} autoFocus />
-          </Field>
-          <Button size="lg" className="mt-5 w-full" onClick={open} loading={busy}>
+        <Card className="mt-6 w-full max-w-lg space-y-3 p-5 text-text">
+          <CheckRow label={t('الدرج', 'Tiroir')} hint={t('مبلغ ثابت في بداية كل وردية', 'Fond fixe à chaque ouverture')} expected={c?.drawer ?? status.suggested_float} value={drawer} onChange={setDrawer} confirmed={ok.drawer} onConfirm={() => setOk((o) => ({ ...o, drawer: true }))} />
+          <CheckRow label={t('الخزنة', 'Coffre')} hint={t('ما تُرك في الخزنة عند آخر إغلاق', 'Laissé au coffre à la dernière clôture')} expected={c?.safe ?? 0} value={safe} onChange={setSafe} confirmed={ok.safe} onConfirm={() => setOk((o) => ({ ...o, safe: true }))} />
+          {cashDiff !== 0 && <ReasonPicker reasons={CASH_REASONS} reason={cashReason.reason} note={cashReason.note} onReason={(reason) => setCashReason({ ...cashReason, reason })} onNote={(note) => setCashReason({ ...cashReason, note })} />}
+          {showRiyad && c && (
+            <>
+              <CheckRow label={t('رصيد رياض', 'Solde Riyad')} hint={t('قارنيه بالرصيد الظاهر في المنصة الآن', 'Comparez avec la plateforme')} expected={c.riyad} value={riyad} onChange={setRiyad} confirmed={ok.riyad} onConfirm={() => setOk((o) => ({ ...o, riyad: true }))} />
+              {riyadDiff !== 0 && (
+                <>
+                  <ReasonPicker reasons={RIYAD_REASONS} reason={riyadReason.reason} note={riyadReason.note} onReason={(reason) => setRiyadReason({ ...riyadReason, reason })} onNote={(note) => setRiyadReason({ ...riyadReason, note })} />
+                  <p className="text-xs text-muted">{t('يُرسل هذا التصحيح للمالك ليؤكده، ثم يُسجَّل في حساب رياض.', 'Envoyé au propriétaire pour validation.')}</p>
+                </>
+              )}
+            </>
+          )}
+          <div className="flex items-center justify-between rounded-xl bg-navy px-4 py-3 text-white">
+            <span className="text-sm text-white/70">{t('مجموع النقود (الدرج + الخزنة)', 'Total espèces (tiroir + coffre)')}</span>
+            <span className="num text-xl font-bold">{money((drawer ?? 0) + (safe ?? 0))}</span>
+          </div>
+          <Button size="lg" className="w-full" onClick={open} loading={busy} disabled={!allChecked || missingReason}>
             <Store />
-            {t('فتح الوردية', 'Ouvrir la caisse')}
+            {t('استلام الوردية', 'Prendre la caisse')}
           </Button>
+          {!allChecked && <p className="text-center text-xs text-muted">{t('اضغطي «صحيح» أو «تصحيح» لكل مبلغ', 'Validez ou corrigez chaque montant')}</p>}
         </Card>
       ) : (
         <div className="mt-8 rounded-2xl bg-white/10 p-5 text-center text-sm">{t('ليست لديك صلاحية فتح الوردية. اطلب من المسيّر فتحها.', "Vous n'avez pas la permission d'ouvrir la caisse.")}</div>
@@ -170,7 +276,7 @@ export function ShiftSheet({ device, status, open, onClose, onClosed }: { device
         <div className="space-y-5">
           <div className="grid grid-cols-2 gap-3">
             <Stat label={t('فُتحت', 'Ouverte à')} value={format(new Date(status.shift.opened_at), 'HH:mm')} />
-            <Stat label={t('المبلغ الافتتاحي', 'Fond de caisse')} value={money(status.shift.opening_float)} />
+            <Stat label={t('في البداية: الدرج + الخزنة', 'Début : tiroir + coffre')} value={money(status.shift.opening_float + (status.shift.opening_safe ?? 0))} hint={`${t('الدرج', 'Tiroir')} ${money(status.shift.opening_float)} · ${t('الخزنة', 'Coffre')} ${money(status.shift.opening_safe ?? 0)}`} />
             <Stat label={t('المبيعات', 'Ventes')} value={`${money(tot.sales_total)}`} hint={`${tot.sales_count} ${t('بيع', 'ventes')}`} />
             <Stat label={t('رسوم رياض', 'Frais Riyad')} value={money(tot.riyad_fees)} />
             <Stat label={t('نقداً', 'Espèces')} value={money(tot.sales_cash)} />
@@ -185,7 +291,7 @@ export function ShiftSheet({ device, status, open, onClose, onClosed }: { device
           </div>
           {tot.expected_before_riyad !== undefined && !status.blind && (
             <div className="rounded-2xl bg-navy p-4 text-white">
-              <div className="text-sm text-white/60">{t('النقود المتوقعة في الدرج (قبل حساب رياض)', 'Espèces attendues (hors Riyad)')}</div>
+              <div className="text-sm text-white/60">{t('النقود المتوقعة الآن في الدرج والخزنة معاً (قبل حساب رياض)', 'Espèces attendues tiroir + coffre (hors Riyad)')}</div>
               <div className="num mt-1 text-2xl font-bold">{money(tot.expected_before_riyad)}</div>
             </div>
           )}
@@ -391,7 +497,7 @@ export function DebtPaymentDialog({ device, open, onClose, initialCustomer }: { 
 }
 
 // ---------------------------------------------------------------- Close shift (blind count)
-type CloseResult = { expected: number; counted: number; difference: number; totals: ShiftTotals; riyad_expected: number; riyad_reported: number | null }
+type CloseResult = { expected: number; counted: number; difference: number; totals: ShiftTotals; riyad_expected: number; riyad_reported: number | null; drawer?: number; safe?: number; handed_over?: number; float?: number }
 
 export function CloseShiftDialog({ status, open, onClose, onClosed }: { device: DeviceInfo; status: Extract<ShiftStatus, { open: true }>; open: boolean; onClose: () => void; onClosed: () => void }) {
   const { sb, can } = useAuth()
@@ -447,11 +553,21 @@ export function CloseShiftDialog({ status, open, onClose, onClosed }: { device: 
           <Card className="space-y-4 p-4">
             <div className="flex items-center gap-2 font-semibold">
               <Banknote className="size-4 text-brand" />
-              {t('1. عُدّ النقود في الدرج', '1. Comptez les espèces')}
+              {t('1. عُدّي كل النقود: الدرج + الخزنة معاً', '1. Comptez tout : tiroir + coffre')}
             </div>
-            <Field label={t('المبلغ المعدود', 'Montant compté')} required hint={status.blind ? t('اكتب ما عددته فعلاً. سيظهر لك المتوقع بعد التأكيد.', "Saisissez ce que vous avez compté. L'attendu s'affiche après validation.") : undefined}>
+            {!status.blind && status.totals.expected_before_riyad !== undefined && (
+              <div className="flex items-center justify-between rounded-xl bg-surface-2 px-3 py-2.5 text-sm">
+                <span className="text-muted">{t('المتوقع (مع أرقام رياض أسفله)', 'Attendu (avec Riyad ci-dessous)')}</span>
+                <span className="num text-lg font-bold">{money(status.totals.expected_before_riyad + (rin ?? 0) - (rout ?? 0))}</span>
+              </div>
+            )}
+            <Field label={t('مجموع ما عددتِه (الدرج + الخزنة)', 'Total compté (tiroir + coffre)')} required hint={status.blind ? t('اكتبي ما عددتِه فعلاً. سيظهر المتوقع بعد التأكيد.', "Saisissez ce que vous avez compté.") : undefined}>
               <MoneyInput value={counted} onChange={setCounted} autoFocus />
             </Field>
+            {counted !== null && !status.blind && status.totals.expected_before_riyad !== undefined && (() => {
+              const d = counted - (status.totals.expected_before_riyad + (rin ?? 0) - (rout ?? 0))
+              return <div className={cn('text-sm font-medium', d === 0 ? 'text-success' : d > 0 ? 'text-info' : 'text-danger')}>{d === 0 ? t('✅ مضبوط', '✅ Juste') : `${d > 0 ? t('زيادة', 'Excédent') : t('نقص', 'Manque')}: ${money(Math.abs(d))}`}</div>
+            })()}
           </Card>
           <Card className="space-y-4 p-4">
             <div className="flex items-center gap-2 font-semibold">
@@ -472,7 +588,7 @@ export function CloseShiftDialog({ status, open, onClose, onClosed }: { device: 
             </Field>
           </Card>
           {can('cash.owner_withdrawal') && (
-            <Field label={t('المبلغ الذي سيُسلَّم للمالك / البنك الآن', 'Montant remis au propriétaire')} hint={t('الباقي يبقى في الدرج للوردية القادمة', 'Le reste reste en caisse')}>
+            <Field label={t('المبلغ الذي سيُسلَّم للمالك / البنك الآن', 'Montant remis au propriétaire')} hint={t('يُخصم من الخزنة', 'Déduit du coffre')}>
               <MoneyInput value={handed} onChange={setHanded} />
             </Field>
           )}
@@ -494,6 +610,19 @@ export function CloseShiftDialog({ status, open, onClose, onClosed }: { device: 
               {money(result.difference)}
             </div>
           </motion.div>
+          {result.drawer !== undefined && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-2xl border-2 border-brand bg-brand-50 p-4 text-center">
+                <div className="text-sm text-muted">{t('اتركي في الدرج', 'Laissez dans le tiroir')}</div>
+                <div className="num text-2xl font-extrabold text-brand">{money(result.drawer)}</div>
+              </div>
+              <div className="rounded-2xl border-2 border-navy bg-surface-2 p-4 text-center">
+                <div className="text-sm text-muted">{t('ضعي في الخزنة', 'Mettez au coffre')}</div>
+                <div className="num text-2xl font-extrabold">{money(result.safe ?? 0)}</div>
+              </div>
+              {(result.drawer ?? 0) < (result.float ?? 0) && <p className="col-span-2 text-xs text-danger">{t('النقود أقل من مبلغ الدرج الثابت، أخبري المالك.', 'Moins que le fond de caisse : prévenez le propriétaire.')}</p>}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <Stat label={t('المتوقع', 'Attendu')} value={money(result.expected)} />
             <Stat label={t('المعدود', 'Compté')} value={money(result.counted)} />
@@ -519,7 +648,8 @@ export function CloseShiftDialog({ status, open, onClose, onClosed }: { device: 
 function ShiftPrint({ status, result, onDone }: { status: Extract<ShiftStatus, { open: true }>; result: CloseResult; onDone: () => void }) {
   const { t } = useLang()
   const rows: [string, number][] = [
-    [t('المبلغ الافتتاحي', 'Fond de caisse'), status.shift.opening_float],
+    [t('الدرج في البداية', 'Tiroir début'), status.shift.opening_float],
+    [t('الخزنة في البداية', 'Coffre début'), status.shift.opening_safe ?? 0],
     [t('المبيعات', 'Ventes'), result.totals.sales_total],
     [t('نقداً', 'Espèces'), result.totals.sales_cash],
     [t('بطاقة', 'Carte'), result.totals.sales_card],
@@ -529,6 +659,8 @@ function ShiftPrint({ status, result, onDone }: { status: Extract<ShiftStatus, {
     [t('المتوقع', 'Attendu'), result.expected],
     [t('المعدود', 'Compté'), result.counted],
     [t('الفرق', 'Écart'), result.difference],
+    ...(result.handed_over ? ([[t('سُلّم للمالك', 'Remis au propriétaire'), result.handed_over]] as [string, number][]) : []),
+    ...(result.drawer !== undefined ? ([[t('تُرك في الدرج', 'Laissé au tiroir'), result.drawer], [t('في الخزنة', 'Au coffre'), result.safe ?? 0]] as [string, number][]) : []),
   ]
   return (
     <PrintArea onDone={onDone}>
