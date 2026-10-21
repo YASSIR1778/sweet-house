@@ -198,6 +198,17 @@ grant execute on function public.agent_followup_data() to service_role;
 grant execute on function public.agent_request_data(uuid) to service_role;
 grant execute on function public.agent_content_data() to service_role;
 
+-- today_tasks() depends on auth; give the brief an owner-agnostic version
+create or replace function public.today_tasks_for_owner()
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'requests_new', (select count(*) from service_requests where status = 'received'),
+    'requests_late', (select count(*) from jsonb_array_elements(public.requests_list(500)) r where (r->>'late')::boolean),
+    'help_new', (select count(*) from help_requests where status = 'new'),
+    'orders_new', (select count(*) from online_orders where status = 'new'),
+    'low_stock', (select count(*) from product_variants v join products p on p.id = v.product_id where v.deleted_at is null and p.deleted_at is null and p.track_stock and v.stock_qty <= p.low_stock_alert),
+    'riyad_balance', public.riyad_balance())
+$$;
 -- Brief data: yesterday's agent suggestions + today's tasks
 create or replace function public.agent_brief_data()
 returns jsonb language sql stable security definer set search_path = public as $$
@@ -217,17 +228,6 @@ returns jsonb language sql stable security definer set search_path = public as $
     'tasks', public.today_tasks_for_owner())
 $$;
 
--- today_tasks() depends on auth; give the brief an owner-agnostic version
-create or replace function public.today_tasks_for_owner()
-returns jsonb language sql stable security definer set search_path = public as $$
-  select jsonb_build_object(
-    'requests_new', (select count(*) from service_requests where status = 'received'),
-    'requests_late', (select count(*) from jsonb_array_elements(public.requests_list(500)) r where (r->>'late')::boolean),
-    'help_new', (select count(*) from help_requests where status = 'new'),
-    'orders_new', (select count(*) from online_orders where status = 'new'),
-    'low_stock', (select count(*) from product_variants v join products p on p.id = v.product_id where v.deleted_at is null and p.deleted_at is null and p.track_stock and v.stock_qty <= p.low_stock_alert),
-    'riyad_balance', public.riyad_balance())
-$$;
 revoke execute on function public.agent_brief_data() from public, anon, authenticated;
 revoke execute on function public.today_tasks_for_owner() from public, anon, authenticated;
 grant execute on function public.agent_brief_data() to service_role;
