@@ -282,6 +282,7 @@ Deno.serve(async (req) => {
     return json({ messages: added, text, proposals })
   } catch (e) {
     const err = e as { status?: number; message?: string }
+    if (String(err.message).includes('credit balance')) return fail('ai_no_credit', 402)
     return fail(String(err.message ?? e), err.status === 429 ? 429 : 500)
   }
 })

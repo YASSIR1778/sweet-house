@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
       employee_id: me ?? null, action, model, ok: res.ok,
       input_tokens: out?.usage?.input_tokens ?? null, output_tokens: out?.usage?.output_tokens ?? null,
     })
-    if (!res.ok) return fail(out?.error?.message ?? 'ai_error', 502)
+    if (!res.ok) return fail(String(out?.error?.message ?? '').includes('credit balance') ? 'ai_no_credit' : out?.error?.message ?? 'ai_error', 502)
     const text = (out.content ?? []).filter((c: { type: string }) => c.type === 'text').map((c: { text: string }) => c.text).join('\n').trim()
 
     if (action === 'write') return json({ text })

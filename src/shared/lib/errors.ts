@@ -47,6 +47,7 @@ const messages: Record<string, [string, string]> = {
   invalid_assignee: ['اختر موظفاً آخر له صلاحية هذه الطلبات', 'Choisissez un autre employé autorisé'],
   ai_not_configured: ['الذكاء الاصطناعي غير مفعّل بعد: أضف مفتاح ANTHROPIC_API_KEY في Supabase (راجع الإعدادات ← الذكاء الاصطناعي)', 'IA non configurée : ajoutez la clé ANTHROPIC_API_KEY'],
   ai_disabled: ['الذكاء الاصطناعي موقوف من الإعدادات', 'IA désactivée dans les paramètres'],
+  ai_no_credit: ['رصيد حساب Anthropic فارغ: أضف رصيداً من console.anthropic.com ← Billing (Ajouter des fonds)', 'Crédit Anthropic épuisé : rechargez sur console.anthropic.com'],
   ai_limit_reached: ['تم بلوغ الحد الشهري لاستعمال الذكاء الاصطناعي (يمكن رفعه من الإعدادات)', 'Limite mensuelle IA atteinte'],
   ai_bad_answer: ['لم نستطع قراءة الجواب، أعد المحاولة بصورة أوضح', 'Réponse illisible, réessayez avec une photo plus nette'],
   image_invalid: ['الصورة غير صالحة (JPG أو PNG فقط)', 'Image invalide (JPG ou PNG)'],
