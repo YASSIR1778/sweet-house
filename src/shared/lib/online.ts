@@ -55,6 +55,6 @@ export function useOnlinePending(sb: SupabaseClient, enabled = true) {
     queryKey: ['online-pending'],
     enabled,
     refetchInterval: 60_000,
-    queryFn: async () => (await sb.rpc('online_pending')).data as { requests: number; requests_new: number; requests_late: number; orders: number; orders_new: number; proofs: number },
+    queryFn: async () => (await sb.rpc('online_pending')).data as { devices_pending?: number; requests: number; requests_new: number; requests_late: number; orders: number; orders_new: number; proofs: number },
   })
 }
