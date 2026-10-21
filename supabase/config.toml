@@ -434,3 +434,6 @@ verify_jwt = false
 
 [functions.ai]
 verify_jwt = false
+
+[functions.retention]
+verify_jwt = false
