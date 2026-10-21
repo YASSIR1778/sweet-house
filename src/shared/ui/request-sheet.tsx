@@ -15,6 +15,7 @@ import { Badge, Button, Card, Field, Input, Spinner, Textarea } from './primitiv
 import { Sheet, useConfirm } from './overlay'
 import { MoneyInput } from './pickers'
 import { IdCardResult, IdCardScanButton, WritingButton } from './ai-tools'
+import { AssignmentCard } from './assignment'
 import { readIdCard, type IdCard } from '@/shared/lib/ai'
 
 type FileRow = { id: string; kind: 'upload' | 'deliverable' | 'payment_proof'; name: string; path: string; size: number | null; mime: string | null; created_at: string; downloaded_at?: string | null; download_count?: number }
@@ -308,6 +309,8 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
           </Card>
 
           <DueBanner due={r.due_at} done={r.done_at} />
+
+          {can('requests.manage') && <AssignmentCard entity="request" id={r.id} />}
 
           {(can('requests.view_documents') || can('pos.sell')) && (
             <div className="flex flex-wrap items-start gap-2">

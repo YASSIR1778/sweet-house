@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
 import { motion } from 'motion/react'
-import { AlarmClock, AlertTriangle, Banknote, UserX, ClipboardList, Database, FileWarning, HandCoins, Package, PartyPopper, ShoppingCart, Wallet, type LucideIcon } from 'lucide-react'
+import { AlarmClock, AlertTriangle, Banknote, UserCheck, UserX, ClipboardList, Database, FileWarning, HandCoins, Package, PartyPopper, ShoppingCart, Wallet, type LucideIcon } from 'lucide-react'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
 import { Card } from '@/shared/ui/primitives'
@@ -32,10 +32,14 @@ export function TodayTasks() {
   }, [sb, can])
 
   const q = useQuery({ queryKey: ['today-tasks'], refetchInterval: 60_000, queryFn: async () => (await sb.rpc('today_tasks')).data as Tasks })
+  const mine = useQuery({ queryKey: ['my-tasks'], refetchInterval: 60_000, queryFn: async () => (await sb.rpc('my_tasks_summary')).data as { mine_requests: number; mine_orders: number; free_requests: number | null; free_orders: number | null } })
   const d = q.data
+  const m = mine.data
   if (!d) return null
 
   const items: { n: number; ar: string; fr: string; to: string; icon: LucideIcon; tone: string }[] = [
+    { n: (m?.mine_requests ?? 0) + (m?.mine_orders ?? 0), ar: 'طلبات أنا المسؤول عنها', fr: 'Mes tâches en cours', to: '/requests', icon: UserCheck, tone: '#16A34A' },
+    { n: (m?.free_requests ?? 0) + (m?.free_orders ?? 0), ar: 'طلبات بدون مسؤول — تكفّل بها', fr: 'Sans responsable', to: '/requests', icon: UserX, tone: '#D97706' },
     { n: d.requests_new ?? 0, ar: 'طلبات خدمات جديدة', fr: 'Nouvelles demandes', to: '/requests', icon: ClipboardList, tone: '#2563EB' },
     { n: d.requests_late ?? 0, ar: 'طلبات متأخرة عن المدة المستهدفة', fr: 'Demandes en retard', to: '/requests', icon: AlarmClock, tone: '#DC2626' },
     { n: d.requests_docs ?? 0, ar: 'طلبات فيها وثائق جديدة', fr: 'Nouveaux documents', to: '/requests', icon: FileWarning, tone: '#DC2626' },

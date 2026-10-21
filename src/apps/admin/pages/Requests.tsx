@@ -9,6 +9,7 @@ import { PAYMENT_STATUS, useRequestStatuses } from '@/shared/lib/online'
 import { Badge, Input } from '@/shared/ui/primitives'
 import { DataTable, EmptyState, PageHeader, Tabs, type Column } from '@/shared/ui/data'
 import { RequestSheet, StatusBadge } from '@/shared/ui/request-sheet'
+import { AssigneeBadge, type AssigneeMini } from '@/shared/ui/assignment'
 
 export type RequestRow = {
   id: string
@@ -29,6 +30,7 @@ export type RequestRow = {
   downloaded: boolean
   new_docs: number
   late: boolean
+  assignee: AssigneeMini
   due_at: string | null
   abroad: boolean
   country: string | null
@@ -45,7 +47,7 @@ export function useRequestsList(key: string, enabled = true) {
 }
 
 export function RequestsPage() {
-  const { sb } = useAuth()
+  const { sb, me } = useAuth()
   const { t, pick, lang } = useLang()
   const statuses = useRequestStatuses(sb)
   const [tab, setTab] = useState('open')
@@ -62,6 +64,8 @@ export function RequestsPage() {
       if (tab === 'proof' && r.payment_status !== 'proof_uploaded') return false
       if (tab === 'received' && r.status !== 'received') return false
       if (tab === 'late' && !r.late) return false
+      if (tab === 'mine' && r.assignee?.id !== me?.id) return false
+      if (tab === 'free' && (r.assignee || st(r.status)?.is_final)) return false
       if (tab === 'abroad' && !r.abroad) return false
       return !s || r.number.toLowerCase().includes(s) || r.customer_name.toLowerCase().includes(s) || r.phone.includes(s) || r.service_name_ar.includes(s) || r.tracking_code.toLowerCase().includes(s)
     })
@@ -115,6 +119,7 @@ export function RequestsPage() {
         </div>
       ),
     },
+    { key: 'as', header: t('المسؤول', 'Responsable'), cell: (r) => (st(r.status)?.is_final && !r.assignee ? <span className="text-subtle">—</span> : <AssigneeBadge a={r.assignee} />) },
     { key: 'p', header: t('الأداء', 'Paiement'), cell: (r) => <Badge tone={PAYMENT_STATUS[r.payment_status].tone}>{t(PAYMENT_STATUS[r.payment_status].ar, PAYMENT_STATUS[r.payment_status].fr)}</Badge> },
     { key: 'd', header: t('منذ', 'Reçue'), sortValue: (r) => r.created_at, cell: (r) => <span className="text-xs text-muted">{formatDistanceToNow(new Date(r.created_at), { addSuffix: true, locale: lang === 'ar' ? arLocale : frLocale })}</span> },
   ]
@@ -128,6 +133,8 @@ export function RequestsPage() {
           onChange={setTab}
           items={[
             { value: 'open', label: t('قيد الإنجاز', 'En cours'), count: count((r) => !st(r.status)?.is_final) },
+            { value: 'mine', label: t('طلباتي', 'Mes demandes'), count: count((r) => r.assignee?.id === me?.id && !st(r.status)?.is_final) },
+            { value: 'free', label: t('بدون مسؤول', 'Sans responsable'), count: count((r) => !r.assignee && !st(r.status)?.is_final) },
             { value: 'received', label: t('جديدة', 'Nouvelles'), count: count((r) => r.status === 'received') },
             { value: 'late', label: t('متأخرة', 'En retard'), count: count((r) => r.late) },
             { value: 'docs', label: t('وثائق جديدة', 'Nouveaux docs'), count: count((r) => r.new_docs > 0) },

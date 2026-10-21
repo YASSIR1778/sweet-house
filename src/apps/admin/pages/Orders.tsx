@@ -15,8 +15,9 @@ import { sendWhatsApp } from '@/shared/lib/whatsapp'
 import { Sheet, useConfirm } from '@/shared/ui/overlay'
 import { DataTable, EmptyState, PageHeader, Tabs, type Column } from '@/shared/ui/data'
 import { PrintArea } from '@/shared/ui/receipt'
+import { AssigneeBadge, AssignmentCard, type AssigneeMini } from '@/shared/ui/assignment'
 
-type Row = { id: string; number: string; tracking_code: string; customer_name: string; phone: string; city: string | null; delivery_method: 'delivery' | 'pickup'; total: number; payment_method: string; payment_status: string; status: string; created_at: string }
+type Row = { assignee: AssigneeMini; id: string; number: string; tracking_code: string; customer_name: string; phone: string; city: string | null; delivery_method: 'delivery' | 'pickup'; total: number; payment_method: string; payment_status: string; status: string; created_at: string }
 type Detail = Row & {
   email: string | null
   address: string | null
@@ -50,7 +51,7 @@ export function OStatus({ s }: { s: string }) {
 }
 
 export function OrdersPage() {
-  const { sb } = useAuth()
+  const { sb, me } = useAuth()
   const { t, lang } = useLang()
   const [tab, setTab] = useState('open')
   const [q, setQ] = useState('')
@@ -59,13 +60,15 @@ export function OrdersPage() {
   const list = useQuery({
     queryKey: ['orders'],
     refetchInterval: 60_000,
-    queryFn: async () => (await sb.from('online_orders').select('id, number, tracking_code, customer_name, phone, city, delivery_method, total, payment_method, payment_status, status, created_at').order('created_at', { ascending: false }).limit(1000)).data as Row[],
+    queryFn: async () => (await sb.from('online_orders').select('id, number, tracking_code, customer_name, phone, city, delivery_method, total, payment_method, payment_status, status, created_at, assignee:employees!online_orders_assigned_to_fkey(id, full_name, color)').order('created_at', { ascending: false }).limit(1000)).data as unknown as Row[],
   })
   const rows = useMemo(() => {
     const s = q.trim().toLowerCase()
     return (list.data ?? []).filter((o) => {
       if (tab === 'open' && ['delivered', 'cancelled'].includes(o.status)) return false
       if (tab === 'new' && o.status !== 'new') return false
+      if (tab === 'mine' && o.assignee?.id !== me?.id) return false
+      if (tab === 'free' && (o.assignee || ['delivered', 'cancelled'].includes(o.status))) return false
       if (tab === 'proof' && o.payment_status !== 'proof_uploaded') return false
       return !s || o.number.toLowerCase().includes(s) || o.customer_name.toLowerCase().includes(s) || o.phone.includes(s)
     })
@@ -79,6 +82,7 @@ export function OrdersPage() {
     { key: 't', header: t('المجموع', 'Total'), sortValue: (o) => o.total, cell: (o) => <span className="num font-bold">{money(o.total)}</span> },
     { key: 'p', header: t('الأداء', 'Paiement'), cell: (o) => <div className="flex flex-col items-start gap-1"><Badge tone={PAYMENT_STATUS[o.payment_status].tone}>{t(PAYMENT_STATUS[o.payment_status].ar, PAYMENT_STATUS[o.payment_status].fr)}</Badge><span className="text-[11px] text-muted">{t(...PM[o.payment_method])}</span></div> },
     { key: 's', header: t('الحالة', 'Statut'), cell: (o) => <OStatus s={o.status} /> },
+    { key: 'as', header: t('المسؤول', 'Responsable'), cell: (o) => (['delivered', 'cancelled'].includes(o.status) && !o.assignee ? <span className="text-subtle">—</span> : <AssigneeBadge a={o.assignee} />) },
     { key: 'a', header: t('منذ', 'Reçue'), sortValue: (o) => o.created_at, cell: (o) => <span className="text-xs text-muted">{formatDistanceToNow(new Date(o.created_at), { addSuffix: true, locale: lang === 'ar' ? arLocale : frLocale })}</span> },
   ]
 
@@ -88,6 +92,8 @@ export function OrdersPage() {
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <Tabs value={tab} onChange={setTab} items={[
           { value: 'open', label: t('قيد الإنجاز', 'En cours'), count: count((o) => !['delivered', 'cancelled'].includes(o.status)) },
+          { value: 'mine', label: t('طلبياتي', 'Mes commandes'), count: count((o) => o.assignee?.id === me?.id && !['delivered', 'cancelled'].includes(o.status)) },
+          { value: 'free', label: t('بدون مسؤول', 'Sans responsable'), count: count((o) => !o.assignee && !['delivered', 'cancelled'].includes(o.status)) },
           { value: 'new', label: t('جديدة', 'Nouvelles'), count: count((o) => o.status === 'new') },
           { value: 'proof', label: t('تحويلات للتأكيد', 'Virements'), count: count((o) => o.payment_status === 'proof_uploaded') },
           { value: 'all', label: t('الكل', 'Toutes') },
@@ -145,6 +151,7 @@ function OrderSheet({ id, onClose }: { id: string | null; onClose: () => void })
         <Spinner />
       ) : (
         <div className="space-y-5">
+          <AssignmentCard entity="order" id={o.id} />
           <div className="flex items-center justify-between">
             <OStatus s={o.status} />
             <Button variant="ghost" size="sm" onClick={() => setPrinting(true)}>

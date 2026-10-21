@@ -15,8 +15,9 @@ import { Badge, Button, Card } from '@/shared/ui/primitives'
 import { Sheet, useConfirm } from '@/shared/ui/overlay'
 import { EmptyState, Tabs } from '@/shared/ui/data'
 import type { DeviceInfo } from './device'
+import { AssigneeBadge, AssignmentCard, type AssigneeMini } from '@/shared/ui/assignment'
 
-type Ord = { id: string; number: string; tracking_code: string; customer_name: string; phone: string; total: number; delivery_method: string; payment_method: string; payment_status: string; status: string; created_at: string }
+type Ord = { assignee: AssigneeMini; id: string; number: string; tracking_code: string; customer_name: string; phone: string; total: number; delivery_method: string; payment_method: string; payment_status: string; status: string; created_at: string }
 
 export function OnlineSheet({ device, open, onClose }: { device: DeviceInfo; open: boolean; onClose: () => void }) {
   const { sb, can } = useAuth()
@@ -28,10 +29,11 @@ export function OnlineSheet({ device, open, onClose }: { device: DeviceInfo; ope
 
   const reqs = useRequestsList('pos-requests', open && can('requests.manage'))
   const [openReq, setOpenReq] = useState<string | null>(null)
+  const [openOrd, setOpenOrd] = useState<string | null>(null)
   const ords = useQuery({
     queryKey: ['pos-orders'],
     enabled: open && can('orders.manage'),
-    queryFn: async () => (await sb.from('online_orders').select('id, number, tracking_code, customer_name, phone, total, delivery_method, payment_method, payment_status, status, created_at').not('status', 'in', '(delivered,cancelled)').order('created_at', { ascending: false })).data as Ord[],
+    queryFn: async () => (await sb.from('online_orders').select('id, number, tracking_code, customer_name, phone, total, delivery_method, payment_method, payment_status, status, created_at, assignee:employees!online_orders_assigned_to_fkey(id, full_name, color)').not('status', 'in', '(delivered,cancelled)').order('created_at', { ascending: false })).data as unknown as Ord[],
   })
   const st = (k: string) => statuses.data?.find((s) => s.key === k)
   const openReqs = (reqs.data ?? []).filter((r) => !st(r.status)?.is_final || r.payment_status !== 'paid').sort((a, b) => Number(b.late) - Number(a.late))
@@ -78,6 +80,7 @@ export function OnlineSheet({ device, open, onClose }: { device: DeviceInfo; ope
                     <div className="flex flex-wrap items-center gap-1.5 text-xs">
                       <Badge><Paperclip />{r.files_count} {t('وثيقة', 'docs')}</Badge>
                       {r.new_docs > 0 && <Badge tone="danger">+{r.new_docs} {t('جديدة', 'nouv.')}</Badge>}
+                      {!st(r.status)?.is_final && <AssigneeBadge a={r.assignee} />}
                       {r.late && <Badge tone="danger"><AlarmClock />{t('متأخر', 'En retard')}</Badge>}
                       {r.abroad && <Badge tone="info"><Globe2 />{r.country ?? t('من الخارج', 'Étranger')}</Badge>}
                       {r.deliverables_count > 0 && <Badge tone="success"><FileCheck2 />{t('الوثيقة الجاهزة مرفوعة', 'Livrable prêt')}</Badge>}
@@ -101,17 +104,26 @@ export function OnlineSheet({ device, open, onClose }: { device: DeviceInfo; ope
                   <span className="num">{o.number}</span> · {o.customer_name}
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                  <AssigneeBadge a={o.assignee} />
                   <Badge style={{ background: `${ORDER_STATUSES[o.status].color}1a`, color: ORDER_STATUSES[o.status].color }}>{t(ORDER_STATUSES[o.status].ar, ORDER_STATUSES[o.status].fr)}</Badge>
                   <Badge tone={PAYMENT_STATUS[o.payment_status].tone}>{t(PAYMENT_STATUS[o.payment_status].ar, PAYMENT_STATUS[o.payment_status].fr)}</Badge>
                   {ago(o.created_at)}
                 </div>
               </div>
               <span className="num font-bold">{money(o.total)}</span>
+              <Button size="sm" variant="ghost" onClick={() => setOpenOrd(openOrd === o.id ? null : o.id)}>
+                {t('المسؤول', 'Responsable')}
+              </Button>
               {o.payment_status !== 'paid' && (
                 <Button size="sm" onClick={() => cashOrd(o)}>
                   <Banknote />
                   {t('استلام', 'Encaisser')}
                 </Button>
+              )}
+              {openOrd === o.id && (
+                <div className="w-full">
+                  <AssignmentCard entity="order" id={o.id} />
+                </div>
               )}
             </Card>
           ))}
