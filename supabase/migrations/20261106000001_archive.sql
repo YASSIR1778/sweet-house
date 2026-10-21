@@ -166,6 +166,7 @@ select cron.schedule('sweet-house-retention-run', '0 3 * * 1',
   $c$select net.http_post(url := 'https://gvvcrjxmansmmrnxdrnw.supabase.co/functions/v1/retention', body := '{}'::jsonb, headers := '{"Content-Type": "application/json"}'::jsonb, timeout_milliseconds := 60000)$c$);
 
 -- Manual cleanup no longer removes finished documents unless asked
+drop function if exists public.cleanup_candidates(int);
 create or replace function public.cleanup_candidates(p_days int, p_include_deliverables boolean default false)
 returns jsonb language sql stable security definer set search_path = public, storage as $$
   select coalesce(jsonb_agg(jsonb_build_object('id', f.id, 'path', f.path, 'name', f.name, 'size', o.metadata->>'size',
