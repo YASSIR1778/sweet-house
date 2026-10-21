@@ -80,6 +80,9 @@ export type ServiceField = {
   type: 'text' | 'textarea' | 'number' | 'date' | 'select'
   required: boolean
   options?: string[]
+  hint_ar?: string
+  hint_fr?: string
+  hint_image?: string | null
 }
 
 export type Service = {
@@ -112,6 +115,7 @@ export type Service = {
   deleted_at: string | null
   target_hours: number | null
   abroad: boolean
+  faq?: { q_ar: string; q_fr: string; a_ar: string; a_fr: string }[]
   service_price_tiers?: { min_qty: number; unit_price: number }[]
 }
 

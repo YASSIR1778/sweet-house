@@ -10,6 +10,9 @@ import { Badge, Input } from '@/shared/ui/primitives'
 import { DataTable, EmptyState, PageHeader, Tabs, type Column } from '@/shared/ui/data'
 import { RequestSheet, StatusBadge } from '@/shared/ui/request-sheet'
 import { AssigneeBadge, type AssigneeMini } from '@/shared/ui/assignment'
+import { StaffRequestSheet } from '@/shared/ui/staff-request'
+import { Button } from '@/shared/ui/primitives'
+import { ClipboardPlus } from 'lucide-react'
 
 export type RequestRow = {
   id: string
@@ -53,6 +56,7 @@ export function RequestsPage() {
   const [tab, setTab] = useState('open')
   const [q, setQ] = useState('')
   const [open, setOpen] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
   const list = useRequestsList('requests')
   const st = (k: string) => statuses.data?.find((s) => s.key === k)
 
@@ -126,7 +130,18 @@ export function RequestsPage() {
 
   return (
     <>
-      <PageHeader icon={<ClipboardList />} title={t('طلبات الخدمات', 'Demandes de services')} description={t('الطلبات الواردة من الموقع: التفاصيل، الوثائق، الحالة، الأداء، والتسليم', 'Demandes du site : détails, documents, statut, paiement')} />
+      <PageHeader
+        icon={<ClipboardList />}
+        title={t('طلبات الخدمات', 'Demandes de services')}
+        description={t('الطلبات الواردة من الموقع: التفاصيل، الوثائق، الحالة، الأداء، والتسليم', 'Demandes du site : détails, documents, statut, paiement')}
+        actions={
+          <Button onClick={() => setCreating(true)}>
+            <ClipboardPlus />
+            {t('طلب جديد لزبون', 'Nouvelle demande client')}
+          </Button>
+        }
+      />
+      <StaffRequestSheet open={creating} onClose={() => setCreating(false)} />
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <Tabs
           value={tab}

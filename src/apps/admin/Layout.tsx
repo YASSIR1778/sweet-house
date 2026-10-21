@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
+import { useQuery } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'motion/react'
 import { ExternalLink, Lock, LogOut, Menu, MonitorPlay, ShieldCheck, X } from 'lucide-react'
 import { useAuth } from '@/shared/lib/auth'
@@ -17,7 +18,8 @@ import { useOnlinePending } from '@/shared/lib/online'
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { can, sb } = useAuth()
   const pending = useOnlinePending(sb, can('requests.manage') || can('orders.manage'))
-  const badge: Record<string, number> = { '/requests': (pending.data?.requests_new ?? 0) + (pending.data?.requests_late ?? 0), '/orders': pending.data?.orders_new ?? 0, '/devices': pending.data?.devices_pending ?? 0 }
+  const helpCounts = useQuery({ queryKey: ['help-counts'], refetchInterval: 30_000, enabled: can('requests.manage'), queryFn: async () => (await sb.rpc('help_counts')).data as { new: number; late: number; mine: number } })
+  const badge: Record<string, number> = { '/requests': (pending.data?.requests_new ?? 0) + (pending.data?.requests_late ?? 0), '/orders': pending.data?.orders_new ?? 0, '/devices': pending.data?.devices_pending ?? 0, '/help': helpCounts.data?.new ?? 0 }
   const { t } = useLang()
   return (
     <div className="flex h-full flex-col">

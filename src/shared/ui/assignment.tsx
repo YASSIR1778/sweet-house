@@ -40,7 +40,7 @@ export function AssigneeBadge({ a }: { a: AssigneeMini }) {
  * Who is in charge of a request / order, with claim, assign, hand over
  * (reason required) and release. Every move is logged and notified.
  */
-export function AssignmentCard({ entity, id }: { entity: 'request' | 'order'; id: string }) {
+export function AssignmentCard({ entity, id }: { entity: 'request' | 'order' | 'help'; id: string }) {
   const { sb, me, can } = useAuth()
   const { t, lang } = useLang()
   const qc = useQueryClient()
@@ -67,7 +67,7 @@ export function AssignmentCard({ entity, id }: { entity: 'request' | 'order'; id
     setDlg(null)
     setTo(null)
     setReason('')
-    for (const k of [['assignment', entity, id], ['requests'], ['pos-requests'], ['orders'], ['pos-orders'], ['request', id], ['order', id], ['today-tasks'], ['my-tasks']]) qc.invalidateQueries({ queryKey: k })
+    for (const k of [['assignment', entity, id], ['requests'], ['pos-requests'], ['orders'], ['pos-orders'], ['request', id], ['order', id], ['today-tasks'], ['my-tasks'], ['help'], ['help-counts']]) qc.invalidateQueries({ queryKey: k })
   }
 
   const verb: Record<string, [string, string]> = {

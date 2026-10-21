@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { motion } from 'motion/react'
 import { CheckCircle2, ChevronLeft, Clock, ExternalLink, FileCheck2, FileText, Globe2, Lock, Mail, MessageCircle, Package, Paperclip, Search, ShieldCheck, Store, Building2, Upload, UserRound, X } from 'lucide-react'
@@ -16,6 +16,8 @@ import { ServiceCard } from '../components'
 import { useSeo } from '../Layout'
 import { ACCEPT, MAX_FILE, uploadPublicFile } from '../upload'
 import { Row } from './Checkout'
+import { HelpBar, ServiceFaq, type HelpStep } from '../help'
+import { storage } from '@/shared/lib/utils'
 
 export function ServicesPage() {
   const { t, pick } = useLang()
@@ -149,10 +151,29 @@ export function ServiceRequestPage() {
   const [params] = useSearchParams()
   const [abroad, setAbroad] = useState(params.get('abroad') === '1')
   const [far, setFar] = useState({ country: '', delivery: 'email' as 'email' | 'post' | 'person', address: '' })
+  const [step, setStep] = useState<HelpStep>('start')
   const [consent, setConsent] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [done, setDone] = useState<Done | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  // Auto-saved draft: someone who leaves to ask a question finds everything back.
+  const draft = useMemo(() => storage<{ form: typeof form; fields: Record<string, string>; pay: typeof pay; abroad: boolean; far: typeof far; at: string } | null>(`sh-draft-${id}`, null), [id])
+  const [restored, setRestored] = useState(false)
+  useEffect(() => {
+    const d = draft.get()
+    if (d && (d.form.name || d.form.phone || Object.keys(d.fields).length)) {
+      setForm({ ...d.form, website: '' })
+      setFields(d.fields)
+      setPay(d.pay)
+      setAbroad(d.abroad)
+      setFar(d.far)
+      setRestored(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft])
+  useEffect(() => {
+    if (!done && (form.name || form.phone || Object.keys(fields).length)) draft.set({ form: { ...form, website: '' }, fields, pay, abroad, far, at: new Date().toISOString() })
+  }, [form, fields, pay, abroad, far, done, draft])
   useSeo(s ? pick(s, 'name') : undefined)
 
   if (data.isLoading) return <div className="mx-auto max-w-4xl px-4 py-10"><Skeleton className="h-96" /></div>
@@ -201,6 +222,7 @@ export function ServiceRequestPage() {
       }
     }
     setBusy(null)
+    draft.clear()
     setDone({ ...r, phone, failed })
     window.scrollTo({ top: 0 })
   }
@@ -239,7 +261,16 @@ export function ServiceRequestPage() {
             </button>
           )}
 
-          <Card className="space-y-4 p-6">
+          {restored && (
+            <div className="flex items-center gap-3 rounded-xl bg-info/5 p-3 text-sm">
+              <span className="flex-1">{t('استعدنا ما كتبتَه سابقاً في هذه الصفحة ✍️ (الملفات تُرفع من جديد)', 'Nous avons restauré votre saisie ✍️ (fichiers à rejoindre)')}</span>
+              <button type="button" className="text-xs text-muted underline" onClick={() => (draft.clear(), setForm({ name: '', phone: '', email: '', notes: '', website: '' }), setFields({}), setRestored(false))}>
+                {t('مسح', 'Effacer')}
+              </button>
+            </div>
+          )}
+
+          <Card className="space-y-4 p-6" onFocusCapture={() => setStep('contact')}>
             <h2 className="font-bold">{t('معلومات التواصل', 'Vos coordonnées')}</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label={t('الاسم الكامل', 'Nom complet')} required>
@@ -261,7 +292,7 @@ export function ServiceRequestPage() {
           </Card>
 
           {s.fields.length > 0 && (
-            <Card className="space-y-4 p-6">
+            <Card className="space-y-4 p-6" onFocusCapture={() => setStep('info')}>
               <h2 className="font-bold">{t('معلومات الطلب', 'Informations de la demande')}</h2>
               <div className="grid gap-4 sm:grid-cols-2">
                 {s.fields.map((f) => (
@@ -271,7 +302,7 @@ export function ServiceRequestPage() {
             </Card>
           )}
 
-          <Card className="space-y-4 p-6">
+          <Card className="space-y-4 p-6" onClickCapture={() => setStep('documents')} onFocusCapture={() => setStep('documents')}>
             <div className="flex items-center justify-between">
               <h2 className="font-bold">{t('الوثائق', 'Documents')}</h2>
               <span className="flex items-center gap-1 text-xs text-success">
@@ -317,7 +348,7 @@ export function ServiceRequestPage() {
             )}
           </Card>
 
-          <Card className="space-y-4 p-6">
+          <Card className="space-y-4 p-6" onClickCapture={() => setStep('payment')} onFocusCapture={() => setStep('payment')}>
             {abroad && (
               <>
                 <h2 className="font-bold">{t('كيف تريد استلام الوثيقة؟', 'Comment recevoir le document ?')}</h2>
@@ -398,6 +429,7 @@ export function ServiceRequestPage() {
               </a>
             )}
           </Card>
+          <ServiceFaq faq={s.faq ?? []} />
           <Card className="space-y-3 p-5 text-sm">
             {[
               [ShieldCheck, t('وثائقك محمية ولا يطّلع عليها إلا فريقنا', 'Documents protégés')],
@@ -415,15 +447,35 @@ export function ServiceRequestPage() {
           </Card>
         </aside>
       </div>
+      <div className="h-24" />
+      <HelpBar service={s} step={step} />
     </div>
   )
 }
 
 function DynamicField({ f, value, onChange }: { f: ServiceField; value: string; onChange: (v: string) => void }) {
-  const { pick } = useLang()
+  const { pick, t } = useLang()
   const label = pick(f, 'label')
+  const hint = (pick(f, 'hint') || f.hint_ar || '').trim()
+  const [img, setImg] = useState(false)
   return (
-    <Field label={label} required={f.required} className={f.type === 'textarea' ? 'sm:col-span-2' : undefined}>
+    <Field
+      label={label}
+      required={f.required}
+      className={f.type === 'textarea' ? 'sm:col-span-2' : undefined}
+      hint={
+        hint || f.hint_image ? (
+          <span className="flex items-start gap-2">
+            {hint && <span>{hint}</span>}
+            {f.hint_image && (
+              <button type="button" onClick={() => setImg((x) => !x)} className="shrink-0 text-brand underline">
+                {img ? t('إخفاء المثال', 'Masquer') : t('أين أجده؟ 🔍', 'Où le trouver ? 🔍')}
+              </button>
+            )}
+          </span>
+        ) : undefined
+      }
+    >
       {f.type === 'textarea' ? (
         <Textarea value={value} onChange={(e) => onChange(e.target.value)} />
       ) : f.type === 'select' ? (
@@ -438,6 +490,7 @@ function DynamicField({ f, value, onChange }: { f: ServiceField; value: string; 
       ) : (
         <Input type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'} value={value} onChange={(e) => onChange(e.target.value)} dir={f.type === 'text' ? undefined : 'ltr'} />
       )}
+      {img && f.hint_image && <img src={f.hint_image} alt="" className="mt-2 max-h-56 rounded-xl border border-border object-contain" />}
     </Field>
   )
 }

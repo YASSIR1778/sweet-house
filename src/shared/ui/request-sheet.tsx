@@ -271,6 +271,7 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
 
   const historyLabel = (h: Detail['history'][number]) => {
     if (h.note === 'payment_confirmed') return t('تأكيد الأداء', 'Paiement confirmé')
+    if (h.note === 'staff_created') return t('أنشأه موظف نيابة عن الزبون', 'Créée par l’équipe pour le client')
     if (h.note?.startsWith('customer_downloaded:')) return t(`الزبون حمّل: ${h.note.slice(20)}`, `Téléchargé par le client : ${h.note.slice(20)}`)
     if (h.note === 'auto_after_download') return t('تم التسليم تلقائياً بعد التحميل', 'Livrée automatiquement après téléchargement')
     const s = statuses.data?.find((x) => x.key === h.status)

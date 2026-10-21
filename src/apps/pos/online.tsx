@@ -16,6 +16,7 @@ import { Sheet, useConfirm } from '@/shared/ui/overlay'
 import { EmptyState, Tabs } from '@/shared/ui/data'
 import type { DeviceInfo } from './device'
 import { AssigneeBadge, AssignmentCard, type AssigneeMini } from '@/shared/ui/assignment'
+import { HelpDesk, useHelpList } from '@/shared/ui/help-desk'
 
 type Ord = { assignee: AssigneeMini; id: string; number: string; tracking_code: string; customer_name: string; phone: string; total: number; delivery_method: string; payment_method: string; payment_status: string; status: string; created_at: string }
 
@@ -28,6 +29,7 @@ export function OnlineSheet({ device, open, onClose }: { device: DeviceInfo; ope
   const [tab, setTab] = useState(can('requests.manage') ? 'requests' : 'orders')
 
   const reqs = useRequestsList('pos-requests', open && can('requests.manage'))
+  const help = useHelpList(open && can('requests.manage'))
   const [openReq, setOpenReq] = useState<string | null>(null)
   const [openOrd, setOpenOrd] = useState<string | null>(null)
   const ords = useQuery({
@@ -56,8 +58,10 @@ export function OnlineSheet({ device, open, onClose }: { device: DeviceInfo; ope
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()} title={t('الطلبات الأونلاين', 'Commandes en ligne')} width="max-w-xl">
       {confirmNode}
-      <Tabs className="mb-4" value={tab} onChange={setTab} items={[...(can('requests.manage') ? [{ value: 'requests', label: t('الخدمات', 'Services'), count: openReqs.length }] : []), ...(can('orders.manage') ? [{ value: 'orders', label: t('المتجر', 'Boutique'), count: ords.data?.length }] : [])]} />
-      {tab === 'requests' ? (
+      <Tabs className="mb-4" value={tab} onChange={setTab} items={[...(can('requests.manage') ? [{ value: 'help', label: t('المساعدة', 'Aide'), count: (help.data ?? []).filter((h) => ['new', 'in_progress'].includes(h.status)).length }] : []), ...(can('requests.manage') ? [{ value: 'requests', label: t('الخدمات', 'Services'), count: openReqs.length }] : []), ...(can('orders.manage') ? [{ value: 'orders', label: t('المتجر', 'Boutique'), count: ords.data?.length }] : [])]} />
+      {tab === 'help' ? (
+        <HelpDesk compact />
+      ) : tab === 'requests' ? (
         !openReqs.length ? (
           <EmptyState icon={<ClipboardList />} title={t('لا توجد طلبات قيد الإنجاز', 'Aucune demande en cours')} />
         ) : (

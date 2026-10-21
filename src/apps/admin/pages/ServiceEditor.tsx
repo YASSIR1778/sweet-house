@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { BookOpen, Clock, FileText, ListPlus, Plus, Sparkles, Trash } from 'lucide-react'
+import { BookOpen, Clock, FileText, HelpCircle, ListPlus, Plus, Sparkles, Trash } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -47,6 +47,7 @@ const blank = (kind: 'counter' | 'admin'): Form => ({
   is_active: true,
   target_hours: null,
   abroad: kind === 'admin',
+  faq: [],
   tiers: [],
   guide: blankGuide(),
 })
@@ -374,11 +375,43 @@ export function ServiceEditor({
                       placeholder={t('الاختيارات مفصولة بفاصلة', 'Options séparées par des virgules')}
                     />
                   )}
+                  <div className="flex items-center gap-2 sm:col-span-5">
+                    <Input value={fl.hint_ar ?? ''} onChange={(e) => setFld(i, { hint_ar: e.target.value })} placeholder={t('شرح صغير تحت الخانة (اختياري): مثلاً «تجده في ظهر البطاقة»', 'Aide sous le champ (optionnel)')} className="text-xs" />
+                    <div className="w-20 shrink-0">
+                      <ImageInput sb={sb} folder="hints" value={fl.hint_image ?? null} aspect="aspect-video" onChange={(u) => setFld(i, { hint_image: u })} />
+                    </div>
+                  </div>
                 </div>
               ))}
               <Button variant="outline" size="sm" onClick={() => set('fields', [...fields, { key: `f${Date.now()}`, label_ar: '', label_fr: '', type: 'text', required: true }])}>
                 <Plus />
                 {t('إضافة حقل', 'Ajouter un champ')}
+              </Button>
+            </Card>
+
+            <Card className="space-y-3 p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <HelpCircle className="size-4 text-brand" />
+                {t('أسئلة شائعة عن هذه الخدمة (تظهر في الموقع)', 'FAQ du service (visible sur le site)')}
+              </div>
+              {(f.faq ?? []).map((q, i) => (
+                <div key={i} className="space-y-2 rounded-xl border border-border p-3">
+                  <div className="flex gap-2">
+                    <Input value={q.q_ar} onChange={(e) => set('faq', (f.faq ?? []).map((x, j) => (j === i ? { ...x, q_ar: e.target.value } : x)))} placeholder={t('السؤال، مثلاً: هل يجب أن أحضر بنفسي؟', 'Question')} />
+                    <Button variant="ghost" size="icon-sm" onClick={() => set('faq', (f.faq ?? []).filter((_, j) => j !== i))}>
+                      <Trash className="text-danger" />
+                    </Button>
+                  </div>
+                  <Textarea rows={2} value={q.a_ar} onChange={(e) => set('faq', (f.faq ?? []).map((x, j) => (j === i ? { ...x, a_ar: e.target.value } : x)))} placeholder={t('الجواب', 'Réponse')} />
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <Input value={q.q_fr} onChange={(e) => set('faq', (f.faq ?? []).map((x, j) => (j === i ? { ...x, q_fr: e.target.value } : x)))} placeholder="Question (fr)" dir="ltr" />
+                    <Input value={q.a_fr} onChange={(e) => set('faq', (f.faq ?? []).map((x, j) => (j === i ? { ...x, a_fr: e.target.value } : x)))} placeholder="Réponse (fr)" dir="ltr" />
+                  </div>
+                </div>
+              ))}
+              <Button variant="outline" size="sm" onClick={() => set('faq', [...(f.faq ?? []), { q_ar: '', q_fr: '', a_ar: '', a_fr: '' }])}>
+                <Plus />
+                {t('إضافة سؤال', 'Ajouter une question')}
               </Button>
             </Card>
 
