@@ -9,6 +9,7 @@ import { AbroadPage } from './pages/Abroad'
 import { AlertsPage, MyDocumentsPage, UnsubscribePage } from './pages/Customer'
 import { TrackPage } from './pages/Track'
 import { ContactPage, LegalPage, NotFoundPage } from './pages/Info'
+import { captureCampaign } from './data'
 
 const router = createBrowserRouter(
   [
@@ -37,6 +38,8 @@ const router = createBrowserRouter(
   ],
   { basename: import.meta.env.BASE_URL.replace(/\/$/, '') },
 )
+
+captureCampaign()
 
 export function App() {
   return (

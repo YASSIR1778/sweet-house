@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
-import { BellOff, Bot, Brain, Copy, HelpCircle, Inbox, MessageCircle, Play, Plus, Save, Send, Settings2, Sparkles, Trash, Trophy, UserCheck, Users } from 'lucide-react'
+import { BellOff, Bot, Megaphone, Brain, Copy, HelpCircle, Inbox, MessageCircle, Play, Plus, Save, Send, Settings2, Sparkles, Trash, Trophy, UserCheck, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -12,10 +12,14 @@ import { cn, whatsappLink } from '@/shared/lib/utils'
 import { Badge, Button, Card, CardHeader, Field, Input, Skeleton, SwitchRow, Textarea } from '@/shared/ui/primitives'
 import { Dialog } from '@/shared/ui/overlay'
 import { EmptyState, PageHeader, Tabs } from '@/shared/ui/data'
+import { MarketingTab, OfferCard, PlanView, PostCard } from './Marketing'
 
 type Line = { variant_id: string; name: string; qty: number; supplier: string; unit_cost_dh: number; why: string }
 type Msg = { to: 'customer' | 'staff'; name: string; phone: string; employee_id: string; text: string }
-type Payload = { lines?: Line[]; messages?: Msg[]; assign_to?: string; descriptions?: { product_id: string; name: string; desc_ar: string; desc_fr: string }[]; posts?: { channel: string; text: string }[] }
+type Payload = {
+  lines?: Line[]; messages?: Msg[]; assign_to?: string; descriptions?: { product_id: string; name: string; desc_ar: string; desc_fr: string }[]
+  posts?: Parameters<typeof PostCard>[0]['post'][]; offers?: Parameters<typeof OfferCard>[0]['offer'][]; plan?: Parameters<typeof PlanView>[0]['plan']
+}
 type Turn = { role: 'owner' | 'agent'; text: string; at: string }
 export type Suggestion = {
   id: string; agent_key: string; severity: 'info' | 'warning' | 'danger'; title: string; body: string | null; link: string | null; payload: Payload
@@ -156,23 +160,9 @@ function PayloadView({ s }: { s: Suggestion }) {
           </Button>
         </div>
       ))}
-      {p.posts?.map((x, i) => (
-        <div key={i} className="rounded-xl border border-border p-3 text-sm">
-          <Badge tone="info">{x.channel}</Badge>
-          <p className="mt-2 whitespace-pre-wrap">{x.text}</p>
-          <div className="mt-2 flex gap-2">
-            <Button size="sm" variant="ghost" onClick={() => copy(x.text)}>
-              <Copy />
-              {t('نسخ', 'Copier')}
-            </Button>
-            {x.channel.includes('whatsapp') && (
-              <Button size="sm" variant="ghost" asChild>
-                <Link to="/broadcasts">{t('إلى قائمة البث', 'Diffusion')}</Link>
-              </Button>
-            )}
-          </div>
-        </div>
-      ))}
+      {p.posts?.map((x, i) => <PostCard key={i} post={x} />)}
+      {p.offers?.map((o, i) => <OfferCard key={i} offer={o} suggestionId={s.id} />)}
+      {!!p.plan?.length && <PlanView plan={p.plan} />}
     </div>
   )
 }
@@ -313,10 +303,12 @@ const TH_FIELDS: Record<string, [string, string, string][]> = {
     ['debt_min_dh', 'تجاهل الديون الأقل من', 'درهم'],
     ['ready_days', 'ذكّر بالوثيقة غير المستلمة بعد', 'أيام'],
   ],
-  content: [
-    ['descriptions', 'عدد أوصاف المنتجات كل مرة', ''],
-    ['posts', 'عدد المنشورات كل مرة', ''],
-  ],
+  content: [['descriptions', 'عدد أوصاف المنتجات كل مرة', '']],
+  facebook: [['posts', 'عدد المنشورات كل مرة', '']],
+  instagram: [['posts', 'عدد المنشورات كل مرة', '']],
+  tiktok: [['posts', 'عدد السيناريوهات كل مرة', '']],
+  whatsapp: [['posts', 'عدد الرسائل كل مرة', '']],
+  offers: [['max_discount_pct', 'أقصى تخفيض مسموح في العروض', '%']],
 }
 const SOURCES: [string, string][] = [
   ['sales', 'المبيعات (30 يوماً)'],
@@ -1018,6 +1010,7 @@ export function AgentsPage() {
         items={[
           { value: 'inbox', label: <span className="flex items-center gap-1.5"><Inbox className="size-4" />{t('الاقتراحات', 'Suggestions')}{pending ? ` (${pending})` : ''}</span> },
           { value: 'room', label: <span className="flex items-center gap-1.5"><Users className="size-4" />{t('غرفة الفريق', 'Salle')}</span> },
+          { value: 'marketing', label: <span className="flex items-center gap-1.5"><Megaphone className="size-4" />{t('التسويق', 'Marketing')}</span> },
           { value: 'card', label: <span className="flex items-center gap-1.5"><Trophy className="size-4" />{t('بطاقة الفريق', 'Bilan')}</span> },
           { value: 'agents', label: <span className="flex items-center gap-1.5"><Bot className="size-4" />{t('الوكلاء', 'Agents')}</span> },
           { value: 'memory', label: <span className="flex items-center gap-1.5"><Brain className="size-4" />{t('الذاكرة', 'Mémoire')}</span> },
@@ -1041,6 +1034,7 @@ export function AgentsPage() {
       )}
       {tab === 'room' && agents.data && <RoomTab agents={agents.data} />}
       {tab === 'card' && <ReportCard />}
+      {tab === 'marketing' && <MarketingTab />}
       {tab === 'agents' && (
         <>
           <Button className="mb-4" onClick={() => setNewAgent(true)}>

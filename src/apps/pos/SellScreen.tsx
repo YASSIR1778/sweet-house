@@ -265,7 +265,7 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
     }
   }
 
-  const checkout = async (p: { cash: number; card: number; credit: number }) => {
+  const checkout = async (p: { cash: number; card: number; credit: number; promo?: string }) => {
     if (training) {
       const sale = { ...localSale(p, 'TR'), note: t('وضع التدريب — ليس وصلاً حقيقياً', 'Mode formation — ticket non valable') }
       sound('success')
@@ -292,6 +292,8 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
       toast.warning(t('لا يوجد إنترنت: حُفظ البيع على الجهاز وسيُرسل تلقائياً عند عودة الاتصال', 'Hors ligne : vente enregistrée localement, envoi automatique au retour du réseau'))
     }
     sound('success')
+    // which campaign brought this customer (promo code said at the counter)
+    if (p.promo && !error) sb.rpc('sale_set_promo', { p_sale: sale.id, p_code: p.promo }).then(() => {})
     if (cart.request && !error) {
       const { error: e2 } = await sb.rpc('close_request_with_sale', { p_request: cart.request.id, p_sale: sale.id })
       if (e2) toast.error(errorMessage(e2, lang))

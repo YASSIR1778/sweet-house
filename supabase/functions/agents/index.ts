@@ -21,7 +21,9 @@ type Item = {
   messages: { to: 'customer' | 'staff'; name: string; phone: string; employee_id: string; text: string }[]
   assign_to: string
   descriptions: { product_id: string; name: string; desc_ar: string; desc_fr: string }[]
-  posts: { channel: string; text: string }[]
+  posts: { channel: string; text: string; image_idea: string; link_path: string; link?: string; code?: string }[]
+  offers: { title: string; description: string; code: string; channel: string; discount_pct: number; ends_on: string; why: string }[]
+  plan: { week_start: string; theme: string; why: string; services: string[]; channels: string[]; offer: string }[]
 }
 
 const JOBS: Record<string, string> = {
@@ -52,10 +54,49 @@ link من: /sales /shifts /riyad /reports /employees /attendance.`,
 - اقترح من يتكفل به في assign_to (id موظف من staff_load: الأقل انشغالاً، ويفضّل من في وردية مفتوحة)، أو اتركه فارغاً.
 - إن نقص شيء: messages إلى الزبون (to=customer) برسالة مهذبة قصيرة تطلب ما ينقص مع رقم الطلب.
 أرجع item واحداً فقط. severity: warning إن نقص شيء، info إن كان كل شيء سليماً. link: /requests.`,
-  content: `مهمتك: المحتوى.
-- descriptions: لكل منتج بدون وصف (حتى 8)، وصف قصير جذاب بالعربية (2-3 جمل) وبالفرنسية، صادق وبدون مبالغة ولا وعود.
-- posts: 2 إلى 3 منشورات جاهزة حسب الموسم والتاريخ (channel: facebook أو instagram أو whatsapp_broadcast)، بالعربية أو بالدارجة القريبة من سكان تطوان، مع إيموجي قليلة وهاشتاغات قليلة، تذكر الخدمات أو المنتجات الحقيقية فقط.
-أرجع item للأوصاف (link /products) و item للمنشورات (link /broadcasts).`,
+  content: `مهمتك: أوصاف المنتجات.
+- descriptions: لكل منتج بدون وصف، وصف قصير جذاب بالعربية (2-3 جمل) وبالفرنسية، صادق وبدون مبالغة ولا وعود.
+أرجع item واحداً للأوصاف (link /products). المنشورات ليست من عملك.`,
+  planner: `مهمتك: رزنامة التسويق للأسابيع الأربعة القادمة.
+- اعرف الموسم من التاريخ: الدخول المدرسي (منتصف غشت – شتنبر)، الامتحانات والباكالوريا (ماي – يونيو)، صيف مغاربة العالم (يونيو – غشت)، رمضان والعيد، آجال الضرائب والـ CNSS، نهاية السنة، عطل المدارس.
+- لكل أسبوع موضوع واحد قوي (theme) مرتبط بخدمات أو منتجات موجودة فعلاً في البيانات، وسبب اختياره (why)، والقنوات المناسبة، وفكرة عرض إن كانت مفيدة.
+- استفد من performance_30d: كرر ما جلب زبائن، وخفف ما لم ينجح.
+- plan: 4 أسابيع، week_start بصيغة YYYY-MM-DD (يوم الإثنين).
+أرجع item واحداً: title «خطة الأسابيع القادمة»، body ملخص قصير، link /agents، وفيه plan.`,
+  facebook: `مهمتك: منشورات فيسبوك لصفحة المحل.
+- اتبع موضوع الأسبوع الحالي في plan. إن لم توجد خطة اختر خدمة أو منتجاً مناسباً للموسم.
+- اكتب بالدارجة المغربية بحروف عربية، كأنك جار في الحي: سطر أول يشد الانتباه، ثم الفائدة، ثم الثمن والمدة إن وُجدا، ثم دعوة واضحة (اطلب من الموقع / مرّ علينا / واتساب).
+- لا تكرر recent_posts_this_channel. منشور واحد على الأقل يكون نصيحة مفيدة بدون بيع مباشر.
+- posts: channel=facebook، text جاهز للنسخ (بدون الرابط، سنضيفه نحن)، image_idea وصف صورة بسيطة يمكن تصويرها في المحل، link_path الصفحة التي يذهب إليها الزبون.
+أرجع item واحداً فيه المنشورات. link /agents.`,
+  instagram: `مهمتك: إنستغرام.
+- اتبع موضوع الأسبوع في plan. ركّز على ما هو جميل بصرياً: الأدوات المدرسية، الهدايا، المحل، و«كاروسيل» الوثائق المطلوبة لخدمة.
+- text: جمل قصيرة، إيموجي باعتدال، 5 إلى 8 هاشتاغات محلية في النهاية (#تطوان #tetouan …).
+- image_idea: وصف دقيق للصورة أو الشرائح (للكاروسيل: شريحة 1، شريحة 2…) أو الستوري.
+- posts: channel=instagram. لا تكرر recent_posts_this_channel. link_path الصفحة المناسبة.
+أرجع item واحداً فيه المنشورات. link /agents.`,
+  tiktok: `مهمتك: سيناريوهات تيك توك قصيرة (20 إلى 40 ثانية) تصوّرها الموظفة بالهاتف بدون معدات.
+- اتبع موضوع الأسبوع في plan. أفكار ناجحة: «3 أخطاء فـ…»، «شنو خاصك باش…»، كواليس المحل، قبل/بعد.
+- text: السيناريو كاملاً: [0-3 ث] الجملة التي تشد الانتباه، ثم المشاهد مرقمة مع الكلام، ثم الدعوة في النهاية، ثم الهاشتاغات.
+- image_idea: أين وكيف يُصوَّر (زاوية الهاتف، ما يظهر في الإطار).
+- posts: channel=tiktok. link_path للصفحة المذكورة في الفيديو.
+أرجع item واحداً فيه السيناريوهات. link /agents.`,
+  whatsapp: `مهمتك: رسائل قائمة البث على واتساب.
+- رسالة لكل شريحة مفيدة الآن حسب broadcast.topics والموسم وplan (مثلاً أولياء الأمور قبل الدخول المدرسي، مغاربة العالم قبل الصيف).
+- text: قصيرة (4 إلى 6 أسطر)، شخصية ومهذبة، لها سبب واضح، وفي آخرها: «لإلغاء الاشتراك أرسل STOP».
+- اذكر في image_idea اسم الشريحة المستهدفة.
+- posts: channel=whatsapp. link_path الصفحة المناسبة.
+لا ترسل أكثر من رسالتين في الأسبوع لنفس الشريحة. أرجع item واحداً. link /broadcasts.`,
+  offers: `مهمتك: عروض رابحة.
+- اقترح 1 إلى 3 عروض: باقة منتجات تُباع معاً، تصريف stale_products بثمن يبقى فوق التكلفة، خدمتان معاً، أو عرض موسمي حسب plan.
+- لكل عرض: title، description (ماذا يحصل الزبون وبكم)، code (حروف وأرقام كبيرة 4-10، مثل BAC10 أو FB15)، channel (facebook/instagram/tiktok/whatsapp/other)، discount_pct (0 إن كان العرض بدون تخفيض)، ends_on (YYYY-MM-DD)، why (لماذا يربح، مع حساب الهامش إن عُرفت التكلفة).
+- لا تتجاوز حد التخفيض الذي وضعه المالك.
+أرجع item لكل عرض مع offers. link /agents.`,
+  analyst: `مهمتك: تقرير التسويق الأسبوعي للمالك.
+- من week و month: أي قناة جلبت نقرات وطلبات ومبيعات ومالاً، وأي رابط أو كود نجح.
+- قارن بالأسبوع الماضي إن أمكن. كن صريحاً: ما نجح، ما لم ينجح، وما لا نعرفه بعد (قلة البيانات).
+- في النهاية اقترح خطوة واحدة واضحة للأسبوع القادم.
+أرجع item واحداً: title ملخص في جملة، body التقرير (نقاط قصيرة)، link /agents.`,
   brief: `مهمتك: «قهوة الصباح». اكتب للمالك ملخصاً واحداً لبداية يومه.
 - text: تحية قصيرة باسمه ثم جملة عن الأمس.
 - points: 3 نقاط على الأكثر، الأهم أولاً، كل نقطة تبدأ بصورة الوكيل المعني (avatar) إن كانت من الفريق، مع link للصفحة.
@@ -66,7 +107,7 @@ const TH_LABELS: Record<string, string> = {
   discount_pct: 'نبّه على التخفيض إذا تجاوز هذه النسبة %', discount_dh: 'أو إذا تجاوز هذا المبلغ بالدرهم', cash_diff_dh: 'تجاهل فرق الصندوق الأقل من هذا المبلغ بالدرهم',
   open_shift_hours: 'وردية مفتوحة أكثر من هذه الساعات = تنبيه', cover_weeks: 'اقترح كميات تكفي هذا العدد من الأسابيع', budget_dh: 'لا تتجاوز طلبية الأسبوع هذا المبلغ بالدرهم (0 = بدون حد)',
   debt_days: 'ذكّر بالدين بعد هذا العدد من الأيام', ready_days: 'ذكّر بالوثيقة غير المستلمة بعد هذه الأيام', debt_min_dh: 'تجاهل الديون الأقل من هذا المبلغ بالدرهم',
-  descriptions: 'عدد أوصاف المنتجات في كل مرة', posts: 'عدد المنشورات في كل مرة',
+  descriptions: 'عدد أوصاف المنتجات في كل مرة', posts: 'عدد المنشورات في كل مرة', max_discount_pct: 'أقصى نسبة تخفيض مسموحة في العروض %',
 }
 const jobOf = (a: Agent) =>
   a.is_custom
@@ -79,7 +120,7 @@ const thText = (a: Agent) => {
 
 const ITEM_SCHEMA = {
   type: 'object', additionalProperties: false,
-  required: ['severity', 'title', 'body', 'link', 'lines', 'messages', 'assign_to', 'descriptions', 'posts'],
+  required: ['severity', 'title', 'body', 'link', 'lines', 'messages', 'assign_to', 'descriptions', 'posts', 'offers', 'plan'],
   properties: {
     severity: { type: 'string', enum: ['info', 'warning', 'danger'] },
     title: { type: 'string' }, body: { type: 'string' }, link: { type: 'string' },
@@ -90,7 +131,12 @@ const ITEM_SCHEMA = {
     assign_to: { type: 'string' },
     descriptions: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['product_id', 'name', 'desc_ar', 'desc_fr'],
       properties: { product_id: { type: 'string' }, name: { type: 'string' }, desc_ar: { type: 'string' }, desc_fr: { type: 'string' } } } },
-    posts: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['channel', 'text'], properties: { channel: { type: 'string' }, text: { type: 'string' } } } },
+    posts: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['channel', 'text', 'image_idea', 'link_path'],
+      properties: { channel: { type: 'string' }, text: { type: 'string' }, image_idea: { type: 'string' }, link_path: { type: 'string' } } } },
+    offers: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['title', 'description', 'code', 'channel', 'discount_pct', 'ends_on', 'why'],
+      properties: { title: { type: 'string' }, description: { type: 'string' }, code: { type: 'string' }, channel: { type: 'string' }, discount_pct: { type: 'number' }, ends_on: { type: 'string' }, why: { type: 'string' } } } },
+    plan: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['week_start', 'theme', 'why', 'services', 'channels', 'offer'],
+      properties: { week_start: { type: 'string' }, theme: { type: 'string' }, why: { type: 'string' }, services: { type: 'array', items: { type: 'string' } }, channels: { type: 'array', items: { type: 'string' } }, offer: { type: 'string' } } } },
   },
 }
 const RUN_SCHEMA = { type: 'object', additionalProperties: false, required: ['summary', 'items'], properties: { summary: { type: 'string' }, items: { type: 'array', items: ITEM_SCHEMA } } }
@@ -144,6 +190,16 @@ async function agentData(admin: SupabaseClient, a: Agent, refId: string | null) 
     requests: () => admin.rpc('agent_request_data', { p_id: refId }),
     content: () => admin.rpc('agent_content_data'),
     brief: () => admin.rpc('agent_brief_data'),
+    planner: () => admin.rpc('agent_marketing_data', { p_channel: null }),
+    facebook: () => admin.rpc('agent_marketing_data', { p_channel: 'facebook' }),
+    instagram: () => admin.rpc('agent_marketing_data', { p_channel: 'instagram' }),
+    tiktok: () => admin.rpc('agent_marketing_data', { p_channel: 'tiktok' }),
+    whatsapp: () => admin.rpc('agent_marketing_data', { p_channel: 'whatsapp' }),
+    offers: () => admin.rpc('agent_marketing_data', { p_channel: null }),
+    analyst: async () => {
+      const [w, m] = await Promise.all([admin.rpc('marketing_stats_internal', { p_days: 7 }), admin.rpc('marketing_stats_internal', { p_days: 30 })])
+      return { data: { week: w.data, month: m.data }, error: w.error ?? m.error }
+    },
   }[key]!
   const { data, error } = await call()
   if (error) throw new Error(error.message)
@@ -190,6 +246,8 @@ const payloadOf = (i: Item) => {
   if (i.assign_to) p.assign_to = i.assign_to
   if (i.descriptions?.length) p.descriptions = i.descriptions
   if (i.posts?.length) p.posts = i.posts
+  if (i.offers?.length) p.offers = i.offers
+  if (i.plan?.length) p.plan = i.plan
   return p
 }
 
@@ -292,6 +350,25 @@ Deno.serve(async (req) => {
     if (testing) {
       await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), ok: true, ...usage }).eq('id', runId)
       return json({ ok: true, test: true, summary: out.summary, items })
+    }
+    // every post gets its own short tracking link (?src=CODE)
+    const SITE = 'https://yassir1778.github.io/sweet-house'
+    const prefix: Record<string, string> = { facebook: 'fb', instagram: 'ig', tiktok: 'tt', whatsapp: 'wa' }
+    for (const it of items) {
+      for (const post of it.posts ?? []) {
+        const channel = prefix[post.channel] ? post.channel : 'other'
+        const code = `${prefix[channel] ?? 'x'}${crypto.randomUUID().replace(/-/g, '').slice(0, 5)}`
+        const path = /^\/[a-z0-9/_-]*$/i.test(post.link_path ?? '') ? post.link_path : '/'
+        await admin.from('campaign_links').insert({ code, channel, path, label: post.text.slice(0, 80) })
+        post.code = code
+        post.link = `${SITE}${path === '/' ? '/' : path}?src=${code}`
+      }
+      // the planner's weeks become the plan the channel agents follow
+      if (key === 'planner' && it.plan?.length) {
+        const byMonth: Record<string, unknown[]> = {}
+        for (const w of it.plan) (byMonth[`${w.week_start.slice(0, 7)}-01`] ??= []).push(w)
+        for (const [month, weeks] of Object.entries(byMonth)) await admin.from('marketing_plan').upsert({ month, plan: weeks, updated_at: new Date().toISOString() })
+      }
     }
     if (items.length) {
       await admin.from('agent_suggestions').insert(items.map((i) => ({

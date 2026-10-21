@@ -165,7 +165,7 @@ export function PayDialog({
   mode: 'cash' | 'card'
   quickCash: number[]
   onClose: () => void
-  onPay: (p: { cash: number; card: number; credit: number }) => void
+  onPay: (p: { cash: number; card: number; credit: number; promo?: string }) => void
   busy: boolean
   customer: { id: string; full_name: string } | null
   allowCredit: boolean
@@ -175,9 +175,23 @@ export function PayDialog({
   const [method, setMethod] = useState<'cash' | 'card' | 'mixed' | 'credit'>(mode)
   const [cash, setCash] = useState('')
   const [card, setCard] = useState('')
+  const [promo, setPromo] = useState('')
+  const [promoInfo, setPromoInfo] = useState<{ code: string; label: string | null; discount_pct: number } | null | 'bad'>(null)
+  const { sb } = useAuth()
+
+  useEffect(() => {
+    const c = promo.trim().toUpperCase()
+    if (c.length < 3) return setPromoInfo(null)
+    const id = setTimeout(async () => {
+      const { data } = await sb.rpc('promo_lookup', { p_code: c })
+      setPromoInfo((data as { code: string; label: string | null; discount_pct: number } | null) ?? 'bad')
+    }, 400)
+    return () => clearTimeout(id)
+  }, [promo, sb])
 
   useEffect(() => {
     if (!open) return
+    setPromo('')
     setMethod(mode)
     setCash('')
     setCard(mode === 'card' ? String(total / 100) : '')
@@ -199,7 +213,7 @@ export function PayDialog({
     return [...s].filter((x) => x >= total).sort((a, b) => a - b).slice(0, 5)
   }, [total, quickCash])
 
-  const submit = () => ok && !busy && onPay({ cash: effectiveCash, card: cardC, credit: creditC })
+  const submit = () => ok && !busy && onPay({ cash: effectiveCash, card: cardC, credit: creditC, promo: promoInfo && promoInfo !== 'bad' ? promoInfo.code : undefined })
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()} size="md" title={t('الأداء', 'Paiement')}>
@@ -272,6 +286,16 @@ export function PayDialog({
           <span className={cn('num text-2xl font-bold', change > 0 ? 'text-success' : change < 0 ? 'text-danger' : '')}>{money(Math.abs(change))}</span>
         </div>
 
+        <div className="space-y-1">
+          <Input value={promo} onChange={(e) => setPromo(e.target.value.toUpperCase())} placeholder={t('🎟️ كود العرض (إن قاله الزبون)', '🎟️ Code promo (si le client le donne)')} className="h-9 text-sm" dir="ltr" />
+          {promoInfo === 'bad' && <p className="text-xs text-danger">{t('كود غير صالح', 'Code invalide')}</p>}
+          {promoInfo && promoInfo !== 'bad' && (
+            <p className="text-xs text-success">
+              ✅ {promoInfo.label ?? promoInfo.code}
+              {promoInfo.discount_pct > 0 && ` — ${t(`يعطي تخفيض ${promoInfo.discount_pct}%: طبّقه على السلة قبل الأداء`, `Remise ${promoInfo.discount_pct} % : appliquez-la avant`)}`}
+            </p>
+          )}
+        </div>
         <Button type="submit" size="xl" className="w-full" disabled={!ok} loading={busy}>
           {t('تأكيد الأداء', 'Valider le paiement')}
           <Kbd>Enter</Kbd>

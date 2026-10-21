@@ -11,7 +11,7 @@ import { Button, Card, Checkbox, Field, Input, Textarea } from '@/shared/ui/prim
 import { Sheet } from '@/shared/ui/overlay'
 import { EmptyState } from '@/shared/ui/data'
 import { useCart } from '../cart'
-import { sb, trackUrl, useSite } from '../data'
+import { attributeOnline, sb, trackUrl, useSite } from '../data'
 import { useSeo } from '../Layout'
 
 export function CartDrawer() {
@@ -106,6 +106,7 @@ export function CheckoutPage() {
     })
     setBusy(false)
     if (error) return toast.error(errorMessage(error, lang))
+    attributeOnline((data as Done)?.tracking_code)
     setDone({ ...(data as Done), phone: form.phone, name: form.name, payment: payValue })
     cart.clear()
     window.scrollTo({ top: 0 })

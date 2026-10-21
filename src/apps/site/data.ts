@@ -109,3 +109,31 @@ export function inStock(p: ShopProduct, v?: ShopVariant) {
 export function trackUrl(code: string) {
   return `${location.origin}${import.meta.env.BASE_URL}track/${code}`
 }
+
+// ---------------------------------------------------------------------
+// Campaign attribution: a post link carries ?src=CODE. We remember it for
+// 30 days and attach it to the request/order the visitor sends.
+// ---------------------------------------------------------------------
+const SRC_KEY = 'sh-src'
+export function captureCampaign() {
+  try {
+    const code = new URLSearchParams(location.search).get('src')
+    if (!code || !/^[a-z0-9]{3,30}$/i.test(code)) return
+    localStorage.setItem(SRC_KEY, JSON.stringify({ code: code.toLowerCase(), at: Date.now() }))
+    sb.rpc('track_click', { p_code: code }).then(() => {})
+  } catch {
+    /* storage blocked */
+  }
+}
+export function campaignSource(): string | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(SRC_KEY) ?? 'null') as { code: string; at: number } | null
+    return v && Date.now() - v.at < 30 * 86400_000 ? v.code : null
+  } catch {
+    return null
+  }
+}
+export function attributeOnline(tracking: string | undefined) {
+  const src = campaignSource()
+  if (src && tracking) sb.rpc('attribute_online', { p_tracking: tracking, p_src: src }).then(() => {})
+}

@@ -11,7 +11,7 @@ import { cn, whatsappLink } from '@/shared/lib/utils'
 import { Badge, Button, Card, Checkbox, Field, Input, Skeleton, Spinner, Textarea } from '@/shared/ui/primitives'
 import { EmptyState } from '@/shared/ui/data'
 import { DynamicIcon } from '@/shared/ui/icon'
-import { sb, trackUrl, useAdminServices, useSite } from '../data'
+import { attributeOnline, sb, trackUrl, useAdminServices, useSite } from '../data'
 import { ServiceCard } from '../components'
 import { useSeo } from '../Layout'
 import { ACCEPT, MAX_FILE, uploadPublicFile } from '../upload'
@@ -212,6 +212,7 @@ export function ServiceRequestPage() {
       return toast.error(errorMessage(error, lang))
     }
     const r = res as { number: string; tracking_code: string }
+    attributeOnline(r?.tracking_code)
     const failed: string[] = []
     for (let i = 0; i < files.length; i++) {
       setBusy(t(`رفع الوثيقة ${i + 1} من ${files.length}…`, `Envoi du document ${i + 1}/${files.length}…`))
