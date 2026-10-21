@@ -7,7 +7,7 @@ import { cn, whatsappLink } from '@/shared/lib/utils'
 import { Button, Skeleton } from '@/shared/ui/primitives'
 import { DynamicIcon } from '@/shared/ui/icon'
 import { useAdminServices, useSite } from '../data'
-import { BRANDS, SITES } from '@/shared/lib/brand'
+import { BRANDS, ME, SITES } from '@/shared/lib/brand'
 import { SectionTitle, ServiceCard } from '../components'
 import { useSeo } from '../Layout'
 import { CustomRequestBanner } from './Services'
@@ -39,7 +39,7 @@ export function HomePage() {
           <div>
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-sm backdrop-blur">
               <Sparkles className="size-4 text-brand" />
-              {store ? pick(store, 'name') : 'Sweet House'} · {t('تطوان', 'Tétouan')}
+              {t(ME.name_ar, ME.name_fr)} · {t('تطوان', 'Tétouan')}
             </motion.div>
             <div className="mt-3">
               <OpenBadge big />
@@ -206,7 +206,7 @@ export function HomePage() {
         {sec.about && w && (
           <div>
             <div className="mb-2 text-sm font-semibold text-brand">{pick(w.about, 'title')}</div>
-            <h2 className="text-3xl font-extrabold">{store ? pick(store, 'name') : ''}</h2>
+            <h2 className="text-3xl font-extrabold">{t(ME.name_ar, ME.name_fr)}</h2>
             <p className="mt-4 leading-relaxed text-muted">{pick(w.about, 'text')}</p>
             <Button asChild variant="success" className="mt-6">
               <a href={whatsappLink(store?.whatsapp ?? '', '')} target="_blank" rel="noreferrer">
