@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { format } from 'date-fns'
+import { addMonths, format } from 'date-fns'
 import { BadgePercent, CheckCircle2, Gift, HandCoins, Plus, Trash, Wallet } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
@@ -36,6 +36,14 @@ export function PayrollPage() {
   const prods = useQuery({ queryKey: ['products-lite'], queryFn: async () => (await sb.from('products').select('id, name_ar, name_fr').is('deleted_at', null).order('name_ar')).data ?? [] })
   const svcs = useQuery({ queryKey: ['services-lite'], queryFn: async () => (await sb.from('services').select('id, name_ar, name_fr').is('deleted_at', null).order('name_ar')).data ?? [] })
 
+  const attendance = useQuery({
+    queryKey: ['attendance', month],
+    queryFn: async () => {
+      const from = new Date(`${month}-01T00:00:00`)
+      return (await sb.rpc('attendance_report', { p_from: from.toISOString(), p_to: addMonths(from, 1).toISOString() })).data as { employees: { employee_id: string; days: number; hours: number }[] }
+    },
+  })
+  const att = (id: string) => attendance.data?.employees.find((e) => e.employee_id === id)
   const refresh = () => qc.invalidateQueries({ queryKey: ['payroll'] })
   const net = (r: Row) => r.base_salary + r.commissions + r.bonuses - r.advances
 
@@ -113,6 +121,7 @@ export function PayrollPage() {
                     <div className="font-semibold">{r.full_name}</div>
                     <div className="num text-xs text-muted">
                       {t('مبيعات الشهر', 'Ventes du mois')}: {money(r.sales)}
+                      {att(r.employee_id) && ` · ${att(r.employee_id)!.days} ${t('يوم حضور', 'j de présence')} · ${att(r.employee_id)!.hours} ${t('س', 'h')}`}
                     </div>
                   </div>
                   {r.paid ? (

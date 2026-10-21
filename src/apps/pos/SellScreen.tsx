@@ -7,6 +7,7 @@ import {
   Clock,
   CreditCard,
   Globe,
+  GraduationCap,
   LayoutGrid,
   Lock,
   Minus,
@@ -49,10 +50,12 @@ import { RefundDialog } from './refund'
 import { CreateInvoiceDialog } from '@/shared/ui/invoice-dialog'
 import { OnlineSheet } from './online'
 import { useOnlinePending } from '@/shared/lib/online'
+import { AttendanceButton } from './attendance'
 
 type PosSettings = { allow_negative_stock: boolean; sound: boolean; auto_print: boolean; quick_cash: number[] }
 type Held = { id: string; at: string; label: string; state: CartState }
 const heldStore = storage<Held[]>('sh-pos-held', [])
+const trainingStore = storage<boolean>('sh-pos-training', false)
 
 export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInfo; shift: Extract<ShiftStatus, { open: true }>; onShiftChange: () => void }) {
   const { sb, me, can, signOut } = useAuth()
@@ -87,6 +90,17 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
   const [customOpen, setCustomOpen] = useState(false)
   const legal = receiptCfg.data?.legal as { tax_rates?: number[]; default_tax_rate?: number } | undefined
   const [onlineOpen, setOnlineOpen] = useState(false)
+  // Training mode: sales are simulated on this screen only (nothing saved, no stock, no cash).
+  const [training, setTrainingState] = useState(trainingStore.get)
+  const [trainingAsk, setTrainingAsk] = useState(false)
+  const setTraining = (v: boolean) => {
+    // A real cart in progress is put on hold, and training carts are thrown away.
+    if (v && cart.lines.length) holdCart(true)
+    else dispatch({ type: 'clear' })
+    trainingStore.set(v)
+    setTrainingState(v)
+  }
+  const notInTraining = (fn: () => void) => () => (training ? toast.info(t('غير متاح في وضع التدريب', 'Indisponible en mode formation')) : fn())
   const queue = useOfflineQueue(sb, () => (qc.invalidateQueries({ queryKey: ['shift', device.id] }), qc.invalidateQueries({ queryKey: ['pos-history'] }), qc.invalidateQueries({ queryKey: ['pos-catalog'] })))
   const [queueOpen, setQueueOpen] = useState(false)
   const pending = useOnlinePending(sb, can('requests.manage') || can('orders.manage'))
@@ -196,6 +210,12 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
   // ------------------------------------------------ hold / resume
   const holdCart = (silent = false) => {
     if (!cart.lines.length) return
+    if (training) {
+      // never keep a practice cart: it could be resumed later as a real sale
+      if (silent) dispatch({ type: 'clear' })
+      else toast.info(t('غير متاح في وضع التدريب', 'Indisponible en mode formation'))
+      return
+    }
     const h: Held = { id: uuid(), at: new Date().toISOString(), label: cart.customer?.full_name ?? `${cart.lines.length} ${t('منتجات', 'articles')}`, state: cart }
     const next = [h, ...held]
     setHeld(next)
@@ -213,23 +233,13 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
   }
 
   // ------------------------------------------------ checkout
-  const checkout = async (p: { cash: number; card: number; credit: number }) => {
-    setPaying(true)
-    const payload = toPayload(cart, saleId.current, device.id, p)
-    const { data, error } = await sb.rpc('create_sale', { p: payload })
-    setPaying(false)
-    let sale = data as Sale
-    if (error) {
-      if (!isNetworkError(error)) {
-        sound('error')
-        return toast.error(errorMessage(error, lang))
-      }
-      // No connection: keep the sale locally, print a provisional receipt, sync later.
-      const tt = cartTotals(cart)
-      const paid = p.cash + p.card + p.credit
-      sale = {
+  // A receipt built on the device (offline sale or training).
+  const localSale = (p: { cash: number; card: number; credit: number }, prefix: string): Sale => {
+    const tt = cartTotals(cart)
+    const paid = p.cash + p.card + p.credit
+    return {
         id: saleId.current,
-        number: `HL-${saleId.current.slice(0, 6).toUpperCase()}`,
+        number: `${prefix}-${saleId.current.slice(0, 6).toUpperCase()}`,
         status: 'completed',
         customer_id: cart.customer?.id ?? null,
         employee_id: me?.id ?? '',
@@ -249,7 +259,32 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
         voided_at: null,
         created_at: new Date().toISOString(),
         items: cart.lines.map((l, i) => ({ line_no: i + 1, item_type: l.type, name_ar: l.name_ar, name_fr: l.name_fr, qty: l.qty, unit_price: l.unit_price, original_unit_price: l.base_price ?? l.unit_price, discount: l.discount, total: lineTotal(l), tax_rate: l.product?.tax_rate ?? l.service?.tax_rate ?? l.tax_rate ?? 0 })),
+    }
+  }
+
+  const checkout = async (p: { cash: number; card: number; credit: number }) => {
+    if (training) {
+      const sale = { ...localSale(p, 'TR'), note: t('وضع التدريب — ليس وصلاً حقيقياً', 'Mode formation — ticket non valable') }
+      sound('success')
+      saleId.current = uuid()
+      dispatch({ type: 'clear' })
+      setPay(null)
+      setDone(sale)
+      toast.info(t('بيع تجريبي: لم يُسجَّل شيء ولم يتغير المخزون ولا الصندوق', 'Vente d’essai : rien n’est enregistré'))
+      return
+    }
+    setPaying(true)
+    const payload = toPayload(cart, saleId.current, device.id, p)
+    const { data, error } = await sb.rpc('create_sale', { p: payload })
+    setPaying(false)
+    let sale = data as Sale
+    if (error) {
+      if (!isNetworkError(error)) {
+        sound('error')
+        return toast.error(errorMessage(error, lang))
       }
+      // No connection: keep the sale locally, print a provisional receipt, sync later.
+      sale = localSale(p, 'HL')
       enqueue({ id: saleId.current, payload, local: sale, created_at: sale.created_at })
       toast.warning(t('لا يوجد إنترنت: حُفظ البيع على الجهاز وسيُرسل تلقائياً عند عودة الاتصال', 'Hors ligne : vente enregistrée localement, envoi automatique au retour du réseau'))
     }
@@ -326,7 +361,16 @@ Total : ${money(totals.total)}`,
   const maxDisc = me?.max_discount_percent ?? 0
 
   return (
-    <div className="flex h-screen flex-col bg-bg">
+    <div className={cn('flex h-screen flex-col bg-bg', training && 'ring-4 ring-warning ring-inset')}>
+      {training && (
+        <div className="flex shrink-0 items-center justify-center gap-3 bg-[repeating-linear-gradient(135deg,#F59E0B_0_14px,#FBBF24_14px_28px)] px-4 py-1.5 text-sm font-bold text-navy">
+          <GraduationCap className="size-4" />
+          {t('وضع التدريب — البيع هنا تجريبي: لا يُسجَّل، لا يغيّر المخزون ولا الصندوق', 'Mode formation — ventes fictives : rien n’est enregistré')}
+          <button onClick={() => setTraining(false)} className="rounded-md bg-navy px-2 py-0.5 text-xs text-white">
+            {t('خروج', 'Quitter')}
+          </button>
+        </div>
+      )}
       {/* ---------------------------------------------- Header */}
       <header className="flex h-16 shrink-0 items-center gap-4 border-b border-border bg-surface px-4">
         <LogoMark size={36} />
@@ -359,30 +403,36 @@ Total : ${money(totals.total)}`,
           </button>
         </Tooltip>
         <Tooltip content={t('الصندوق والوردية', 'Caisse')}>
-          <Button variant="outline" onClick={() => setShiftOpen(true)} className="gap-2">
+          <Button variant="outline" onClick={notInTraining(() => setShiftOpen(true))} className="gap-2">
             <Banknote />
             <span className="num hidden xl:inline">#{shift.shift.number}</span>
           </Button>
         </Tooltip>
         {(can('requests.manage') || can('orders.manage')) && (
           <Tooltip content={t('الطلبات الأونلاين', 'Commandes en ligne')}>
-            <Button variant="ghost" size="icon" className="relative" onClick={() => setOnlineOpen(true)}>
+            <Button variant="ghost" size="icon" className="relative" onClick={notInTraining(() => setOnlineOpen(true))}>
               <Globe />
               {pendingCount > 0 && <span className="num absolute -end-0.5 -top-0.5 flex size-4.5 animate-pulse items-center justify-center rounded-full bg-danger text-[10px] font-bold text-white">{pendingCount}</span>}
             </Button>
           </Tooltip>
         )}
         <Tooltip content={t('المبيعات الأخيرة', 'Ventes récentes')}>
-          <Button variant="ghost" size="icon" onClick={() => setHistoryOpen(true)}>
+          <Button variant="ghost" size="icon" onClick={notInTraining(() => setHistoryOpen(true))}>
             <Clock />
           </Button>
         </Tooltip>
         <Tooltip content={t('المبيعات المعلقة', 'En attente')}>
-          <Button variant="ghost" size="icon" className="relative" onClick={() => setHeldOpen(true)}>
+          <Button variant="ghost" size="icon" className="relative" onClick={notInTraining(() => setHeldOpen(true))}>
             <PauseCircle />
             {held.length > 0 && <span className="num absolute -end-0.5 -top-0.5 flex size-4.5 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white">{held.length}</span>}
           </Button>
         </Tooltip>
+        <Tooltip content={training ? t('إيقاف وضع التدريب', 'Quitter le mode formation') : t('وضع التدريب', 'Mode formation')}>
+          <Button variant={training ? 'primary' : 'ghost'} size="icon" onClick={() => (training ? setTraining(false) : setTrainingAsk(true))}>
+            <GraduationCap />
+          </Button>
+        </Tooltip>
+        <AttendanceButton deviceId={device.id} />
         <LangToggle compact />
         <ThemeToggle />
         <div className="flex items-center gap-2.5 border-s border-border ps-4">
@@ -734,6 +784,26 @@ Total : ${money(totals.total)}`,
         )}
       </Sheet>
 
+      <Dialog open={trainingAsk} onOpenChange={setTrainingAsk} size="sm" title={t('وضع التدريب', 'Mode formation')} description={t('للموظف الجديد: يبيع ويجرب كل شيء دون خوف من الخطأ', 'Pour les nouveaux : s’entraîner sans risque')}>
+        <ul className="mb-5 space-y-2 text-sm">
+          {[
+            t('البيع لا يُسجَّل في النظام ولا يظهر في التقارير', 'Les ventes ne sont pas enregistrées'),
+            t('المخزون والصندوق لا يتغيران', 'Ni stock ni caisse ne changent'),
+            t('الوصل المطبوع مكتوب عليه «تدريب»', 'Le ticket porte la mention « formation »'),
+            t('الصندوق والطلبات والمبيعات السابقة مقفلة أثناء التدريب', 'Caisse, commandes et historique bloqués'),
+          ].map((x) => (
+            <li key={x} className="flex gap-2">
+              <CheckCircle2 className="size-4 shrink-0 text-success" />
+              {x}
+            </li>
+          ))}
+        </ul>
+        <Button className="w-full" onClick={() => (setTraining(true), setTrainingAsk(false))}>
+          <GraduationCap />
+          {t('تشغيل وضع التدريب', 'Activer')}
+        </Button>
+      </Dialog>
+
       {/* success */}
       <AnimatePresence>
         {done && (
@@ -749,7 +819,7 @@ Total : ${money(totals.total)}`,
               <motion.div initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ delay: 0.1, type: 'spring', bounce: 0.5 }} className="mx-auto flex size-20 items-center justify-center rounded-full bg-success/10">
                 <CheckCircle2 className="size-11 text-success" />
               </motion.div>
-              <div className="mt-4 text-xl font-bold">{t('تم البيع بنجاح', 'Vente enregistrée')}</div>
+              <div className="mt-4 text-xl font-bold">{done.number.startsWith('TR-') ? t('بيع تجريبي ناجح 🎓', 'Vente d’essai réussie 🎓') : t('تم البيع بنجاح', 'Vente enregistrée')}</div>
               <div className="num mt-1 text-sm text-muted">
                 {done.number} · {money(done.total)}
               </div>

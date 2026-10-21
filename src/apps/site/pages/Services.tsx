@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useParams, useSearchParams } from 'react-router'
 import { motion } from 'motion/react'
-import { CheckCircle2, ChevronLeft, Clock, ExternalLink, FileCheck2, FileText, Lock, MessageCircle, Paperclip, Search, ShieldCheck, Store, Building2, Upload, X } from 'lucide-react'
+import { CheckCircle2, ChevronLeft, Clock, ExternalLink, FileCheck2, FileText, Globe2, Lock, Mail, MessageCircle, Package, Paperclip, Search, ShieldCheck, Store, Building2, Upload, UserRound, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useLang } from '@/shared/lib/i18n'
 import { errorMessage } from '@/shared/lib/errors'
@@ -47,8 +47,9 @@ export function ServicesPage() {
         </div>
       </section>
       <div className="mx-auto max-w-6xl px-4 py-10">
-        <div className="mb-8">
+        <div className="mb-8 grid gap-4 lg:grid-cols-[2fr_1fr]">
           <CustomRequestBanner />
+          <AbroadBanner />
         </div>
         <div className="mb-8 flex gap-2 overflow-x-auto pb-1">
           <button onClick={() => setCat(null)} className={cn('shrink-0 rounded-full border px-4 py-2 text-sm font-medium', !cat ? 'border-transparent bg-navy text-white' : 'border-border bg-surface text-muted')}>
@@ -96,6 +97,23 @@ export function ServicesPage() {
   )
 }
 
+export function AbroadBanner() {
+  const { t } = useLang()
+  const site = useSite()
+  if (site.data?.abroad?.enabled === false) return null
+  return (
+    <Link to="/abroad" className="group flex items-center gap-4 rounded-2xl border border-border bg-surface p-6 transition-all hover:border-info/50 hover:shadow-pop">
+      <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-info/10 text-info transition-transform group-hover:scale-110">
+        <Globe2 className="size-6" />
+      </div>
+      <div>
+        <div className="font-bold">{t('أنت خارج المغرب؟', 'Vous êtes à l’étranger ?')}</div>
+        <div className="text-sm text-muted">{t('اطلب وثائقك عن بُعد واستلمها بالإيميل أو بالبريد', 'Vos documents à distance, par e-mail ou poste')}</div>
+      </div>
+    </Link>
+  )
+}
+
 export function CustomRequestBanner({ compact }: { compact?: boolean }) {
   const { t } = useLang()
   const data = useAdminServices()
@@ -128,6 +146,9 @@ export function ServiceRequestPage() {
   const [fields, setFields] = useState<Record<string, string>>({})
   const [files, setFiles] = useState<File[]>([])
   const [pay, setPay] = useState<'in_store' | 'bank_transfer'>('in_store')
+  const [params] = useSearchParams()
+  const [abroad, setAbroad] = useState(params.get('abroad') === '1')
+  const [far, setFar] = useState({ country: '', delivery: 'email' as 'email' | 'post' | 'person', address: '' })
   const [consent, setConsent] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [done, setDone] = useState<Done | null>(null)
@@ -154,9 +175,17 @@ export function ServiceRequestPage() {
     const missing = s.fields.filter((f) => f.required && !fields[f.key]?.trim())
     if (missing.length) return toast.error(t(`المرجو ملء: ${missing.map((m) => m.label_ar).join('، ')}`, `Champs requis : ${missing.map((m) => m.label_fr).join(', ')}`))
     if (!consent) return toast.error(t('المرجو الموافقة على سياسة الخصوصية', 'Veuillez accepter la politique de confidentialité'))
+    const isAbroad = abroad && s.abroad
+    if (isAbroad && far.country.trim().length < 2) return toast.error(t('المرجو كتابة بلد الإقامة', 'Indiquez votre pays'))
+    if (isAbroad && far.delivery === 'email' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim())) return toast.error(t('المرجو كتابة بريد إلكتروني صحيح لاستلام الوثيقة', 'E-mail valide requis pour l’envoi'))
+    if (isAbroad && far.delivery === 'post' && far.address.trim().length < 8) return toast.error(t('المرجو كتابة عنوان الإرسال كاملاً', 'Adresse complète requise'))
+    // Foreign numbers keep their country code (+33…, +34…)
+    const phone = isAbroad && !/^\s*(\+|00)/.test(form.phone) ? `+${form.phone.trim()}` : form.phone
     setBusy(t('جارٍ إرسال الطلب…', 'Envoi…'))
     const labeled = Object.fromEntries(s.fields.map((f) => [f.label_ar, fields[f.key] ?? '']).filter(([, v]) => v))
-    const { data: res, error } = await sb.rpc('submit_service_request', { p: { service_id: s.id, ...form, fields: labeled, payment_method: pay, consent } })
+    const { data: res, error } = await sb.rpc('submit_service_request', {
+      p: { service_id: s.id, ...form, phone, fields: labeled, payment_method: isAbroad ? 'bank_transfer' : pay, consent, abroad: isAbroad, country: far.country, delivery_method: far.delivery, delivery_address: far.address },
+    })
     if (error) {
       setBusy(null)
       return toast.error(errorMessage(error, lang))
@@ -166,13 +195,13 @@ export function ServiceRequestPage() {
     for (let i = 0; i < files.length; i++) {
       setBusy(t(`رفع الوثيقة ${i + 1} من ${files.length}…`, `Envoi du document ${i + 1}/${files.length}…`))
       try {
-        await uploadPublicFile(r.tracking_code, form.phone, files[i], 'upload')
+        await uploadPublicFile(r.tracking_code, phone, files[i], 'upload')
       } catch {
         failed.push(files[i].name)
       }
     }
     setBusy(null)
-    setDone({ ...r, phone: form.phone, failed })
+    setDone({ ...r, phone, failed })
     window.scrollTo({ top: 0 })
   }
 
@@ -199,6 +228,17 @@ export function ServiceRequestPage() {
             </div>
           </div>
 
+          {s.abroad && site.data?.abroad?.enabled !== false && (
+            <button type="button" onClick={() => setAbroad((a) => !a)} className={cn('flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-start transition-colors', abroad ? 'border-info bg-info/5' : 'border-border bg-surface hover:border-info/40')}>
+              <Globe2 className={cn('size-6 shrink-0', abroad ? 'text-info' : 'text-subtle')} />
+              <span className="flex-1">
+                <span className="block font-semibold">{t('أنا مقيم خارج المغرب', 'Je vis à l’étranger')}</span>
+                <span className="block text-sm text-muted">{t('رقم هاتف أجنبي، أداء بالتحويل، واستلام بالإيميل أو بالبريد', 'Numéro étranger, virement, envoi par e-mail ou poste')}</span>
+              </span>
+              <Checkbox checked={abroad} onCheckedChange={setAbroad} />
+            </button>
+          )}
+
           <Card className="space-y-4 p-6">
             <h2 className="font-bold">{t('معلومات التواصل', 'Vos coordonnées')}</h2>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -206,9 +246,14 @@ export function ServiceRequestPage() {
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required autoComplete="name" />
               </Field>
               <Field label={t('رقم الهاتف (واتساب)', 'Téléphone (WhatsApp)')} required hint={t('سنرسل لك إشعار الجاهزية على هذا الرقم', 'Pour la notification')}>
-                <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required dir="ltr" inputMode="tel" placeholder="06 XX XX XX XX" autoComplete="tel" />
+                <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required dir="ltr" inputMode="tel" placeholder={abroad ? '+33 6 12 34 56 78' : '06 XX XX XX XX'} autoComplete="tel" />
               </Field>
-              <Field label={t('البريد الإلكتروني (اختياري)', 'E-mail (optionnel)')} className="sm:col-span-2">
+              {abroad && (
+                <Field label={t('بلد الإقامة', 'Pays de résidence')} required className="sm:col-span-2">
+                  <Input value={far.country} onChange={(e) => setFar({ ...far, country: e.target.value })} placeholder={t('إسبانيا، فرنسا، بلجيكا…', 'Espagne, France, Belgique…')} />
+                </Field>
+              )}
+              <Field label={abroad && far.delivery === 'email' ? t('البريد الإلكتروني (لاستلام الوثيقة)', 'E-mail (pour recevoir le document)') : t('البريد الإلكتروني (اختياري)', 'E-mail (optionnel)')} required={abroad && far.delivery === 'email'} className="sm:col-span-2">
                 <Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} type="email" dir="ltr" />
               </Field>
             </div>
@@ -273,11 +318,39 @@ export function ServiceRequestPage() {
           </Card>
 
           <Card className="space-y-4 p-6">
+            {abroad && (
+              <>
+                <h2 className="font-bold">{t('كيف تريد استلام الوثيقة؟', 'Comment recevoir le document ?')}</h2>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <PayOpt active={far.delivery === 'email'} onClick={() => setFar({ ...far, delivery: 'email' })} icon={<Mail />} title={t('بالإيميل', 'Par e-mail')} text={t('نسخة PDF', 'Copie PDF')} />
+                  <PayOpt active={far.delivery === 'post'} onClick={() => setFar({ ...far, delivery: 'post' })} icon={<Package />} title={t('بالبريد', 'Par la poste')} text={t('الأصل إلى عنوانك', 'Original chez vous')} />
+                  <PayOpt active={far.delivery === 'person'} onClick={() => setFar({ ...far, delivery: 'person' })} icon={<UserRound />} title={t('يستلمها قريب', 'Un proche')} text={t('من المحل بتطوان', 'Au magasin à Tétouan')} />
+                </div>
+                {far.delivery === 'post' && (
+                  <>
+                    <Field label={t('عنوان الإرسال الكامل', 'Adresse d’envoi complète')} required>
+                      <Textarea value={far.address} onChange={(e) => setFar({ ...far, address: e.target.value })} placeholder={t('الاسم، الشارع، الرقم، المدينة، الرمز البريدي، البلد', 'Nom, rue, n°, ville, code postal, pays')} />
+                    </Field>
+                    {site.data?.abroad && pick(site.data.abroad, 'post_note') && <p className="rounded-xl bg-info/5 p-3 text-sm text-muted">{pick(site.data.abroad, 'post_note')}</p>}
+                  </>
+                )}
+              </>
+            )}
             <h2 className="font-bold">{t('الأداء', 'Paiement')}</h2>
+            {abroad ? (
+              <div className="flex items-start gap-3 rounded-2xl border-2 border-brand bg-brand-50 p-4 text-sm">
+                <Building2 className="size-5 shrink-0 text-brand" />
+                <span>
+                  <span className="block font-semibold">{t('تحويل بنكي', 'Virement bancaire')}</span>
+                  <span className="block text-muted">{(site.data?.abroad && pick(site.data.abroad, 'payment_note')) || t('ستجد معلومات الحساب في صفحة تتبّع الطلب بعد الإرسال.', 'Les coordonnées bancaires sont sur la page de suivi.')}</span>
+                </span>
+              </div>
+            ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {pm?.in_store !== false && <PayOpt active={pay === 'in_store'} onClick={() => setPay('in_store')} icon={<Store />} title={t('في المحل', 'En boutique')} text={t('عند استلام الوثيقة', 'Au retrait')} />}
               {pm?.bank_transfer !== false && <PayOpt active={pay === 'bank_transfer'} onClick={() => setPay('bank_transfer')} icon={<Building2 />} title={t('تحويل بنكي', 'Virement')} text={t('للتحميل أونلاين بعد الأداء', 'Pour télécharger en ligne')} />}
             </div>
+            )}
             {s.system_key !== 'custom_request' && <Field label={t('تفاصيل إضافية أو شرح لطلبك (اختياري)', 'Précisions sur votre demande (optionnel)')} hint={t('اكتب أي معلومة تساعدنا على إنجاز طلبك بسرعة', 'Toute information utile pour traiter votre demande')}>
               <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder={t('مثلاً: أحتاج نسختين، أو الوثيقة باسم شخص آخر…', 'ex : deux exemplaires, au nom d’un tiers…')} />
             </Field>}

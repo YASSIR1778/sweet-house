@@ -10,6 +10,7 @@ import { csvMoney, downloadCsv } from '@/shared/lib/export'
 import { cn } from '@/shared/lib/utils'
 import { Button, Card, CardHeader, Input, Skeleton } from '@/shared/ui/primitives'
 import { PageHeader, StatCard, Tabs } from '@/shared/ui/data'
+import { DurationsCard, PerformanceCard, SectionsCard } from './ReportsExtra'
 
 type Report = {
   revenue: number
@@ -172,6 +173,8 @@ export function ReportsPage() {
           </div>
         </Card>
       )}
+
+      <SectionsCard range={{ from, to }} />
 
       <div className="mt-4 grid gap-4 xl:grid-cols-3">
         <Card className="xl:col-span-2">
@@ -336,6 +339,9 @@ export function ReportsPage() {
           </Card>
         )}
       </div>
+
+      <PerformanceCard range={{ from, to }} />
+      <DurationsCard range={{ from, to }} />
     </>
   )
 }

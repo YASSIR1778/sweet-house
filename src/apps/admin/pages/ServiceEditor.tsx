@@ -1,20 +1,23 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { FileText, ListPlus, Plus, Trash } from 'lucide-react'
+import { BookOpen, Clock, FileText, ListPlus, Plus, Trash } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
 import { errorMessage } from '@/shared/lib/errors'
 import { money } from '@/shared/lib/money'
-import type { DocReq, Service, ServiceCategory, ServiceField } from '@/shared/lib/types'
+import type { DocReq, Service, ServiceCategory, ServiceField, ServiceGuide } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
 import { Button, Card, Checkbox, Field, Input, SwitchRow, Textarea } from '@/shared/ui/primitives'
 import { Sheet, useConfirm } from '@/shared/ui/overlay'
 import { Select } from '@/shared/ui/select'
 import { ColorPicker, IconPicker, MoneyInput } from '@/shared/ui/pickers'
+import { ImageInput } from '@/shared/ui/media'
 
 type Tier = { min_qty: number; unit_price: number }
-type Form = Omit<Service, 'id' | 'deleted_at' | 'service_price_tiers' | 'system_key'> & { id?: string; system_key?: string | null; tiers: Tier[] }
+type Form = Omit<Service, 'id' | 'deleted_at' | 'service_price_tiers' | 'system_key'> & { id?: string; system_key?: string | null; tiers: Tier[]; guide: ServiceGuide }
+
+const blankGuide = (): ServiceGuide => ({ steps_ar: '', tips_ar: '', links: [], images: [] })
 
 const blank = (kind: 'counter' | 'admin'): Form => ({
   category_id: null,
@@ -41,7 +44,10 @@ const blank = (kind: 'counter' | 'admin'): Form => ({
   fields: [],
   sort: 0,
   is_active: true,
+  target_hours: null,
+  abroad: kind === 'admin',
   tiers: [],
+  guide: blankGuide(),
 })
 
 export function ServiceEditor({
@@ -68,9 +74,15 @@ export function ServiceEditor({
     else {
       const { service_price_tiers, deleted_at: _d, ...rest } = service
       void _d
-      setF({ ...rest, tiers: (service_price_tiers ?? []).map((x) => ({ min_qty: Number(x.min_qty), unit_price: x.unit_price })).sort((a, b) => a.min_qty - b.min_qty) })
+      setF({ ...rest, guide: blankGuide(), tiers: (service_price_tiers ?? []).map((x) => ({ min_qty: Number(x.min_qty), unit_price: x.unit_price })).sort((a, b) => a.min_qty - b.min_qty) })
+      if (service.kind === 'admin')
+        sb.from('service_guides')
+          .select('steps_ar, tips_ar, links, images')
+          .eq('service_id', service.id)
+          .maybeSingle()
+          .then(({ data }) => data && setF((x) => (x.id === service.id ? { ...x, guide: data as ServiceGuide } : x)))
     }
-  }, [service, defaultKind])
+  }, [service, defaultKind, sb])
 
   const isSystem = !!f.system_key
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((x) => ({ ...x, [k]: v }))
@@ -99,6 +111,8 @@ export function ServiceEditor({
   const fields = f.fields
   const setDoc = (i: number, p: Partial<DocReq>) => set('required_documents', docs.map((d, j) => (j === i ? { ...d, ...p } : d)))
   const setFld = (i: number, p: Partial<ServiceField>) => set('fields', fields.map((d, j) => (j === i ? { ...d, ...p } : d)))
+  const g = f.guide
+  const setGuide = (p: Partial<ServiceGuide>) => set('guide', { ...g, ...p })
 
   const modes = [
     { v: 'fixed', ar: 'سعر ثابت', fr: 'Prix fixe', d_ar: 'نفس السعر لكل وحدة', d_fr: 'Même prix par unité' },
@@ -335,6 +349,74 @@ export function ServiceEditor({
                 <Plus />
                 {t('إضافة حقل', 'Ajouter un champ')}
               </Button>
+            </Card>
+
+            <Card className="space-y-3 p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Clock className="size-4 text-brand" />
+                {t('المدة المستهدفة للإنجاز', 'Délai cible de traitement')}
+              </div>
+              <p className="text-xs text-muted">{t('إذا تجاوز الطلب هذه المدة دون أن يصبح جاهزاً، يظهر بالأحمر كطلب متأخر. اتركه فارغاً إن لم تكن هناك مدة.', 'Au-delà de ce délai sans être prête, la demande apparaît en retard. Laissez vide si aucun délai.')}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Input type="number" min={1} value={f.target_hours ?? ''} onChange={(e) => set('target_hours', e.target.value ? Math.max(1, Number(e.target.value)) : null)} className="num w-24" />
+                <span className="text-sm text-muted">{t('ساعة', 'heures')}</span>
+                {[2, 24, 48, 72].map((h) => (
+                  <button key={h} onClick={() => set('target_hours', h)} className={cn('num rounded-lg border px-3 py-1.5 text-sm', f.target_hours === h ? 'border-brand bg-brand-50 text-brand' : 'border-border')}>
+                    {h < 24 ? `${h} ${t('س', 'h')}` : `${h / 24} ${t('يوم', 'j')}`}
+                  </button>
+                ))}
+                {f.target_hours != null && (
+                  <Button variant="ghost" size="sm" onClick={() => set('target_hours', null)}>
+                    {t('بدون مدة', 'Aucun')}
+                  </Button>
+                )}
+              </div>
+            </Card>
+
+            <SwitchRow
+              label={t('🌍 متاحة لمغاربة العالم', '🌍 Disponible pour les MRE')}
+              description={t('تظهر في صفحة «أنا خارج المغرب»: طلب عن بُعد، أداء بالتحويل، استلام بالإيميل أو بالبريد', 'Visible dans « Je suis à l’étranger » : demande à distance, virement, envoi par e-mail ou poste')}
+              checked={f.abroad}
+              onCheckedChange={(v) => set('abroad', v)}
+            />
+
+            <Card className="space-y-3 border-brand/30 p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <BookOpen className="size-4 text-brand" />
+                {t('دليل الموظف (داخلي)', 'Guide interne pour l’employé')}
+              </div>
+              <p className="text-xs text-muted">{t('يظهر للموظف داخل صفحة الطلب فقط، ولا يظهر أبداً في الموقع.', 'Affiché à l’employé dans la demande, jamais sur le site.')}</p>
+              <Field label={t('خطوات الإنجاز (خطوة في كل سطر)', 'Étapes (une par ligne)')}>
+                <Textarea rows={6} value={g.steps_ar ?? ''} onChange={(e) => setGuide({ steps_ar: e.target.value })} placeholder={t('ادخل إلى البوابة الرسمية', 'Ouvrir le portail officiel')} />
+              </Field>
+              <Field label={t('أخطاء شائعة وملاحظات', 'Erreurs fréquentes et remarques')}>
+                <Textarea rows={3} value={g.tips_ar ?? ''} onChange={(e) => setGuide({ tips_ar: e.target.value })} />
+              </Field>
+              <div className="space-y-2">
+                <div className="text-xs font-medium text-muted">{t('روابط مفيدة', 'Liens utiles')}</div>
+                {g.links.map((l, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Input value={l.label} onChange={(e) => setGuide({ links: g.links.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)) })} placeholder={t('الاسم', 'Libellé')} />
+                    <Input value={l.url} onChange={(e) => setGuide({ links: g.links.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)) })} placeholder="https://" dir="ltr" />
+                    <Button variant="ghost" size="icon-sm" onClick={() => setGuide({ links: g.links.filter((_, j) => j !== i) })}>
+                      <Trash className="text-danger" />
+                    </Button>
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={() => setGuide({ links: [...g.links, { label: '', url: '' }] })}>
+                  <Plus />
+                  {t('إضافة رابط', 'Ajouter un lien')}
+                </Button>
+              </div>
+              <div className="space-y-2">
+                <div className="text-xs font-medium text-muted">{t('صور توضيحية', 'Captures d’écran')}</div>
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  {g.images.map((url, i) => (
+                    <ImageInput key={url} sb={sb} folder="guides" value={url} aspect="aspect-video" onChange={(u) => setGuide({ images: u ? g.images.map((x, j) => (j === i ? u : x)) : g.images.filter((_, j) => j !== i) })} />
+                  ))}
+                  <ImageInput key={`new-${g.images.length}`} sb={sb} folder="guides" value={null} aspect="aspect-video" onChange={(u) => u && setGuide({ images: [...g.images, u] })} />
+                </div>
+              </div>
             </Card>
           </>
         )}

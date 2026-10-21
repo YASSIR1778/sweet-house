@@ -51,6 +51,8 @@ const messages: Record<string, [string, string]> = {
   name_required: ['الاسم مطلوب', 'Nom obligatoire'],
   phone_invalid: ['رقم الهاتف غير صحيح', 'Numéro de téléphone invalide'],
   consent_required: ['المرجو الموافقة على سياسة الخصوصية', 'Veuillez accepter la politique de confidentialité'],
+  country_required: ['المرجو كتابة بلد الإقامة', 'Indiquez votre pays de résidence'],
+  email_required: ['المرجو كتابة بريد إلكتروني صحيح', 'Adresse e-mail valide requise'],
   too_many_requests: ['طلبات كثيرة في وقت قصير، حاول بعد قليل', 'Trop de demandes, réessayez plus tard'],
   out_of_stock: ['منتج غير متوفر بالكمية المطلوبة', 'Produit en rupture'],
   address_required: ['العنوان مطلوب للتوصيل', 'Adresse obligatoire'],

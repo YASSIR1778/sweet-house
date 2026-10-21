@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ExternalLink, Globe, Image as ImageIcon, LayoutTemplate, ListChecks, MessageCircle, Plus, Save, Scale, Trash, Truck, Wallet } from 'lucide-react'
+import { ExternalLink, Globe, Globe2, Image as ImageIcon, LayoutTemplate, ListChecks, MessageCircle, Plus, Save, Scale, Trash, Truck, Wallet } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -25,6 +25,7 @@ type W = {
 }
 type D = { enabled: boolean; cod: boolean; default_price: number; free_above: number | null; zones: { city: string; city_ar: string; price: number }[] }
 type P = { cod: boolean; in_store: boolean; bank_transfer: boolean; bank_name: string; rib: string; account_holder: string }
+type AB = { enabled: boolean; post_note_ar: string; post_note_fr: string; payment_note_ar: string; payment_note_fr: string }
 type WA = { mode: string; number: string; templates: Record<string, string>; template_name?: string; template_lang?: string }
 
 const TABS = [
@@ -32,6 +33,7 @@ const TABS = [
   { id: 'faq', ar: 'الأسئلة الشائعة', fr: 'FAQ', icon: ListChecks },
   { id: 'delivery', ar: 'التوصيل', fr: 'Livraison', icon: Truck },
   { id: 'payments', ar: 'الأداء الأونلاين', fr: 'Paiements', icon: Wallet },
+  { id: 'abroad', ar: 'مغاربة العالم', fr: 'Marocains du monde', icon: Globe2 },
   { id: 'statuses', ar: 'مراحل الطلبات', fr: 'Étapes des demandes', icon: ListChecks },
   { id: 'whatsapp', ar: 'رسائل واتساب', fr: 'Messages WhatsApp', icon: MessageCircle },
   { id: 'legal', ar: 'الصفحات القانونية', fr: 'Pages légales', icon: Scale },
@@ -54,13 +56,14 @@ export function WebsitePage() {
   const [d, setD] = useState<D | null>(null)
   const [p, setP] = useState<P | null>(null)
   const [wa, setWa] = useState<WA | null>(null)
+  const [ab, setAb] = useState<AB | null>(null)
   const [st, setSt] = useState<RequestStatus[]>([])
   const [busy, setBusy] = useState(false)
 
   const data = useQuery({
     queryKey: ['website-editor'],
     queryFn: async () => {
-      const { data } = await sb.from('settings').select('key, value').in('key', ['website', 'delivery', 'online_payments', 'whatsapp'])
+      const { data } = await sb.from('settings').select('key, value').in('key', ['website', 'delivery', 'online_payments', 'whatsapp', 'abroad'])
       const { data: statuses } = await sb.from('request_statuses').select('*').order('sort')
       return { m: Object.fromEntries((data ?? []).map((r) => [r.key, r.value])), statuses: (statuses ?? []) as RequestStatus[] }
     },
@@ -70,6 +73,7 @@ export function WebsitePage() {
     setW(data.data.m.website as W)
     setD(data.data.m.delivery as D)
     setP(data.data.m.online_payments as P)
+    setAb((data.data.m.abroad as AB) ?? { enabled: true, post_note_ar: '', post_note_fr: '', payment_note_ar: '', payment_note_fr: '' })
     setWa((() => { const x = data.data.m.whatsapp as WA; return { ...x, templates: x.templates ?? {} } })())
     setSt(data.data.statuses)
   }, [data.data])
@@ -84,6 +88,7 @@ export function WebsitePage() {
       if (['home', 'faq', 'legal'].includes(tab)) await up('website', w)
       if (tab === 'delivery') await up('delivery', d)
       if (tab === 'payments') await up('online_payments', p)
+      if (tab === 'abroad' && ab) await up('abroad', ab)
       if (tab === 'whatsapp') (await up('whatsapp', wa), resetWhatsAppMode())
       if (tab === 'statuses')
         for (const s of st) {
@@ -275,6 +280,21 @@ export function WebsitePage() {
                     <Field label="RIB" className="sm:col-span-2"><Input value={p.rib} onChange={(e) => setP({ ...p, rib: e.target.value })} dir="ltr" className="num tracking-wider" /></Field>
                   </div>
                 )}
+              </div>
+            </Card>
+          )}
+
+          {tab === 'abroad' && ab && (
+            <Card>
+              <CardHeader title={t('صفحة «أنا خارج المغرب»', 'Page « Je suis à l’étranger »')} description={t('للمغاربة المقيمين بالخارج: طلب الوثائق عن بُعد. اختر الخدمات المتاحة من صفحة الخدمات (زر «متاحة لمغاربة العالم»).', 'Choisissez les services concernés dans Services.')} icon={<Globe2 />} />
+              <div className="space-y-4 p-5">
+                <SwitchRow label={t('إظهار الصفحة في الموقع', 'Afficher la page')} checked={ab.enabled} onCheckedChange={(enabled) => setAb({ ...ab, enabled })} />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label={t('ملاحظة الأداء (ع)', 'Note paiement (ar)')}><Textarea value={ab.payment_note_ar} onChange={(e) => setAb({ ...ab, payment_note_ar: e.target.value })} /></Field>
+                  <Field label={t('ملاحظة الأداء (ف)', 'Note paiement (fr)')}><Textarea value={ab.payment_note_fr} onChange={(e) => setAb({ ...ab, payment_note_fr: e.target.value })} dir="ltr" /></Field>
+                  <Field label={t('ملاحظة الإرسال بالبريد (ع)', 'Note envoi postal (ar)')}><Textarea value={ab.post_note_ar} onChange={(e) => setAb({ ...ab, post_note_ar: e.target.value })} /></Field>
+                  <Field label={t('ملاحظة الإرسال بالبريد (ف)', 'Note envoi postal (fr)')}><Textarea value={ab.post_note_fr} onChange={(e) => setAb({ ...ab, post_note_fr: e.target.value })} dir="ltr" /></Field>
+                </div>
               </div>
             </Card>
           )}

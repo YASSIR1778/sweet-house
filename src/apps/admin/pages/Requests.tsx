@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
 import { ar as arLocale, fr as frLocale } from 'date-fns/locale'
-import { CheckCheck, ClipboardList, Paperclip, Search, Sparkles } from 'lucide-react'
+import { AlarmClock, CheckCheck, ClipboardList, Globe2, Paperclip, Search, Sparkles } from 'lucide-react'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
 import { PAYMENT_STATUS, useRequestStatuses } from '@/shared/lib/online'
@@ -28,6 +28,10 @@ export type RequestRow = {
   deliverables_count: number
   downloaded: boolean
   new_docs: number
+  late: boolean
+  due_at: string | null
+  abroad: boolean
+  country: string | null
 }
 
 export function useRequestsList(key: string, enabled = true) {
@@ -57,6 +61,8 @@ export function RequestsPage() {
       if (tab === 'docs' && !r.new_docs) return false
       if (tab === 'proof' && r.payment_status !== 'proof_uploaded') return false
       if (tab === 'received' && r.status !== 'received') return false
+      if (tab === 'late' && !r.late) return false
+      if (tab === 'abroad' && !r.abroad) return false
       return !s || r.number.toLowerCase().includes(s) || r.customer_name.toLowerCase().includes(s) || r.phone.includes(s) || r.service_name_ar.includes(s) || r.tracking_code.toLowerCase().includes(s)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -72,6 +78,7 @@ export function RequestsPage() {
         <div className="max-w-64">
           <div className="flex items-center gap-1.5 font-medium">
             {r.service_name_ar.startsWith('لم تجد') && <Sparkles className="size-3.5 shrink-0 text-brand" />}
+            {r.abroad && <Globe2 className="size-3.5 shrink-0 text-info" />}
             <span className="truncate">{pick(r, 'service_name')}</span>
           </div>
           {r.notes && <div className="truncate text-xs text-muted">{r.notes}</div>}
@@ -93,7 +100,21 @@ export function RequestsPage() {
         </div>
       ),
     },
-    { key: 'st', header: t('الحالة', 'Statut'), cell: (r) => <StatusBadge s={st(r.status)} /> },
+    {
+      key: 'st',
+      header: t('الحالة', 'Statut'),
+      cell: (r) => (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <StatusBadge s={st(r.status)} />
+          {r.late && (
+            <Badge tone="danger">
+              <AlarmClock />
+              {t('متأخر', 'En retard')}
+            </Badge>
+          )}
+        </div>
+      ),
+    },
     { key: 'p', header: t('الأداء', 'Paiement'), cell: (r) => <Badge tone={PAYMENT_STATUS[r.payment_status].tone}>{t(PAYMENT_STATUS[r.payment_status].ar, PAYMENT_STATUS[r.payment_status].fr)}</Badge> },
     { key: 'd', header: t('منذ', 'Reçue'), sortValue: (r) => r.created_at, cell: (r) => <span className="text-xs text-muted">{formatDistanceToNow(new Date(r.created_at), { addSuffix: true, locale: lang === 'ar' ? arLocale : frLocale })}</span> },
   ]
@@ -108,8 +129,10 @@ export function RequestsPage() {
           items={[
             { value: 'open', label: t('قيد الإنجاز', 'En cours'), count: count((r) => !st(r.status)?.is_final) },
             { value: 'received', label: t('جديدة', 'Nouvelles'), count: count((r) => r.status === 'received') },
+            { value: 'late', label: t('متأخرة', 'En retard'), count: count((r) => r.late) },
             { value: 'docs', label: t('وثائق جديدة', 'Nouveaux docs'), count: count((r) => r.new_docs > 0) },
             { value: 'proof', label: t('تحويلات للتأكيد', 'Virements'), count: count((r) => r.payment_status === 'proof_uploaded') },
+            ...(count((r) => r.abroad) ? [{ value: 'abroad', label: t('🌍 من الخارج', '🌍 Étranger'), count: count((r) => r.abroad) }] : []),
             { value: 'all', label: t('الكل', 'Toutes') },
           ]}
         />

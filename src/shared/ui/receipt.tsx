@@ -44,6 +44,7 @@ export function Receipt({ sale, cfg }: { sale: Sale; cfg: ReceiptConfig }) {
       <Row a={L('التاريخ', 'Date')} b={format(new Date(sale.created_at), 'dd/MM/yyyy HH:mm')} />
       {r.show_employee !== false && <Row a={L('البائع', 'Vendeur')} b={sale.employee_name} />}
       {sale.customer && <Row a={L('الزبون', 'Client')} b={sale.customer.full_name} />}
+      {sale.number.startsWith('TR-') && <div style={{ textAlign: 'center', fontWeight: 800, fontSize: 15, margin: '4px 0', border: '2px dashed #000', padding: 4 }}>*** {L('تدريب — ليس وصلاً حقيقياً', 'FORMATION — NON VALABLE')} ***</div>}
       {sale.status === 'voided' && <div style={{ textAlign: 'center', fontWeight: 800, fontSize: 16, margin: '4px 0' }}>*** {L('ملغى', 'ANNULÉ')} ***</div>}
       <Dash />
 

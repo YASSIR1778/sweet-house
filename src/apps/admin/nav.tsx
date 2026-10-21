@@ -5,6 +5,7 @@ import {
   Coins,
   BarChart3,
   Boxes,
+  CalendarClock,
   ClipboardList,
   FileText,
   Globe,
@@ -49,6 +50,7 @@ import { RequestsPage } from './pages/Requests'
 import { WebsitePage } from './pages/Website'
 import { InvoicesPage } from './pages/Invoices'
 import { LabelsPage } from './pages/Labels'
+import { AttendancePage } from './pages/Attendance'
 
 export type NavItem = {
   path: string
@@ -108,6 +110,7 @@ export const NAV: NavGroup[] = [
       { path: '/reports', ar: 'التقارير', fr: 'Rapports', icon: BarChart3, perm: 'reports.sales', element: <ReportsPage /> },
       { path: '/expenses', ar: 'المصاريف', fr: 'Dépenses', icon: FileText, perm: 'expenses.manage', element: <ExpensesPage /> },
       { path: '/employees', ar: 'الموظفون', fr: 'Employés', icon: Users, perm: 'employees.manage', element: <EmployeesPage /> },
+      { path: '/attendance', ar: 'الحضور والانصراف', fr: 'Présences', icon: CalendarClock, perm: 'employees.manage', element: <AttendancePage /> },
       { path: '/payroll', ar: 'الرواتب والعمولات', fr: 'Salaires', icon: Coins, perm: 'employees.manage', element: <PayrollPage /> },
       { path: '/roles', ar: 'الأدوار والصلاحيات', fr: 'Rôles & permissions', icon: ShieldCheck, perm: 'employees.manage', element: <RolesPage /> },
       { path: '/devices', ar: 'أجهزة نقطة البيع', fr: 'Appareils POS', icon: MonitorSmartphone, perm: 'settings.manage', element: <DevicesPage /> },

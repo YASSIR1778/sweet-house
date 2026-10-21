@@ -14,6 +14,7 @@ const LINKS = [
   { to: '/', ar: 'الرئيسية', fr: 'Accueil', end: true },
   { to: '/shop', ar: 'المتجر', fr: 'Boutique' },
   { to: '/services', ar: 'الخدمات الإدارية', fr: 'Services administratifs' },
+  { to: '/abroad', ar: '🌍 خارج المغرب', fr: '🌍 MRE' },
   { to: '/track', ar: 'تتبّع طلبك', fr: 'Suivi' },
   { to: '/contact', ar: 'تواصل معنا', fr: 'Contact' },
 ]

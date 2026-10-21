@@ -72,11 +72,11 @@ export function ProductCard({ p, index = 0 }: { p: ShopProduct; index?: number }
   )
 }
 
-export function ServiceCard({ s, color, index = 0 }: { s: Service; color?: string; index?: number }) {
+export function ServiceCard({ s, color, index = 0, to }: { s: Service; color?: string; index?: number; to?: string }) {
   const { t, pick } = useLang()
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: Math.min(index, 8) * 0.03 }}>
-      <Link to={`/services/${s.id}`} className="group flex h-full flex-col rounded-2xl border border-border bg-surface p-5 transition-all hover:-translate-y-1 hover:border-brand/40 hover:shadow-pop">
+      <Link to={to ?? `/services/${s.id}`} className="group flex h-full flex-col rounded-2xl border border-border bg-surface p-5 transition-all hover:-translate-y-1 hover:border-brand/40 hover:shadow-pop">
         <div className="flex items-start gap-3">
           <div className="flex size-11 shrink-0 items-center justify-center rounded-xl text-white transition-transform group-hover:scale-110" style={{ background: color ?? '#FF6B35' }}>
             <DynamicIcon name={s.icon} className="size-5" />

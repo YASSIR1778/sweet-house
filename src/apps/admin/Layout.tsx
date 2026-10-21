@@ -17,7 +17,7 @@ import { useOnlinePending } from '@/shared/lib/online'
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { can, sb } = useAuth()
   const pending = useOnlinePending(sb, can('requests.manage') || can('orders.manage'))
-  const badge: Record<string, number> = { '/requests': pending.data?.requests_new ?? 0, '/orders': pending.data?.orders_new ?? 0 }
+  const badge: Record<string, number> = { '/requests': (pending.data?.requests_new ?? 0) + (pending.data?.requests_late ?? 0), '/orders': pending.data?.orders_new ?? 0 }
   const { t } = useLang()
   return (
     <div className="flex h-full flex-col">

@@ -12,6 +12,7 @@ import { Badge, Button, Card, Input, Spinner } from '@/shared/ui/primitives'
 import { Sheet, useConfirm } from '@/shared/ui/overlay'
 import { DataTable, EmptyState, PageHeader, Tabs, type Column } from '@/shared/ui/data'
 import { Select } from '@/shared/ui/select'
+import { StaleProducts } from './StaleProducts'
 
 type Move = { id: number; qty_change: number; reason: string; note: string | null; created_at: string; name_ar: string; name_fr: string; employee_name: string | null; stock_qty: number }
 type Count = { id: string; status: 'draft' | 'applied' | 'cancelled'; note: string | null; created_at: string; applied_at: string | null }
@@ -58,8 +59,10 @@ export function StockPage() {
   return (
     <>
       <PageHeader icon={<Boxes />} title={t('المخزون والجرد', 'Stock & inventaire')} description={t('كل حركة دخول وخروج، والجرد الدوري', 'Tous les mouvements et inventaires')} />
-      <Tabs className="mb-4" value={tab} onChange={setTab} items={[{ value: 'moves', label: t('حركات المخزون', 'Mouvements') }, { value: 'inventory', label: t('الجرد', 'Inventaires'), count: counts.data?.filter((c) => c.status === 'draft').length }]} />
-      {tab === 'moves' ? (
+      <Tabs className="mb-4" value={tab} onChange={setTab} items={[{ value: 'moves', label: t('حركات المخزون', 'Mouvements') }, { value: 'inventory', label: t('الجرد', 'Inventaires'), count: counts.data?.filter((c) => c.status === 'draft').length }, { value: 'stale', label: t('منتجات راكدة', 'Produits dormants') }]} />
+      {tab === 'stale' ? (
+        <StaleProducts />
+      ) : tab === 'moves' ? (
         <DataTable rows={moves.data ?? []} columns={mCols} rowKey={(m) => String(m.id)} loading={moves.isLoading} pageSize={50} />
       ) : (
         <div className="space-y-4">

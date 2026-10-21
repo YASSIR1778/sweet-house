@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { format } from 'date-fns'
-import { Banknote, Building2, CheckCheck, ShoppingCart, Copy, Download, ExternalLink, FileCheck2, FileText, MessageCircle, Phone, Trash, Upload } from 'lucide-react'
+import { format, formatDistanceToNowStrict } from 'date-fns'
+import { ar as arLocale, fr as frLocale } from 'date-fns/locale'
+import { AlarmClock, Banknote, BookOpen, Building2, CheckCheck, ChevronDown, ShoppingCart, Copy, Download, ExternalLink, FileCheck2, FileText, Globe2, Mail, MessageCircle, Package, Phone, Store, Trash, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -36,6 +37,96 @@ type Detail = {
   service: { official_url: string | null; required_documents: { name_ar: string; name_fr: string; required: boolean }[] } | null
   history: { status: string; note: string | null; created_at: string; employee_name: string | null }[]
   files: FileRow[]
+  guide: { steps_ar: string | null; tips_ar: string | null; links: { label: string; url: string }[]; images: string[] } | null
+  due_at: string | null
+  done_at: string | null
+  abroad: boolean
+  country: string | null
+  delivery_method: 'email' | 'post' | 'person' | 'store' | null
+  delivery_address: string | null
+}
+
+/** Due time / late banner for a request with a target duration. */
+function DueBanner({ due, done }: { due: string | null; done: string | null }) {
+  const { t, lang } = useLang()
+  if (!due) return null
+  const dueD = new Date(due)
+  const locale = lang === 'fr' ? frLocale : arLocale
+  if (done) {
+    const late = new Date(done) > dueD
+    return (
+      <div className={cn('flex items-center gap-2 rounded-xl px-3 py-2 text-sm', late ? 'bg-warning/10 text-warning' : 'bg-success/10 text-success')}>
+        <AlarmClock className="size-4" />
+        {late ? t('أُنجز بعد المدة المستهدفة', 'Terminée après le délai cible') : t('أُنجز في الوقت ✅', 'Terminée dans les délais ✅')}
+      </div>
+    )
+  }
+  const late = Date.now() > dueD.getTime()
+  return (
+    <div className={cn('flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium', late ? 'bg-danger/10 text-danger' : 'bg-brand-50 text-brand')}>
+      <AlarmClock className="size-4" />
+      {late
+        ? t(`متأخر منذ ${formatDistanceToNowStrict(dueD, { locale })}`, `En retard depuis ${formatDistanceToNowStrict(dueD, { locale })}`)
+        : t(`يجب إنجازه خلال ${formatDistanceToNowStrict(dueD, { locale })}`, `À terminer dans ${formatDistanceToNowStrict(dueD, { locale })}`)}
+      <span className="num ms-auto text-xs opacity-80">{format(dueD, 'dd/MM HH:mm')}</span>
+    </div>
+  )
+}
+
+/** Internal how-to written once by the owner for this service. */
+function GuideCard({ guide }: { guide: NonNullable<Detail['guide']> }) {
+  const { t } = useLang()
+  const [open, setOpen] = useState(true)
+  const steps = (guide.steps_ar ?? '').split('\n').map((x) => x.replace(/^\s*\d+[.)-]\s*/, '').trim()).filter(Boolean)
+  if (!steps.length && !guide.tips_ar && !guide.links.length && !guide.images.length) return null
+  return (
+    <Card className="overflow-hidden border-brand/30">
+      <button onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-2 bg-brand-50 px-4 py-3 text-sm font-semibold text-brand">
+        <BookOpen className="size-4" />
+        {t('دليل الإنجاز', 'Guide de traitement')}
+        <ChevronDown className={cn('ms-auto size-4 transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <div className="space-y-3 p-4">
+          {steps.length > 0 && (
+            <ol className="space-y-2">
+              {steps.map((x, i) => (
+                <li key={i} className="flex gap-3 text-sm">
+                  <span className="num flex size-6 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-white">{i + 1}</span>
+                  <span className="pt-0.5">{x}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+          {guide.tips_ar && (
+            <div className="rounded-xl bg-warning/10 p-3 text-sm whitespace-pre-line">
+              <div className="mb-1 text-xs font-semibold text-warning">{t('انتبه', 'Attention')}</div>
+              {guide.tips_ar}
+            </div>
+          )}
+          {guide.links.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {guide.links.filter((l) => l.url).map((l, i) => (
+                <a key={i} href={l.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs text-brand hover:bg-surface-2">
+                  <ExternalLink className="size-3.5" />
+                  {l.label || l.url}
+                </a>
+              ))}
+            </div>
+          )}
+          {guide.images.length > 0 && (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {guide.images.map((u) => (
+                <a key={u} href={u} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-border">
+                  <img src={u} alt="" className="aspect-video w-full object-cover" />
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
+  )
 }
 
 export function StatusBadge({ s }: { s?: RequestStatus }) {
@@ -199,6 +290,36 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
               </a>
             </Button>
           </Card>
+
+          <DueBanner due={r.due_at} done={r.done_at} />
+
+          {r.abroad && (
+            <Card className="space-y-2 border-info/30 bg-info/5 p-4 text-sm">
+              <div className="flex items-center gap-2 font-semibold">
+                <Globe2 className="size-4 text-info" />
+                {t('طلب من خارج المغرب', 'Demande depuis l’étranger')}
+                {r.country && <Badge tone="info">{r.country}</Badge>}
+              </div>
+              <div className="flex items-center gap-2 text-muted">
+                {r.delivery_method === 'post' ? <Package className="size-4" /> : r.delivery_method === 'person' ? <Store className="size-4" /> : <Mail className="size-4" />}
+                {r.delivery_method === 'post'
+                  ? t('الإرسال بالبريد إلى:', 'Envoi postal à :')
+                  : r.delivery_method === 'person'
+                    ? t('يستلمها شخص ينوب عنه من المحل', 'Retrait au magasin par un proche')
+                    : t('الإرسال بالإيميل', 'Envoi par e-mail') + (r.email ? ` · ${r.email}` : '')}
+              </div>
+              {r.delivery_method === 'post' && r.delivery_address && (
+                <div className="flex items-start gap-2 rounded-lg bg-surface p-2.5 whitespace-pre-line">
+                  <span className="flex-1">{r.delivery_address}</span>
+                  <button onClick={() => copy(r.delivery_address!)} className="text-subtle hover:text-brand">
+                    <Copy className="size-3.5" />
+                  </button>
+                </div>
+              )}
+            </Card>
+          )}
+
+          {r.guide && <GuideCard guide={r.guide} />}
 
           {/* what the customer asked */}
           <Card className="space-y-3 p-4">

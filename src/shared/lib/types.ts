@@ -110,7 +110,17 @@ export type Service = {
   sort: number
   is_active: boolean
   deleted_at: string | null
+  target_hours: number | null
+  abroad: boolean
   service_price_tiers?: { min_qty: number; unit_price: number }[]
+}
+
+/** Internal, staff-only how-to for an administrative service. */
+export type ServiceGuide = {
+  steps_ar: string | null
+  tips_ar: string | null
+  links: { label: string; url: string }[]
+  images: string[]
 }
 
 export type Role = {

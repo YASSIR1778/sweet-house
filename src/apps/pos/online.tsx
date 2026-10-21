@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
 import { ar as arLocale, fr as frLocale } from 'date-fns/locale'
-import { Banknote, CheckCheck, ClipboardList, FileCheck2, Paperclip, ShoppingCart } from 'lucide-react'
+import { AlarmClock, Banknote, CheckCheck, Globe2, ClipboardList, FileCheck2, Paperclip, ShoppingCart } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -34,7 +34,7 @@ export function OnlineSheet({ device, open, onClose }: { device: DeviceInfo; ope
     queryFn: async () => (await sb.from('online_orders').select('id, number, tracking_code, customer_name, phone, total, delivery_method, payment_method, payment_status, status, created_at').not('status', 'in', '(delivered,cancelled)').order('created_at', { ascending: false })).data as Ord[],
   })
   const st = (k: string) => statuses.data?.find((s) => s.key === k)
-  const openReqs = (reqs.data ?? []).filter((r) => !st(r.status)?.is_final || r.payment_status !== 'paid')
+  const openReqs = (reqs.data ?? []).filter((r) => !st(r.status)?.is_final || r.payment_status !== 'paid').sort((a, b) => Number(b.late) - Number(a.late))
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['pos-requests'] })
     qc.invalidateQueries({ queryKey: ['pos-orders'] })
@@ -78,6 +78,8 @@ export function OnlineSheet({ device, open, onClose }: { device: DeviceInfo; ope
                     <div className="flex flex-wrap items-center gap-1.5 text-xs">
                       <Badge><Paperclip />{r.files_count} {t('وثيقة', 'docs')}</Badge>
                       {r.new_docs > 0 && <Badge tone="danger">+{r.new_docs} {t('جديدة', 'nouv.')}</Badge>}
+                      {r.late && <Badge tone="danger"><AlarmClock />{t('متأخر', 'En retard')}</Badge>}
+                      {r.abroad && <Badge tone="info"><Globe2 />{r.country ?? t('من الخارج', 'Étranger')}</Badge>}
                       {r.deliverables_count > 0 && <Badge tone="success"><FileCheck2 />{t('الوثيقة الجاهزة مرفوعة', 'Livrable prêt')}</Badge>}
                       {r.downloaded && <Badge tone="success"><CheckCheck />{t('حمّلها الزبون', 'Téléchargé')}</Badge>}
                       <Badge tone={PAYMENT_STATUS[r.payment_status].tone} className="ms-auto">{t(PAYMENT_STATUS[r.payment_status].ar, PAYMENT_STATUS[r.payment_status].fr)}{r.price ? ` · ${money(r.price)}` : ''}</Badge>
