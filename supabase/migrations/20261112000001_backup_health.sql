@@ -57,6 +57,18 @@ select cron.schedule('sweet-house-backup', '30 1 * * *',   -- 02:30 Morocco
 -- ---------------------------------------------------------------------
 -- System health
 -- ---------------------------------------------------------------------
+-- storage_usage() checks the caller; the health check needs a caller-free copy
+create or replace function public.storage_usage_internal()
+returns jsonb language sql stable security definer set search_path = public, storage as $$
+  select jsonb_build_object(
+    'files_bytes', (select coalesce(sum((metadata->>'size')::bigint), 0) from storage.objects),
+    'files_limit', 1073741824,
+    'db_bytes', pg_database_size(current_database()),
+    'db_limit', 524288000)
+$$;
+revoke execute on function public.storage_usage_internal() from public, anon, authenticated;
+grant execute on function public.storage_usage_internal() to service_role;
+
 create or replace function public.system_health_data()
 returns jsonb language sql stable security definer set search_path = public, cron, net as $$
   select jsonb_build_object(
@@ -79,18 +91,6 @@ returns jsonb language sql stable security definer set search_path = public, cro
 $$;
 revoke execute on function public.system_health_data() from public, anon, authenticated;
 grant execute on function public.system_health_data() to service_role;
-
--- storage_usage() checks the caller; the health check needs a caller-free copy
-create or replace function public.storage_usage_internal()
-returns jsonb language sql stable security definer set search_path = public, storage as $$
-  select jsonb_build_object(
-    'files_bytes', (select coalesce(sum((metadata->>'size')::bigint), 0) from storage.objects),
-    'files_limit', 1073741824,
-    'db_bytes', pg_database_size(current_database()),
-    'db_limit', 524288000)
-$$;
-revoke execute on function public.storage_usage_internal() from public, anon, authenticated;
-grant execute on function public.storage_usage_internal() to service_role;
 
 -- Health issues as a list (shared by the dashboard card and the hourly alert)
 create or replace function public.system_issues()
