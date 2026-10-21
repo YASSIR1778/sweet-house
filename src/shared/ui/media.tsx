@@ -7,7 +7,7 @@ import { useLang } from '@/shared/lib/i18n'
 import { errorMessage } from '@/shared/lib/errors'
 
 /** Resize to max 1200px and convert to WebP before upload (keeps storage small). */
-async function compress(file: File, max = 1200): Promise<Blob> {
+export async function compress(file: Blob, max = 1200): Promise<Blob> {
   if (file.type === 'image/svg+xml' || file.type === 'image/gif') return file
   const img = await createImageBitmap(file)
   const scale = Math.min(1, max / Math.max(img.width, img.height))

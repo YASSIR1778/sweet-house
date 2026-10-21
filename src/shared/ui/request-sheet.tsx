@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, formatDistanceToNowStrict } from 'date-fns'
 import { ar as arLocale, fr as frLocale } from 'date-fns/locale'
-import { AlarmClock, Banknote, BookOpen, Building2, CheckCheck, ChevronDown, ShoppingCart, Copy, Download, ExternalLink, FileCheck2, FileText, Globe2, Mail, MessageCircle, Package, Phone, Store, Trash, Upload } from 'lucide-react'
+import { AlarmClock, Banknote, BookOpen, Sparkles, Building2, CheckCheck, ChevronDown, ShoppingCart, Copy, Download, ExternalLink, FileCheck2, FileText, Globe2, Mail, MessageCircle, Package, Phone, Store, Trash, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -14,6 +14,8 @@ import { sendWhatsApp } from '@/shared/lib/whatsapp'
 import { Badge, Button, Card, Field, Input, Spinner, Textarea } from './primitives'
 import { Sheet, useConfirm } from './overlay'
 import { MoneyInput } from './pickers'
+import { IdCardResult, IdCardScanButton, WritingButton } from './ai-tools'
+import { readIdCard, type IdCard } from '@/shared/lib/ai'
 
 type FileRow = { id: string; kind: 'upload' | 'deliverable' | 'payment_proof'; name: string; path: string; size: number | null; mime: string | null; created_at: string; downloaded_at?: string | null; download_count?: number }
 type Detail = {
@@ -157,6 +159,8 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
   const [price, setPrice] = useState<number | null>(null)
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [idRead, setIdRead] = useState<IdCard | null>(null)
+  const [reading, setReading] = useState<string | null>(null)
 
   const d = useQuery({
     queryKey: ['request', id],
@@ -247,6 +251,18 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
     await sb.from('service_requests').update({ internal_notes: v }).eq('id', r.id)
   }
   const copy = (v: string) => (navigator.clipboard.writeText(v), toast.success(t('تم النسخ', 'Copié')))
+  const readCard = async (f: FileRow) => {
+    const url = urls.data?.[f.id]
+    if (!url) return
+    setReading(f.id)
+    try {
+      setIdRead(await readIdCard(sb, await (await fetch(url)).blob()))
+    } catch (e) {
+      toast.error(errorMessage(e, lang))
+    } finally {
+      setReading(null)
+    }
+  }
 
   const meta = (f: FileRow) => extra.data?.find((x) => x.id === f.id)
   const uploads = (r?.files ?? []).filter((f) => f.kind !== 'deliverable')
@@ -292,6 +308,13 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
           </Card>
 
           <DueBanner due={r.due_at} done={r.done_at} />
+
+          {(can('requests.view_documents') || can('pos.sell')) && (
+            <div className="flex flex-wrap items-start gap-2">
+              <IdCardScanButton sb={sb} />
+              <WritingButton sb={sb} sender={`${r.customer_name}\n+${r.phone}`} />
+            </div>
+          )}
 
           {r.abroad && (
             <Card className="space-y-2 border-info/30 bg-info/5 p-4 text-sm">
@@ -374,6 +397,7 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
                 ))}
               </div>
             ) : null}
+            {idRead && <IdCardResult data={idRead} onClose={() => setIdRead(null)} />}
             {!uploads.length ? (
               <div className="rounded-xl bg-surface-2 p-4 text-center text-sm text-muted">{t('لم يرفع الزبون أي وثيقة بعد', 'Aucun document envoyé')}</div>
             ) : !can('requests.view_documents') ? (
@@ -393,6 +417,11 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
                           {format(new Date(f.created_at), 'dd/MM HH:mm')}
                         </div>
                       </div>
+                      {isImage(f) && (
+                        <button onClick={() => readCard(f)} disabled={reading === f.id} title={t('قراءة بطاقة التعريف من هذه الصورة', 'Lire la CIN sur cette image')} className="rounded p-1 text-subtle hover:text-brand">
+                          {reading === f.id ? <Spinner className="size-3.5" /> : <Sparkles className="size-3.5" />}
+                        </button>
+                      )}
                       <a href={urls.data?.[f.id]} download={f.name} target="_blank" rel="noreferrer" className="rounded p-1 text-subtle hover:text-brand">
                         <Download className="size-3.5" />
                       </a>

@@ -51,6 +51,7 @@ import { CreateInvoiceDialog } from '@/shared/ui/invoice-dialog'
 import { OnlineSheet } from './online'
 import { useOnlinePending } from '@/shared/lib/online'
 import { AttendanceButton } from './attendance'
+import { WritingButton } from '@/shared/ui/ai-tools'
 
 type PosSettings = { allow_negative_stock: boolean; sound: boolean; auto_print: boolean; quick_cash: number[] }
 type Held = { id: string; at: string; label: string; state: CartState }
@@ -431,6 +432,11 @@ Total : ${money(totals.total)}`,
           <Button variant={training ? 'primary' : 'ghost'} size="icon" onClick={() => (training ? setTraining(false) : setTrainingAsk(true))}>
             <GraduationCap />
           </Button>
+        </Tooltip>
+        <Tooltip content={t('المساعد الكتابي: طلب، شكاية، رسالة', 'Assistant de rédaction')}>
+          <span>
+            <WritingButton sb={sb} size="icon" />
+          </span>
         </Tooltip>
         <AttendanceButton deviceId={device.id} />
         <LangToggle compact />

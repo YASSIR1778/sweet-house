@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Banknote, Building2, Database, FileText, Hash, MonitorPlay, Receipt as ReceiptIcon, Save, Scale, Settings as SettingsIcon, Store } from 'lucide-react'
+import { Banknote, Building2, Database, FileText, Hash, MonitorPlay, Receipt as ReceiptIcon, Save, Scale, Settings as SettingsIcon, Sparkles, Store } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -14,6 +14,7 @@ import { MoneyInput } from '@/shared/ui/pickers'
 import { ImageInput } from '@/shared/ui/media'
 import { Receipt } from '@/shared/ui/receipt'
 import { DataSection } from './DataSection'
+import { AiSection } from './AiSection'
 
 type Cash = { opening_float: number; blind_count: boolean; diff_alert: number; auto_lock_minutes: number }
 type Pos = { allow_negative_stock: boolean; sound: boolean; auto_print: boolean; quick_cash: number[] }
@@ -26,6 +27,7 @@ const SECTIONS = [
   { id: 'receipt', ar: 'الوصل', fr: 'Ticket', icon: ReceiptIcon },
   { id: 'invoice', ar: 'الفواتير', fr: 'Factures', icon: FileText },
   { id: 'numbers', ar: 'الترقيم', fr: 'Numérotation', icon: Hash },
+  { id: 'ai', ar: 'الذكاء الاصطناعي', fr: 'IA', icon: Sparkles },
   { id: 'data', ar: 'البيانات والنسخ', fr: 'Données & sauvegarde', icon: Database },
 ] as const
 
@@ -390,6 +392,7 @@ export function SettingsPage() {
             )}
 
             {section === 'data' && <DataSection />}
+            {section === 'ai' && <AiSection />}
 
             {section === 'numbers' && (
               <Card>

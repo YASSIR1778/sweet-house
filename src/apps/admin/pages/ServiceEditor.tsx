@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { BookOpen, Clock, FileText, ListPlus, Plus, Trash } from 'lucide-react'
+import { BookOpen, Clock, FileText, ListPlus, Plus, Sparkles, Trash } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -13,6 +13,7 @@ import { Sheet, useConfirm } from '@/shared/ui/overlay'
 import { Select } from '@/shared/ui/select'
 import { ColorPicker, IconPicker, MoneyInput } from '@/shared/ui/pickers'
 import { ImageInput } from '@/shared/ui/media'
+import { aiServiceDocs } from '@/shared/lib/ai'
 
 type Tier = { min_qty: number; unit_price: number }
 type Form = Omit<Service, 'id' | 'deleted_at' | 'service_price_tiers' | 'system_key'> & { id?: string; system_key?: string | null; tiers: Tier[]; guide: ServiceGuide }
@@ -67,6 +68,27 @@ export function ServiceEditor({
   const { confirm, confirmNode } = useConfirm()
   const [f, setF] = useState<Form>(blank(defaultKind))
   const [busy, setBusy] = useState(false)
+  const [suggesting, setSuggesting] = useState(false)
+  const suggest = async () => {
+    if (!f.name_ar.trim()) return toast.error(t('اكتب اسم الخدمة أولاً', 'Saisissez d’abord le nom'))
+    setSuggesting(true)
+    try {
+      const r = await aiServiceDocs(sb, `${f.name_ar} / ${f.name_fr}`)
+      setF((x) => ({
+        ...x,
+        required_documents: x.required_documents.length ? x.required_documents : (r.required_documents ?? []),
+        fields: x.fields.length ? x.fields : ((r.fields ?? []) as ServiceField[]),
+        duration_ar: x.duration_ar || r.duration_ar || '',
+        duration_fr: x.duration_fr || r.duration_fr || '',
+        official_url: x.official_url || r.official_url || '',
+      }))
+      toast.success(t('تمت الاقتراحات ✨ راجعها وعدّلها قبل الحفظ', 'Suggestions ajoutées ✨ vérifiez avant d’enregistrer'))
+    } catch (e) {
+      toast.error(errorMessage(e, lang))
+    } finally {
+      setSuggesting(false)
+    }
+  }
 
   useEffect(() => {
     if (!service) return
@@ -272,6 +294,15 @@ export function ServiceEditor({
 
         {f.kind === 'admin' && (
           <>
+            {(!docs.length || !fields.length) && (
+              <button onClick={suggest} disabled={suggesting} className="flex w-full items-center gap-3 rounded-xl border-2 border-dashed border-brand/40 bg-brand-50/50 p-3 text-start text-sm transition-colors hover:border-brand">
+                <Sparkles className={cn('size-5 shrink-0 text-brand', suggesting && 'animate-spin')} />
+                <span>
+                  <span className="block font-semibold">{t('اقترح الوثائق والحقول تلقائياً', 'Suggérer documents et champs')}</span>
+                  <span className="block text-xs text-muted">{t('يملأ ما هو فارغ فقط، وتراجعه أنت قبل الحفظ', 'Remplit seulement les sections vides')}</span>
+                </span>
+              </button>
+            )}
             <div className="grid gap-4 sm:grid-cols-3">
               <Field label={t('المدة (ع)', 'Délai (ar)')}>
                 <Input value={f.duration_ar ?? ''} onChange={(e) => set('duration_ar', e.target.value)} placeholder="24 - 48 ساعة" />

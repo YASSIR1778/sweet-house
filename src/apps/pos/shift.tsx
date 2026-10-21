@@ -1,7 +1,7 @@
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'motion/react'
-import { ArrowDownCircle, ArrowUpCircle, Banknote, CheckCircle2, CircleDollarSign, HandCoins, Lock, LogOut, Printer, Receipt, Store, Wallet } from 'lucide-react'
+import { ArrowDownCircle, ArrowUpCircle, Banknote, Camera, CheckCircle2, CircleDollarSign, HandCoins, Lock, LogOut, Printer, Receipt, Store, Wallet } from 'lucide-react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
@@ -15,6 +15,7 @@ import { LogoMark } from '@/shared/ui/brand'
 import { MoneyInput } from '@/shared/ui/pickers'
 import { PrintArea } from '@/shared/ui/receipt'
 import type { DeviceInfo } from './device'
+import { readRiyad, type RiyadRead } from '@/shared/lib/ai'
 import { CustomerDialog } from './dialogs'
 
 export type ShiftTotals = {
@@ -456,6 +457,7 @@ export function CloseShiftDialog({ status, open, onClose, onClosed }: { device: 
             <div className="flex items-center gap-2 font-semibold">
               <Wallet className="size-4 text-success" />
               {t('2. أرقام رياض من الكشف', '2. Chiffres Riyad (relevé)')}
+              <RiyadPhotoButton onRead={(r) => (r.total_in !== null && setRin(Math.round(r.total_in * 100)), r.total_out !== null && setRout(Math.round(r.total_out * 100)), r.balance !== null && setRbal(Math.round(r.balance * 100)))} />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label={t('دخل الصندوق من رياض', 'Entrées Riyad')} hint={t('مجموع ما دفعه الزبائن نقداً', 'Total encaissé')}>
@@ -545,5 +547,40 @@ function ShiftPrint({ status, result, onDone }: { status: Extract<ShiftStatus, {
       ))}
     </div>
     </PrintArea>
+  )
+}
+
+/** 23 · Read the three Riyad numbers from a photo / screenshot of the platform. */
+function RiyadPhotoButton({ onRead }: { onRead: (r: RiyadRead) => void }) {
+  const { sb } = useAuth()
+  const { t, lang } = useLang()
+  const ref = useRef<HTMLInputElement>(null)
+  const [busy, setBusy] = useState(false)
+  const run = async (f?: File | null) => {
+    if (!f) return
+    setBusy(true)
+    try {
+      const r = await readRiyad(sb, f)
+      if (!r.readable || (r.total_in === null && r.total_out === null && r.balance === null)) {
+        toast.error(t('لم نستطع قراءة الأرقام من الصورة. اكتبها يدوياً.', 'Chiffres illisibles, saisissez-les.'))
+      } else {
+        onRead(r)
+        toast.success(t('تمت قراءة الأرقام ✨ راجعها قبل الإغلاق', 'Chiffres lus ✨ vérifiez-les'))
+      }
+      if (r.notes) toast.info(r.notes)
+    } catch (e) {
+      toast.error(errorMessage(e, lang))
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <>
+      <Button variant="outline" size="sm" className="ms-auto" onClick={() => ref.current?.click()} loading={busy}>
+        <Camera />
+        {t('قراءة من صورة ✨', 'Lire une photo ✨')}
+      </Button>
+      <input ref={ref} type="file" accept="image/*" capture="environment" hidden onChange={(e) => (run(e.target.files?.[0]), (e.target.value = ''))} />
+    </>
   )
 }
