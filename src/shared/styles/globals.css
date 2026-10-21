@@ -161,17 +161,36 @@ body {
   background-size: 32px 32px;
 }
 
-/* ---------------- Print ---------------- */
+/* ---------------- Print ----------------
+   Only the receipt / invoice portal is printed. The rest of the app is
+   removed from the layout (display:none) so it cannot push the receipt to
+   another page, and the off-screen position used on screen is cancelled
+   (it flips to the right side in RTL, which printed a blank page). */
 @media print {
-  body * {
-    visibility: hidden !important;
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
   }
-  .print-area,
-  .print-area * {
-    visibility: visible !important;
+  body > *:not(.print-area) {
+    display: none !important;
   }
   .print-area {
-    position: absolute;
-    inset: 0 auto auto 0;
+    position: static !important;
+    inset: auto !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+    visibility: visible !important;
+    display: block !important;
+  }
+  .print-area * {
+    visibility: visible !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }

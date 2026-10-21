@@ -146,7 +146,7 @@ export function PrintArea({ children, onDone, page = '80mm auto', margin = '3mm 
   }, [page, margin])
 
   return createPortal(
-    <div className="print-area" aria-hidden style={{ position: 'fixed', insetInlineStart: -10000, top: 0 }}>
+    <div className="print-area" aria-hidden style={{ position: 'fixed', left: -10000, top: 0 }}>
       {children}
     </div>,
     document.body,
