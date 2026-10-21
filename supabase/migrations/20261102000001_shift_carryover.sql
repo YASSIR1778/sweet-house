@@ -54,13 +54,13 @@ begin
   else
     v_safe := coalesce(v_last.closing_safe, greatest(coalesce(v_last.counted_cash, 0) - v_last.handed_over - v_float, 0));
   end if;
-  -- Riyad: what was reported at the last close (any shift, the platform is shared)
-  -- plus what the owner recorded since (recharges, adjustments…)
-  select * into v_last from shifts where status = 'closed' and riyad_balance_reported is not null order by closed_at desc limit 1;
-  if v_last.id is null then
+  -- Riyad: balance left by the last closed shift (any device, the platform is shared):
+  -- what was reported, else what was expected, plus what the owner recorded since.
+  select * into v_last from shifts where status = 'closed' order by closed_at desc limit 1;
+  if v_last.id is null or coalesce(v_last.riyad_balance_reported, v_last.riyad_balance_expected) is null then
     v_riyad := public.riyad_balance();
   else
-    v_riyad := v_last.riyad_balance_reported
+    v_riyad := coalesce(v_last.riyad_balance_reported, v_last.riyad_balance_expected)
              + coalesce((select sum(effect) from riyad_ledger where created_at > v_last.closed_at and shift_id is distinct from v_last.id and correction_id is null), 0);
   end if;
   return jsonb_build_object('drawer', v_float, 'safe', v_safe, 'riyad', v_riyad, 'float', v_float,
