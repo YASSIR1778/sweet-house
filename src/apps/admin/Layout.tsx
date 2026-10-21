@@ -21,7 +21,8 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { can, sb } = useAuth()
   const pending = useOnlinePending(sb, can('requests.manage') || can('orders.manage'))
   const helpCounts = useQuery({ queryKey: ['help-counts'], refetchInterval: 30_000, enabled: can('requests.manage'), queryFn: async () => (await sb.rpc('help_counts')).data as { new: number; late: number; mine: number } })
-  const badge: Record<string, number> = { '/requests': (pending.data?.requests_new ?? 0) + (pending.data?.requests_late ?? 0), '/orders': pending.data?.orders_new ?? 0, '/devices': pending.data?.devices_pending ?? 0, '/help': helpCounts.data?.new ?? 0 }
+  const agentsNew = useQuery({ queryKey: ['agent-pending'], refetchInterval: 120_000, enabled: can('owner'), queryFn: async () => (await sb.rpc('agent_pending_count')).data as number })
+  const badge: Record<string, number> = { '/agents': agentsNew.data ?? 0, '/requests': (pending.data?.requests_new ?? 0) + (pending.data?.requests_late ?? 0), '/orders': pending.data?.orders_new ?? 0, '/devices': pending.data?.devices_pending ?? 0, '/help': helpCounts.data?.new ?? 0 }
   const { t } = useLang()
   return (
     <div className="flex h-full flex-col">

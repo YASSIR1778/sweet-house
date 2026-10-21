@@ -2,6 +2,7 @@ import { lazy, type ReactNode } from 'react'
 import {
   Banknote,
   Barcode,
+  Bot,
   Coins,
   BarChart3,
   Boxes,
@@ -54,6 +55,7 @@ const InvoicesPage = lazy(() => import('./pages/Invoices').then((m) => ({ defaul
 const LabelsPage = lazy(() => import('./pages/Labels').then((m) => ({ default: m.LabelsPage })))
 const AttendancePage = lazy(() => import('./pages/Attendance').then((m) => ({ default: m.AttendancePage })))
 const BroadcastsPage = lazy(() => import('./pages/Broadcasts').then((m) => ({ default: m.BroadcastsPage })))
+const AgentsPage = lazy(() => import('./pages/Agents').then((m) => ({ default: m.AgentsPage })))
 const HelpPage = lazy(() => import('./pages/Help').then((m) => ({ default: m.HelpPage })))
 
 export type NavItem = {
@@ -73,7 +75,11 @@ export const NAV: NavGroup[] = [
   {
     ar: 'الرئيسية',
     fr: 'Général',
-    items: [{ path: '/dashboard', ar: 'لوحة القيادة', fr: 'Tableau de bord', icon: LayoutDashboard, element: <DashboardPage /> }],
+    items: [
+      { path: '/dashboard', ar: 'لوحة القيادة', fr: 'Tableau de bord', icon: LayoutDashboard, element: <DashboardPage /> },
+      // 'owner' is not a real permission: only the owner passes can('owner')
+      { path: '/agents', ar: 'الوكلاء الذكيون', fr: 'Agents IA', icon: Bot, perm: 'owner', element: <AgentsPage /> },
+    ],
   },
   {
     ar: 'المبيعات',
