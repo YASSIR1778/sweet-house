@@ -33,6 +33,8 @@ Deno.serve(async (req) => {
     const admin = adminClient()
     const cfg = ((await admin.from('settings').select('value').eq('key', 'helpers').single()).data?.value ?? {}) as Helpers
     if (cfg.site_enabled === false) return fail('ai_disabled', 412)
+    const { data: budget } = await admin.rpc('ai_budget_check')
+    if (budget === 'over') return fail('team_budget_reached', 429)
 
     const ip = await sha((req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() + 'sweet')
     const dayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString()

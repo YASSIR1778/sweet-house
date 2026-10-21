@@ -10,7 +10,10 @@ import Anthropic from 'npm:@anthropic-ai/sdk'
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2'
 import { adminClient, callerClient, cors, fail, json } from '../_shared/common.ts'
 
-type Agent = { key: string; name_ar: string; name_fr: string; enabled: boolean; model: string; monthly_runs: number; persona_name: string; avatar: string; personality: string }
+type Agent = {
+  key: string; name_ar: string; name_fr: string; enabled: boolean; model: string; monthly_runs: number; persona_name: string; avatar: string; personality: string
+  thresholds: Record<string, unknown>; notify_mode: 'push' | 'brief' | 'none'; is_custom: boolean; custom_job: string | null; sources: string[]
+}
 type Prefs = { call_me?: string; language?: 'darija' | 'ar' | 'fr'; detail?: 'short' | 'long'; quiet_from?: string; quiet_to?: string; quiet_days?: number[] }
 type Item = {
   severity: 'info' | 'warning' | 'danger'; title: string; body: string; link: string
@@ -57,6 +60,21 @@ link من: /sales /shifts /riyad /reports /employees /attendance.`,
 - text: تحية قصيرة باسمه ثم جملة عن الأمس.
 - points: 3 نقاط على الأكثر، الأهم أولاً، كل نقطة تبدأ بصورة الوكيل المعني (avatar) إن كانت من الفريق، مع link للصفحة.
 - celebrate=true فقط إذا كانت مبيعات الأمس أعلى من best_previous_day (يوم قياسي) أو إن لم يبق أي طلب متأخر وكان الأمس جيداً.`,
+}
+
+const TH_LABELS: Record<string, string> = {
+  discount_pct: 'نبّه على التخفيض إذا تجاوز هذه النسبة %', discount_dh: 'أو إذا تجاوز هذا المبلغ بالدرهم', cash_diff_dh: 'تجاهل فرق الصندوق الأقل من هذا المبلغ بالدرهم',
+  open_shift_hours: 'وردية مفتوحة أكثر من هذه الساعات = تنبيه', cover_weeks: 'اقترح كميات تكفي هذا العدد من الأسابيع', budget_dh: 'لا تتجاوز طلبية الأسبوع هذا المبلغ بالدرهم (0 = بدون حد)',
+  debt_days: 'ذكّر بالدين بعد هذا العدد من الأيام', ready_days: 'ذكّر بالوثيقة غير المستلمة بعد هذه الأيام', debt_min_dh: 'تجاهل الديون الأقل من هذا المبلغ بالدرهم',
+  descriptions: 'عدد أوصاف المنتجات في كل مرة', posts: 'عدد المنشورات في كل مرة',
+}
+const jobOf = (a: Agent) =>
+  a.is_custom
+    ? `مهمتك كما كتبها المالك:\n${a.custom_job ?? ''}\nأرجع اقتراحات واضحة في items (استعمل title و body و link فقط، والباقي فارغ). إن لم يكن هناك شيء مهم أرجع items فارغة.`
+    : JOBS[a.key]
+const thText = (a: Agent) => {
+  const e = Object.entries(a.thresholds ?? {}).filter(([k, v]) => TH_LABELS[k] && v !== null && v !== '' && !Array.isArray(v))
+  return e.length ? `\n\nحدود المالك (التزم بها بدقة):\n${e.map(([k, v]) => `- ${TH_LABELS[k]}: ${v}`).join('\n')}` : ''
 }
 
 const ITEM_SCHEMA = {
@@ -110,12 +128,19 @@ function quiet(p: Prefs) {
   return f > t ? hm >= f || hm < t : hm >= f && hm < t
 }
 
-async function agentData(admin: SupabaseClient, key: string, refId: string | null) {
+async function agentData(admin: SupabaseClient, a: Agent, refId: string | null) {
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Casablanca' })
+  const th = (a.thresholds ?? {}) as Record<string, number>
+  if (a.is_custom) {
+    const { data, error } = await admin.rpc('agent_custom_data', { p_sources: a.sources ?? [] })
+    if (error) throw new Error(error.message)
+    return { today, data }
+  }
+  const key = a.key
   const call = {
-    monitor: () => admin.rpc('agent_monitor_data', { p_day: today }),
+    monitor: () => admin.rpc('agent_monitor_data', { p_day: today, p_disc_pct: th.discount_pct ?? 15, p_disc_cents: Math.round((th.discount_dh ?? 20) * 100), p_open_hours: th.open_shift_hours ?? 14 }),
     purchases: () => admin.rpc('agent_purchase_data'),
-    followup: () => admin.rpc('agent_followup_data'),
+    followup: () => admin.rpc('agent_followup_data', { p_debt_days: th.debt_days ?? 30, p_ready_days: th.ready_days ?? 2, p_debt_min: Math.round((th.debt_min_dh ?? 0) * 100) }),
     requests: () => admin.rpc('agent_request_data', { p_id: refId }),
     content: () => admin.rpc('agent_content_data'),
     brief: () => admin.rpc('agent_brief_data'),
@@ -193,6 +218,8 @@ Deno.serve(async (req) => {
     if (!apiKey) return fail('ai_not_configured', 412)
     const ai = ((await admin.from('settings').select('value').eq('key', 'ai').single()).data?.value ?? {}) as { enabled?: boolean }
     if (ai.enabled === false) return fail('ai_disabled', 412)
+    const { data: budget } = await admin.rpc('ai_budget_check')
+    if (budget === 'over') return fail('team_budget_reached', 429)
 
     // ---- The owner replies under a suggestion -------------------------
     if (action === 'reply') {
@@ -203,9 +230,9 @@ Deno.serve(async (req) => {
       const { data: agent } = await admin.from('agents').select('*').eq('key', s.agent_key).single<Agent>()
       if (!agent) return fail('invalid_agent')
       const ctx = await context(admin, agent.key)
-      const { today, data } = await agentData(admin, agent.key, s.ref_id)
+      const { today, data } = await agentData(admin, agent, s.ref_id)
       const thread = (s.thread ?? []) as { role: string; text: string; at: string }[]
-      const system = `${voice(agent, ctx.prefs)}\n\nعملك المعتاد:\n${JOBS[agent.key]}\n\nالآن المالك يحاورك حول أحد اقتراحاتك. أجب على سؤاله بوضوح في reply. إن طلب تعديلاً (كمية، نص رسالة، حذف سطر…) ضع revise=true و revised هو الاقتراح كاملاً بعد التعديل، وإلا revise=false و revised نسخة من الاقتراح الحالي. إن قال «ما فهمتش» اشرح بطريقة أبسط مع مثال.`
+      const system = `${voice(agent, ctx.prefs)}\n\nعملك المعتاد:\n${jobOf(agent)}${thText(agent)}\n\nالآن المالك يحاورك حول أحد اقتراحاتك. أجب على سؤاله بوضوح في reply. إن طلب تعديلاً (كمية، نص رسالة، حذف سطر…) ضع revise=true و revised هو الاقتراح كاملاً بعد التعديل، وإلا revise=false و revised نسخة من الاقتراح الحالي. إن قال «ما فهمتش» اشرح بطريقة أبسط مع مثال.`
       const content = `تاريخ اليوم: ${today}\nملاحظات المالك:\n${ctx.notes}\n\nالاقتراح الحالي:\n${JSON.stringify({ severity: s.severity, title: s.title, body: s.body, link: s.link, ...s.payload })}\n\nالمحادثة السابقة:\n${thread.map((m) => `${m.role === 'owner' ? 'المالك' : 'أنت'}: ${m.text}`).join('\n') || '(لا شيء)'}\n\nرسالة المالك الآن: ${msg}\n\nالبيانات الحالية:\n${JSON.stringify(data).slice(0, 80000)}`
       const { out, usage } = await ask(apiKey, agent.model, system, content, REPLY_SCHEMA)
       const now = new Date().toISOString()
@@ -219,10 +246,14 @@ Deno.serve(async (req) => {
 
     // ---- A normal run --------------------------------------------------
     const key = String(body?.agent ?? '')
-    if (!JOBS[key]) return fail('invalid_agent')
     const refId = body?.ref_id ? String(body.ref_id) : null
-    const { data: agent } = await admin.from('agents').select('*').eq('key', key).single<Agent>()
-    if (!agent) return fail('invalid_agent')
+    const { data: stored } = await admin.from('agents').select('*').eq('key', key).single<Agent>()
+    if (!stored || (!stored.is_custom && !JOBS[key])) return fail('invalid_agent')
+    // test = run with unsaved edits, store nothing, notify nobody
+    const testing = action === 'test' && trigger === 'manual'
+    const agent: Agent = testing ? { ...stored, ...(body.override ?? {}) } : stored
+    const team = ((await admin.from('settings').select('value').eq('key', 'agent_team').single()).data?.value ?? {}) as { paused_until?: string | null }
+    if (trigger === 'schedule' && team.paused_until && new Date(team.paused_until) > new Date()) return json({ skipped: 'paused' })
     if (!agent.enabled && trigger === 'schedule') return json({ skipped: 'disabled' })
     if (key === 'requests' && !refId) {
       // manual run: review the latest online request
@@ -232,18 +263,22 @@ Deno.serve(async (req) => {
     }
     const ref = (body.ref_id as string | undefined) ?? null
     const since = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
-    const { count } = await admin.from('agent_runs').select('id', { count: 'exact', head: true }).eq('agent_key', key).gte('started_at', since).neq('summary', 'محادثة').or('ok.is.null,ok.eq.true')
-    if ((count ?? 0) >= agent.monthly_runs) return fail('ai_limit_reached', 429)
+    const { count } = await admin.from('agent_runs').select('id', { count: 'exact', head: true }).eq('agent_key', key).gte('started_at', since).not('summary', 'in', '("محادثة","اختبار")').or('ok.is.null,ok.eq.true')
+    if (!testing && (count ?? 0) >= agent.monthly_runs) return fail('ai_limit_reached', 429)
 
-    const { data: run } = await admin.from('agent_runs').insert({ agent_key: key, trigger, model: agent.model }).select('id').single()
+    const { data: run } = await admin.from('agent_runs').insert({ agent_key: key, trigger, model: agent.model, summary: testing ? 'اختبار' : null }).select('id').single()
     runId = run?.id ?? null
     const ctx = await context(admin, key)
-    const { today, data } = await agentData(admin, key, ref)
+    const { today, data } = await agentData(admin, agent, ref)
     const content = `تاريخ اليوم: ${today}\n\nملاحظات المالك:\n${ctx.notes}\n\nردود المالك السابقة على اقتراحاتك:\n${ctx.feedback}\n\nالبيانات:\n${JSON.stringify(data).slice(0, 120000)}`
-    const system = `${voice(agent, ctx.prefs)}\n\n${JOBS[key]}`
+    const system = `${voice(agent, ctx.prefs)}\n\n${jobOf(agent)}${thText(agent)}`
 
     if (key === 'brief') {
       const { out, usage } = await ask(apiKey, agent.model, system, content, BRIEF_SCHEMA)
+      if (testing) {
+        await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), ok: true, ...usage }).eq('id', runId)
+        return json({ ok: true, test: true, summary: out.text, brief: out })
+      }
       await admin.from('agent_briefs').upsert({ day: today, text: out.text, points: out.points, celebrate: out.celebrate, seen_at: null, created_at: new Date().toISOString() })
       if (!(ctx.prefs.quiet_days ?? []).includes(new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Casablanca' })).getDay())) {
         await admin.rpc('notify', { p_type: 'agent_brief', p_severity: 'info', p_ar: `☕ ${out.text.slice(0, 80)}`, p_fr: '☕ Café du matin', p_body: out.points.map((p: { avatar: string; text: string }) => `${p.avatar} ${p.text}`).join('\n').slice(0, 400), p_link: '/dashboard' })
@@ -254,6 +289,10 @@ Deno.serve(async (req) => {
 
     const { out, usage } = await ask(apiKey, agent.model, system, content, RUN_SCHEMA)
     const items = (out.items ?? []) as Item[]
+    if (testing) {
+      await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), ok: true, ...usage }).eq('id', runId)
+      return json({ ok: true, test: true, summary: out.summary, items })
+    }
     if (items.length) {
       await admin.from('agent_suggestions').insert(items.map((i) => ({
         agent_key: key, run_id: runId, ref_id: ref, severity: i.severity, title: i.title.slice(0, 300), body: i.body,
@@ -262,7 +301,7 @@ Deno.serve(async (req) => {
     }
     const worst = items.some((i) => i.severity === 'danger') ? 'danger' : items.some((i) => i.severity === 'warning') ? 'warning' : 'info'
     // Requests agent only notifies when something is missing; others once per run. Quiet hours: urgent only.
-    const shouldNotify = (key !== 'requests' || worst !== 'info') && (!quiet(ctx.prefs) || worst === 'danger')
+    const shouldNotify = agent.notify_mode === 'push' && (key !== 'requests' || worst !== 'info') && (!quiet(ctx.prefs) || worst === 'danger')
     if (shouldNotify) {
       await admin.rpc('notify', {
         p_type: `agent_${key}`, p_severity: worst,

@@ -294,41 +294,141 @@ export function SuggestionCard({ s, agent, compact }: { s: Suggestion; agent?: A
   )
 }
 
-function AgentSettings({ a }: { a: AgentRow }) {
+type Schedule = { hour?: number; minute?: number; days?: number[] }
+type AgentFull = AgentRow & { schedule: Schedule; thresholds: Record<string, number | string[]>; notify_mode: 'push' | 'brief' | 'none'; is_custom: boolean; custom_job: string | null; sources: string[] }
+
+const TH_FIELDS: Record<string, [string, string, string][]> = {
+  monitor: [
+    ['discount_pct', 'نبّهني إذا تجاوز التخفيض (%)', '%'],
+    ['discount_dh', 'أو تجاوز مبلغ التخفيض', 'درهم'],
+    ['cash_diff_dh', 'تجاهل فرق الصندوق الأقل من', 'درهم'],
+    ['open_shift_hours', 'وردية مفتوحة أكثر من', 'ساعة'],
+  ],
+  purchases: [
+    ['cover_weeks', 'المخزون يكفي', 'أسابيع'],
+    ['budget_dh', 'أقصى ميزانية للطلبية (0 = بدون حد)', 'درهم'],
+  ],
+  followup: [
+    ['debt_days', 'ذكّر بالدين بعد', 'يوم'],
+    ['debt_min_dh', 'تجاهل الديون الأقل من', 'درهم'],
+    ['ready_days', 'ذكّر بالوثيقة غير المستلمة بعد', 'أيام'],
+  ],
+  content: [
+    ['descriptions', 'عدد أوصاف المنتجات كل مرة', ''],
+    ['posts', 'عدد المنشورات كل مرة', ''],
+  ],
+}
+const SOURCES: [string, string][] = [
+  ['sales', 'المبيعات (30 يوماً)'],
+  ['stock', 'المخزون وسرعة البيع'],
+  ['expenses', 'المصاريف (60 يوماً)'],
+  ['requests', 'طلبات الخدمات'],
+  ['riyad', 'رياض'],
+  ['debts', 'ديون الزبائن'],
+  ['attendance', 'الحضور'],
+  ['shifts', 'الورديات والصندوق'],
+  ['online', 'طلبيات المتجر والمساعدة'],
+]
+const SHORT_DAYS = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت']
+const scheduleText = (s: Schedule) => {
+  if (s.hour === undefined) return 'عند كل طلب جديد'
+  const time = `${String(s.hour).padStart(2, '0')}:${String(s.minute ?? 0).padStart(2, '0')}`
+  const d = s.days ?? [0, 1, 2, 3, 4, 5, 6]
+  return d.length === 7 ? `كل يوم ${time}` : `${d.map((x) => SHORT_DAYS[x]).join('، ')} ${time}`
+}
+
+function ScheduleEditor({ value, onChange }: { value: Schedule; onChange: (s: Schedule) => void }) {
+  const days = value.days ?? [0, 1, 2, 3, 4, 5, 6]
+  const time = `${String(value.hour ?? 8).padStart(2, '0')}:${String(value.minute ?? 0).padStart(2, '0')}`
+  return (
+    <div className="space-y-2">
+      <Input type="time" step={900} value={time} onChange={(e) => onChange({ ...value, hour: Number(e.target.value.slice(0, 2)), minute: Math.floor(Number(e.target.value.slice(3, 5)) / 15) * 15 })} className="num w-32" />
+      <div className="flex flex-wrap gap-1">
+        {SHORT_DAYS.map((d, i) => (
+          <button key={d} type="button" onClick={() => onChange({ ...value, days: days.includes(i) ? days.filter((x) => x !== i) : [...days, i].sort() })} className={cn('rounded-lg border px-2 py-1 text-xs', days.includes(i) ? 'border-brand bg-brand-50 text-brand' : 'border-border text-muted')}>
+            {d}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function TestResult({ r, agent, onClose }: { r: { summary?: string; items?: Suggestion[]; brief?: { text: string; points: { avatar: string; text: string }[] } } | null; agent: AgentRow; onClose: () => void }) {
+  const { t } = useLang()
+  return (
+    <Dialog open={!!r} onOpenChange={(o) => !o && onClose()} title={`🧪 ${t('نتيجة التجربة', 'Résultat du test')} — ${agent.persona_name}`} description={t('لم يُحفظ شيء ولم يُرسل أي إشعار', 'Rien n’a été enregistré')}>
+      {r && (
+        <div className="max-h-[65vh] space-y-3 overflow-y-auto">
+          <div className="rounded-xl bg-surface-2 p-3 text-sm">{r.summary}</div>
+          {r.brief?.points.map((p, i) => (
+            <div key={i} className="text-sm">
+              {p.avatar} {p.text}
+            </div>
+          ))}
+          {r.items?.map((s, i) => (
+            <SuggestionCard key={i} s={{ ...s, id: `test-${i}`, agent_key: agent.key, status: 'accepted', feedback: null, reason: null, snooze_until: null, thread: [], ref_id: null, created_at: new Date().toISOString(), payload: s.payload ?? (s as unknown as Payload) }} agent={agent} compact />
+          ))}
+          {!r.items?.length && !r.brief && <div className="text-sm text-muted">{t('لا اقتراحات: كل شيء عادي حسب هذه الإعدادات.', 'Aucune suggestion.')}</div>}
+        </div>
+      )}
+    </Dialog>
+  )
+}
+
+function AgentSettings({ a, services }: { a: AgentFull; services: { id: string; name_ar: string }[] }) {
   const { sb } = useAuth()
   const { t, lang } = useLang()
   const inv = useInvalidate()
-  const [running, setRunning] = useState(false)
-  const [p, setP] = useState({ persona_name: a.persona_name, avatar: a.avatar, personality: a.personality, color: a.color })
+  const [running, setRunning] = useState<'run' | 'test' | null>(null)
+  const [test, setTest] = useState<Parameters<typeof TestResult>[0]['r']>(null)
+  const [p, setP] = useState({ persona_name: a.persona_name, avatar: a.avatar, personality: a.personality, color: a.color, custom_job: a.custom_job ?? '', sources: a.sources ?? [], thresholds: a.thresholds ?? {}, schedule: a.schedule ?? {} })
+  const dirty = JSON.stringify(p) !== JSON.stringify({ persona_name: a.persona_name, avatar: a.avatar, personality: a.personality, color: a.color, custom_job: a.custom_job ?? '', sources: a.sources ?? [], thresholds: a.thresholds ?? {}, schedule: a.schedule ?? {} })
   const cost = costDh(a.model, a.month.tokens_in, a.month.tokens_out)
   const decided = a.suggestions.accepted + a.suggestions.rejected
-  const update = async (patch: Partial<AgentRow>) => {
+  const fields = TH_FIELDS[a.key] ?? []
+  const update = async (patch: Record<string, unknown>) => {
     const { error } = await sb.from('agents').update(patch).eq('key', a.key)
     if (error) return toast.error(errorMessage(error, lang))
     inv()
   }
-  const runNow = async () => {
-    setRunning(true)
+  const save = () => update({ ...p, schedule_ar: scheduleText(p.schedule), description_ar: a.is_custom ? p.custom_job.slice(0, 160) : a.description_ar }).then(() => toast.success(t('حُفظ ✅', 'Enregistré ✅')))
+  const call = async (mode: 'run' | 'test') => {
+    setRunning(mode)
     try {
-      const r = await callFn<{ summary: string; count: number }>(sb, 'agents', { agent: a.key })
-      toast.success(`${a.avatar} ${a.persona_name}: ${r.summary ?? r.count}`)
+      if (mode === 'test') {
+        const r = await callFn<{ summary: string; items?: Suggestion[]; brief?: { text: string; points: { avatar: string; text: string }[] } }>(sb, 'agents', { action: 'test', agent: a.key, override: p })
+        setTest(r)
+      } else {
+        const r = await callFn<{ summary: string; count: number }>(sb, 'agents', { agent: a.key })
+        toast.success(`${a.avatar} ${a.persona_name}: ${r.summary ?? r.count}`)
+      }
     } catch (e) {
       toast.error(errorMessage(e, lang))
     } finally {
-      setRunning(false)
+      setRunning(null)
       inv()
     }
+  }
+  const del = async () => {
+    if (!confirm(t(`حذف ${a.persona_name} نهائياً؟`, 'Supprimer cet agent ?'))) return
+    const { error } = await sb.from('agents').delete().eq('key', a.key)
+    if (error) return toast.error(errorMessage(error, lang))
+    inv()
   }
   return (
     <Card style={{ borderTopWidth: 4, borderTopColor: a.color }}>
       <div className="flex items-start gap-3 p-5">
         <Avatar a={a} size={52} />
         <div className="min-w-0 flex-1">
-          <div className="text-lg font-bold">{a.persona_name}</div>
+          <div className="flex items-center gap-2 text-lg font-bold">
+            {a.persona_name}
+            {a.is_custom && <Badge tone="info">{t('من صنعك', 'Personnalisé')}</Badge>}
+          </div>
           <div className="text-xs text-muted">
             {t(a.name_ar, a.name_fr)} · {a.schedule_ar}
           </div>
-          <p className="mt-1 text-sm text-muted">{a.description_ar}</p>
+          <p className="mt-1 line-clamp-2 text-sm text-muted">{a.description_ar}</p>
         </div>
       </div>
       <div className="space-y-4 px-5 pb-5">
@@ -353,48 +453,248 @@ function AgentSettings({ a }: { a: AgentRow }) {
             {a.last_run.ok === false ? errorMessage(a.last_run.error ?? '', lang) : a.last_run.summary}
           </div>
         )}
-        <details className="rounded-xl border border-border p-3 text-sm">
-          <summary className="cursor-pointer font-medium">{t('الشخصية والنموذج', 'Personnalité et modèle')}</summary>
-          <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_5rem_5rem]">
-            <Field label={t('الاسم', 'Nom')}>
-              <Input value={p.persona_name} onChange={(e) => setP({ ...p, persona_name: e.target.value })} />
-            </Field>
-            <Field label={t('الصورة', 'Avatar')}>
-              <Input value={p.avatar} onChange={(e) => setP({ ...p, avatar: e.target.value })} className="text-center text-xl" />
-            </Field>
-            <Field label={t('اللون', 'Couleur')}>
-              <input type="color" value={p.color} onChange={(e) => setP({ ...p, color: e.target.value })} className="h-10 w-full rounded-[10px] border border-border" />
-            </Field>
-          </div>
-          <Field label={t('طريقة كلامه وشخصيته', 'Personnalité')} className="mt-3">
-            <Textarea value={p.personality} onChange={(e) => setP({ ...p, personality: e.target.value })} rows={2} />
-          </Field>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <label className="space-y-1">
-              <span className="text-muted">{t('النموذج', 'Modèle')}</span>
-              <select value={a.model} onChange={(e) => update({ model: e.target.value })} className="h-10 w-full rounded-[10px] border border-border bg-surface px-3 text-sm">
-                {MODELS.map(([v, l]) => (
-                  <option key={v} value={v}>
-                    {l}
-                  </option>
+
+        <div className="space-y-1.5 text-sm">
+          <div className="font-medium">🔔 {t('كيف يصلك؟', 'Notification')}</div>
+          <Tabs value={a.notify_mode} onChange={(notify_mode) => update({ notify_mode })} items={[{ value: 'push', label: t('إشعار', 'Notification') }, { value: 'brief', label: t('في قهوة الصباح', 'Café du matin') }, { value: 'none', label: t('بدون تنبيه', 'Silencieux') }]} />
+        </div>
+
+        <details className="rounded-xl border border-border p-3 text-sm" open={a.is_custom && !a.custom_job}>
+          <summary className="cursor-pointer font-medium">⚙️ {t('الإعدادات: الوقت، الحدود، الشخصية', 'Réglages')}</summary>
+          <div className="mt-3 space-y-4">
+            <div className="space-y-1.5">
+              <div className="font-medium">⏰ {t('وقت العمل', 'Horaire')}</div>
+              {a.key === 'requests' ? (
+                <div className="space-y-2">
+                  <p className="text-muted">{t('يعمل عند كل طلب جديد من الموقع. اختر الخدمات التي يراجعها (بدون اختيار = كل الخدمات):', 'À chaque nouvelle demande. Services à vérifier (aucun = tous) :')}</p>
+                  <div className="flex max-h-40 flex-wrap gap-1 overflow-y-auto">
+                    {services.map((sv) => {
+                      const list = (p.thresholds.services as string[]) ?? []
+                      const on = list.includes(sv.id)
+                      return (
+                        <button key={sv.id} type="button" onClick={() => setP({ ...p, thresholds: { ...p.thresholds, services: on ? list.filter((x) => x !== sv.id) : [...list, sv.id] } })} className={cn('rounded-lg border px-2 py-1 text-xs', on ? 'border-brand bg-brand-50 text-brand' : 'border-border text-muted')}>
+                          {sv.name_ar}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <ScheduleEditor value={p.schedule} onChange={(schedule) => setP({ ...p, schedule })} />
+              )}
+            </div>
+
+            {fields.length > 0 && (
+              <div className="space-y-2">
+                <div className="font-medium">🎚️ {t('حدود التنبيه', 'Seuils')}</div>
+                {fields.map(([k, label, unit]) => (
+                  <label key={k} className="flex items-center gap-2">
+                    <span className="flex-1 text-muted">{label}</span>
+                    <Input type="number" min={0} value={String(p.thresholds[k] ?? '')} onChange={(e) => setP({ ...p, thresholds: { ...p.thresholds, [k]: Number(e.target.value) } })} className="num w-24" />
+                    <span className="w-14 text-xs text-muted">{unit}</span>
+                  </label>
                 ))}
-              </select>
-            </label>
-            <label className="space-y-1">
-              <span className="text-muted">{t('أقصى عدد مرات في الشهر', 'Max / mois')}</span>
-              <Input type="number" min={0} defaultValue={a.monthly_runs} onBlur={(e) => Number(e.target.value) !== a.monthly_runs && update({ monthly_runs: Number(e.target.value) })} className="num" />
-            </label>
+              </div>
+            )}
+
+            {a.is_custom && (
+              <div className="space-y-2">
+                <Field label={t('المهمة (اكتبها بكلامك)', 'Mission')}>
+                  <Textarea value={p.custom_job} onChange={(e) => setP({ ...p, custom_job: e.target.value })} rows={4} placeholder={t('مثلاً: كل جمعة راجع المصاريف وقل لي فين نقدر نوفر', 'ex. Chaque vendredi, analyse les dépenses')} />
+                </Field>
+                <div className="font-medium">{t('البيانات التي يقرؤها', 'Données lues')}</div>
+                <div className="flex flex-wrap gap-1">
+                  {SOURCES.map(([k, l]) => (
+                    <button key={k} type="button" onClick={() => setP({ ...p, sources: p.sources.includes(k) ? p.sources.filter((x) => x !== k) : [...p.sources, k] })} className={cn('rounded-lg border px-2 py-1 text-xs', p.sources.includes(k) ? 'border-brand bg-brand-50 text-brand' : 'border-border text-muted')}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="grid gap-3 sm:grid-cols-[1fr_5rem_5rem]">
+              <Field label={t('الاسم', 'Nom')}>
+                <Input value={p.persona_name} onChange={(e) => setP({ ...p, persona_name: e.target.value })} />
+              </Field>
+              <Field label={t('الصورة', 'Avatar')}>
+                <Input value={p.avatar} onChange={(e) => setP({ ...p, avatar: e.target.value })} className="text-center text-xl" />
+              </Field>
+              <Field label={t('اللون', 'Couleur')}>
+                <input type="color" value={p.color} onChange={(e) => setP({ ...p, color: e.target.value })} className="h-10 w-full rounded-[10px] border border-border" />
+              </Field>
+            </div>
+            <Field label={t('طريقة كلامه وشخصيته', 'Personnalité')}>
+              <Textarea value={p.personality} onChange={(e) => setP({ ...p, personality: e.target.value })} rows={2} />
+            </Field>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="space-y-1">
+                <span className="text-muted">{t('النموذج', 'Modèle')}</span>
+                <select value={a.model} onChange={(e) => update({ model: e.target.value })} className="h-10 w-full rounded-[10px] border border-border bg-surface px-3 text-sm">
+                  {MODELS.map(([v, l]) => (
+                    <option key={v} value={v}>
+                      {l}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-1">
+                <span className="text-muted">{t('أقصى عدد مرات في الشهر', 'Max / mois')}</span>
+                <Input type="number" min={0} defaultValue={a.monthly_runs} onBlur={(e) => Number(e.target.value) !== a.monthly_runs && update({ monthly_runs: Number(e.target.value) })} className="num" />
+              </label>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => call('test')} loading={running === 'test'}>
+                🧪 {t('جرّب قبل الحفظ', 'Tester')}
+              </Button>
+              <Button size="sm" onClick={save} disabled={!dirty}>
+                <Save />
+                {t('حفظ', 'Enregistrer')}
+              </Button>
+              {a.is_custom && (
+                <Button size="sm" variant="ghost" className="ms-auto text-danger" onClick={del}>
+                  <Trash />
+                  {t('حذف الوكيل', 'Supprimer')}
+                </Button>
+              )}
+            </div>
           </div>
-          <Button size="sm" className="mt-3" onClick={() => update(p)}>
-            <Save />
-            {t('حفظ الشخصية', 'Enregistrer')}
-          </Button>
         </details>
-        <Button variant="outline" onClick={runNow} loading={running}>
+        <Button variant="outline" onClick={() => call('run')} loading={running === 'run'}>
           <Play />
           {t('شغّله الآن', 'Lancer maintenant')}
         </Button>
       </div>
+      <TestResult r={test} agent={a} onClose={() => setTest(null)} />
+    </Card>
+  )
+}
+
+function NewAgentDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { sb } = useAuth()
+  const { t, lang } = useLang()
+  const inv = useInvalidate()
+  const [f, setF] = useState({ persona_name: '', avatar: '🧑‍💼', color: '#7C3AED', custom_job: '', sources: ['sales'] as string[], schedule: { hour: 9, minute: 0, days: [5] } as Schedule, model: 'claude-sonnet-5-5' })
+  const create = async () => {
+    const { error } = await sb.from('agents').insert({
+      key: `c_${Date.now().toString(36)}`, name_ar: f.persona_name, name_fr: f.persona_name, persona_name: f.persona_name, avatar: f.avatar, color: f.color,
+      personality: 'واضح ومختصر وعملي.', description_ar: f.custom_job.slice(0, 160), custom_job: f.custom_job, sources: f.sources, schedule: f.schedule,
+      schedule_ar: scheduleText(f.schedule), model: f.model, monthly_runs: 20, is_custom: true, sort: 50, tone_hz: 740,
+    })
+    if (error) return toast.error(errorMessage(error, lang))
+    toast.success(t(`${f.avatar} مرحباً بـ ${f.persona_name} في الفريق!`, 'Agent créé !'))
+    inv()
+    onClose()
+  }
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()} title={`➕ ${t('وكيل جديد', 'Nouvel agent')}`} description={t('اكتب مهمته بكلامك واختر ما يقرؤه ومتى يعمل', 'Décrivez sa mission')}>
+      <div className="max-h-[70vh] space-y-4 overflow-y-auto">
+        <div className="grid gap-3 sm:grid-cols-[1fr_5rem_5rem]">
+          <Field label={t('الاسم', 'Nom')} required>
+            <Input value={f.persona_name} onChange={(e) => setF({ ...f, persona_name: e.target.value })} placeholder={t('مثلاً: سي الحسّاب', 'ex. Le comptable')} autoFocus />
+          </Field>
+          <Field label={t('الصورة', 'Avatar')}>
+            <Input value={f.avatar} onChange={(e) => setF({ ...f, avatar: e.target.value })} className="text-center text-xl" />
+          </Field>
+          <Field label={t('اللون', 'Couleur')}>
+            <input type="color" value={f.color} onChange={(e) => setF({ ...f, color: e.target.value })} className="h-10 w-full rounded-[10px] border border-border" />
+          </Field>
+        </div>
+        <Field label={t('مهمته', 'Mission')} required>
+          <Textarea value={f.custom_job} onChange={(e) => setF({ ...f, custom_job: e.target.value })} rows={4} placeholder={t('مثلاً: كل جمعة راجع المصاريف ديال الشهر، قارنها بالمبيعات، وقل لي فين نقدر نوفر', 'ex. Analyse les dépenses et dis-moi où économiser')} />
+        </Field>
+        <div className="space-y-1.5 text-sm">
+          <div className="font-medium">{t('البيانات التي يقرؤها', 'Données lues')}</div>
+          <div className="flex flex-wrap gap-1">
+            {SOURCES.map(([k, l]) => (
+              <button key={k} type="button" onClick={() => setF({ ...f, sources: f.sources.includes(k) ? f.sources.filter((x) => x !== k) : [...f.sources, k] })} className={cn('rounded-lg border px-2 py-1 text-xs', f.sources.includes(k) ? 'border-brand bg-brand-50 text-brand' : 'border-border text-muted')}>
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-1.5 text-sm">
+          <div className="font-medium">⏰ {t('متى يعمل', 'Quand')}</div>
+          <ScheduleEditor value={f.schedule} onChange={(schedule) => setF({ ...f, schedule })} />
+        </div>
+        <label className="block space-y-1 text-sm">
+          <span className="text-muted">{t('النموذج', 'Modèle')}</span>
+          <select value={f.model} onChange={(e) => setF({ ...f, model: e.target.value })} className="h-10 w-full rounded-[10px] border border-border bg-surface px-3 text-sm">
+            {MODELS.map(([v, l]) => (
+              <option key={v} value={v}>
+                {l}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="text-xs text-muted">{t('بعد الإنشاء: افتح إعداداته واضغط «🧪 جرّب» لترى ماذا سيقول قبل أن يعمل وحده.', 'Ensuite, utilisez « Tester ».')}</p>
+        <Button className="w-full" onClick={create} disabled={f.persona_name.trim().length < 2 || f.custom_job.trim().length < 10 || !f.sources.length}>
+          <Plus />
+          {t('أضفه للفريق', 'Ajouter à l’équipe')}
+        </Button>
+      </div>
+    </Dialog>
+  )
+}
+
+/** 💰 budget bar + ⏸️ pause for the whole team */
+function TeamBar() {
+  const { sb } = useAuth()
+  const { t, lang } = useLang()
+  const qc = useQueryClient()
+  const [pausing, setPausing] = useState(false)
+  const q = useQuery({ queryKey: ['agent-team'], queryFn: async () => (await sb.rpc('agent_team_spend')).data as { agents: number; assistants: number; site: number; budget: number; paused_until: string | null } })
+  const d = q.data
+  if (!d) return null
+  const spent = Number(d.agents) + Number(d.assistants) + Number(d.site)
+  const pct = d.budget ? Math.min(100, (spent / d.budget) * 100) : 0
+  const paused = d.paused_until && new Date(d.paused_until) > new Date()
+  const setPause = async (days: number | null) => {
+    const cur = (await sb.from('settings').select('value').eq('key', 'agent_team').single()).data?.value ?? {}
+    const until = days === null ? null : new Date(Date.now() + days * 86400_000).toISOString()
+    const { error } = await sb.from('settings').update({ value: { ...cur, paused_until: until } }).eq('key', 'agent_team')
+    if (error) return toast.error(errorMessage(error, lang))
+    setPausing(false)
+    toast.success(until ? t('⏸️ الفريق في عطلة', '⏸️ Équipe en pause') : t('▶️ الفريق رجع للخدمة', '▶️ Équipe de retour'))
+    qc.invalidateQueries({ queryKey: ['agent-team'] })
+  }
+  return (
+    <Card className="mb-4 flex flex-wrap items-center gap-4 p-4">
+      <div className="min-w-56 flex-1">
+        <div className="flex items-center justify-between text-sm">
+          <span>💰 {t('ميزانية الفريق هذا الشهر', 'Budget du mois')}</span>
+          <span className="num font-semibold">
+            {spent.toFixed(1)} / {d.budget || '∞'} {t('درهم', 'DH')}
+          </span>
+        </div>
+        <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-surface-2">
+          <div className={cn('h-full rounded-full', pct >= 100 ? 'bg-danger' : pct >= 80 ? 'bg-warning' : 'bg-success')} style={{ width: `${pct}%` }} />
+        </div>
+        <div className="mt-1 text-[11px] text-muted">
+          {t('الوكلاء', 'Agents')} {Number(d.agents).toFixed(1)} · {t('المساعدات', 'Assistants')} {Number(d.assistants).toFixed(1)} · {t('مرشد الموقع', 'Site')} {Number(d.site).toFixed(1)}
+        </div>
+      </div>
+      {paused ? (
+        <div className="flex items-center gap-2">
+          <Badge tone="warning">⏸️ {t('في عطلة حتى', 'En pause jusqu’au')} {format(new Date(d.paused_until!), 'dd/MM HH:mm')}</Badge>
+          <Button size="sm" onClick={() => setPause(null)}>
+            ▶️ {t('استئناف', 'Reprendre')}
+          </Button>
+        </div>
+      ) : (
+        <Button size="sm" variant="outline" onClick={() => setPausing(true)}>
+          ⏸️ {t('أوقف الفريق مؤقتاً', 'Mettre en pause')}
+        </Button>
+      )}
+      <Dialog open={pausing} onOpenChange={setPausing} size="sm" title={`⏸️ ${t('عطلة للفريق', 'Pause de l’équipe')}`} description={t('لن يعمل أي وكيل تلقائياً خلال هذه المدة. المساعدات تبقى تعمل.', 'Aucun agent automatique pendant cette période.')}>
+        <div className="grid grid-cols-2 gap-2">
+          {[[1, 'يوم'], [3, '3 أيام'], [7, 'أسبوع'], [14, 'أسبوعان']].map(([n, l]) => (
+            <Button key={n} variant="outline" onClick={() => setPause(Number(n))}>
+              {l}
+            </Button>
+          ))}
+        </div>
+      </Dialog>
     </Card>
   )
 }
@@ -551,6 +851,31 @@ function ReportCard() {
   )
 }
 
+function BudgetCard() {
+  const { sb } = useAuth()
+  const { t, lang } = useLang()
+  const qc = useQueryClient()
+  const q = useQuery({ queryKey: ['agent-team-cfg'], queryFn: async () => (await sb.from('settings').select('value').eq('key', 'agent_team').single()).data?.value as { monthly_budget_dh: number } })
+  if (!q.data) return null
+  const save = async (v: number) => {
+    const cur = (await sb.from('settings').select('value').eq('key', 'agent_team').single()).data?.value ?? {}
+    const { error } = await sb.from('settings').update({ value: { ...cur, monthly_budget_dh: v } }).eq('key', 'agent_team')
+    if (error) return toast.error(errorMessage(error, lang))
+    toast.success(t('حُفظت الميزانية ✅', 'Budget enregistré ✅'))
+    qc.invalidateQueries({ queryKey: ['agent-team'] })
+    qc.invalidateQueries({ queryKey: ['agent-team-cfg'] })
+  }
+  return (
+    <Card>
+      <CardHeader title={`💰 ${t('ميزانية الفريق الشهرية', 'Budget mensuel')}`} description={t('تشمل الوكلاء والمساعدات ومرشد الموقع. تنبيه عند 80%، وتوقف تلقائي عند 100% حتى الشهر القادم. 0 = بدون حد.', 'Alerte à 80 %, arrêt à 100 %.')} />
+      <div className="flex items-center gap-2 p-5 pt-0">
+        <Input type="number" min={0} defaultValue={q.data.monthly_budget_dh} onBlur={(e) => Number(e.target.value) !== q.data.monthly_budget_dh && save(Number(e.target.value))} className="num w-32" />
+        <span className="text-sm text-muted">{t('درهم في الشهر', 'DH / mois')}</span>
+      </div>
+    </Card>
+  )
+}
+
 function PrefsTab() {
   const { sb } = useAuth()
   const { t, lang } = useLang()
@@ -637,6 +962,7 @@ function PrefsTab() {
           </Field>
         </div>
       </Card>
+      <BudgetCard />
       <div className="xl:col-span-2">
         <Button onClick={save}>
           <Save />
@@ -652,7 +978,9 @@ export function AgentsPage() {
   const { t } = useLang()
   const [tab, setTab] = useState('inbox')
   const [showAll, setShowAll] = useState(false)
+  const [newAgent, setNewAgent] = useState(false)
   const agents = useAgents()
+  const services = useQuery({ queryKey: ['svc-names'], enabled: tab === 'agents', queryFn: async () => ((await sb.from('services').select('id, name_ar').eq('kind', 'admin').eq('is_online', true).is('deleted_at', null).order('sort')).data ?? []) as { id: string; name_ar: string }[] })
   const sugg = useQuery({
     queryKey: ['agent-suggestions', showAll],
     queryFn: async () => {
@@ -673,6 +1001,7 @@ export function AgentsPage() {
   return (
     <>
       <PageHeader icon={<Bot />} title={t('فريقك الذكي', 'Votre équipe IA')} description={t('كل واحد عنده مهمة، كيخلّي ليك اقتراحات، ونتا اللي كتقرر.', 'Chacun a sa mission ; vous décidez.')} />
+      <TeamBar />
       <div className="mb-4 flex flex-wrap gap-2">
         {agents.data?.map((a) => (
           <div key={a.key} className="flex items-center gap-2 rounded-2xl border border-border bg-surface px-3 py-1.5 text-sm" title={a.description_ar}>
@@ -712,7 +1041,16 @@ export function AgentsPage() {
       )}
       {tab === 'room' && agents.data && <RoomTab agents={agents.data} />}
       {tab === 'card' && <ReportCard />}
-      {tab === 'agents' && <div className="grid gap-4 xl:grid-cols-2">{agents.isLoading ? <Skeleton className="h-80" /> : agents.data?.map((a) => <AgentSettings key={a.key} a={a} />)}</div>}
+      {tab === 'agents' && (
+        <>
+          <Button className="mb-4" onClick={() => setNewAgent(true)}>
+            <Plus />
+            {t('وكيل جديد', 'Nouvel agent')}
+          </Button>
+          <div className="grid gap-4 xl:grid-cols-2">{agents.isLoading ? <Skeleton className="h-80" /> : agents.data?.map((a) => <AgentSettings key={a.key} a={a as AgentFull} services={services.data ?? []} />)}</div>
+          <NewAgentDialog open={newAgent} onClose={() => setNewAgent(false)} />
+        </>
+      )}
       {tab === 'memory' && agents.data && <MemoryTab agents={agents.data} />}
       {tab === 'prefs' && <PrefsTab />}
     </>

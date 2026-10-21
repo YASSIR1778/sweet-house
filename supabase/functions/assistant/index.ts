@@ -234,6 +234,8 @@ Deno.serve(async (req) => {
     const admin = adminClient()
     const cfg = ((await admin.from('settings').select('value').eq('key', 'ai').single()).data?.value ?? {}) as Cfg
     if (cfg.enabled === false) return fail('ai_disabled', 412)
+    const { data: budget } = await admin.rpc('ai_budget_check')
+    if (budget === 'over') return fail('team_budget_reached', 429)
     const since = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
     const { count } = await admin.from('ai_usage').select('id', { count: 'exact', head: true }).gte('created_at', since)
     if ((count ?? 0) >= (cfg.monthly_limit ?? 500)) return fail('ai_limit_reached', 429)
