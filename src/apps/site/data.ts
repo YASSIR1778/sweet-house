@@ -18,7 +18,19 @@ export type DeliverySettings = { enabled: boolean; cod: boolean; default_price: 
 export type PaymentSettings = { cod: boolean; in_store: boolean; bank_transfer: boolean; bank_name: string; rib: string; account_holder: string }
 
 export type AbroadSettings = { enabled: boolean; post_note_ar: string; post_note_fr: string; payment_note_ar: string; payment_note_fr: string }
-export type SiteData = { store: StoreSettings; website: WebsiteSettings; delivery: DeliverySettings; payments: PaymentSettings; legal: { cndp?: string; company_name?: string; ice?: string }; abroad: AbroadSettings | null; help: { enabled?: boolean; alert_minutes?: number } | null; tracking: { meta_pixel_id?: string; tiktok_pixel_id?: string } | null }
+/** Editable content of the Store website (dashboard → website editor → Store). */
+export type StoreSite = {
+  announcement: { enabled: boolean; text_ar: string; text_fr: string }
+  hero: { title_ar: string; accent_ar: string; title_fr: string; accent_fr: string; subtitle_ar: string; subtitle_fr: string; image_url?: string | null }
+  trust: { icon: string; text_ar: string; text_fr: string }[]
+  sections: Record<string, boolean>
+  promise: { title_ar: string; title_fr: string; text_ar: string; text_fr: string }
+  faq: { q_ar: string; q_fr: string; a_ar: string; a_fr: string }[]
+  returns: { text_ar: string; text_fr: string }[]
+  seo: { description_ar: string; description_fr: string }
+}
+
+export type SiteData = { storeSite: StoreSite | null; store: StoreSettings; website: WebsiteSettings; delivery: DeliverySettings; payments: PaymentSettings; legal: { cndp?: string; company_name?: string; ice?: string }; abroad: AbroadSettings | null; help: { enabled?: boolean; alert_minutes?: number } | null; tracking: { meta_pixel_id?: string; tiktok_pixel_id?: string } | null }
 
 /** Opening status from the weekly hours (Morocco local time). */
 export function openStatus(hours: StoreSettings['hours'] | undefined, now = new Date()) {
@@ -44,10 +56,10 @@ export function useSite() {
     queryKey: ['site-settings'],
     staleTime: 5 * 60_000,
     queryFn: async () => {
-      const { data, error } = await sb.from('settings').select('key, value').in('key', ['store', 'website', 'delivery', 'online_payments', 'legal', 'abroad', 'help', 'tracking'])
+      const { data, error } = await sb.from('settings').select('key, value').in('key', ['store', 'website', 'website_store', 'delivery', 'online_payments', 'legal', 'abroad', 'help', 'tracking'])
       if (error) throw error
       const m = Object.fromEntries((data ?? []).map((r) => [r.key, r.value]))
-      return { store: m.store, website: m.website, delivery: m.delivery, payments: m.online_payments, legal: m.legal ?? {}, abroad: m.abroad ?? null, help: m.help ?? null, tracking: m.tracking ?? null } as SiteData
+      return { store: m.store, website: m.website, delivery: m.delivery, payments: m.online_payments, legal: m.legal ?? {}, abroad: m.abroad ?? null, help: m.help ?? null, tracking: m.tracking ?? null, storeSite: m.website_store ?? null } as SiteData
     },
   })
 }

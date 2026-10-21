@@ -39,7 +39,7 @@ export function useSeo(title?: string) {
   useEffect(() => {
     const name = t(ME.name_ar, ME.name_fr)
     document.title = title ? `${title} — ${name}` : name
-    const desc = site.data ? pick(site.data.website.seo, 'description') : ''
+    const desc = site.data ? pick(BRAND === 'store' && site.data.storeSite ? site.data.storeSite.seo : site.data.website.seo, 'description') : ''
     let m = document.querySelector('meta[name="description"]')
     if (!m) {
       m = document.createElement('meta')
@@ -84,7 +84,7 @@ export function SiteLayout() {
   }, [])
 
   const store = site.data?.store
-  const ann = site.data?.website.announcement
+  const ann = BRAND === 'store' ? site.data?.storeSite?.announcement : site.data?.website.announcement
   const wa = store?.whatsapp || '212697740298'
 
   return (

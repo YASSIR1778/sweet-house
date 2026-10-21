@@ -12,6 +12,8 @@ import { PageHeader } from '@/shared/ui/data'
 import { ColorPicker, IconPicker, MoneyInput } from '@/shared/ui/pickers'
 import { ImageInput } from '@/shared/ui/media'
 import { resetWhatsAppMode } from '@/shared/lib/whatsapp'
+import { SITES } from '@/shared/lib/brand'
+import { StoreSiteEditor } from './StoreSiteEditor'
 
 type W = {
   announcement: { enabled: boolean; text_ar: string; text_fr: string }
@@ -28,16 +30,22 @@ type P = { cod: boolean; in_store: boolean; bank_transfer: boolean; bank_name: s
 type AB = { enabled: boolean; post_note_ar: string; post_note_fr: string; payment_note_ar: string; payment_note_fr: string }
 type WA = { mode: string; number: string; templates: Record<string, string>; template_name?: string; template_lang?: string }
 
+type Site = 'services' | 'store' | 'shared'
 const TABS = [
-  { id: 'home', ar: 'الصفحة الرئيسية', fr: "Page d'accueil", icon: LayoutTemplate },
-  { id: 'faq', ar: 'الأسئلة الشائعة', fr: 'FAQ', icon: ListChecks },
-  { id: 'delivery', ar: 'التوصيل', fr: 'Livraison', icon: Truck },
-  { id: 'payments', ar: 'الأداء الأونلاين', fr: 'Paiements', icon: Wallet },
-  { id: 'abroad', ar: 'مغاربة العالم', fr: 'Marocains du monde', icon: Globe2 },
-  { id: 'statuses', ar: 'مراحل الطلبات', fr: 'Étapes des demandes', icon: ListChecks },
-  { id: 'whatsapp', ar: 'رسائل واتساب', fr: 'Messages WhatsApp', icon: MessageCircle },
-  { id: 'legal', ar: 'الصفحات القانونية', fr: 'Pages légales', icon: Scale },
+  { id: 'home', site: 'services', ar: 'الصفحة الرئيسية', fr: "Page d'accueil", icon: LayoutTemplate },
+  { id: 'faq', site: 'services', ar: 'الأسئلة الشائعة', fr: 'FAQ', icon: ListChecks },
+  { id: 'abroad', site: 'services', ar: 'مغاربة العالم', fr: 'Marocains du monde', icon: Globe2 },
+  { id: 'statuses', site: 'services', ar: 'مراحل الطلبات', fr: 'Étapes des demandes', icon: ListChecks },
+  { id: 'delivery', site: 'shared', ar: 'التوصيل (طلبيات المتجر)', fr: 'Livraison (boutique)', icon: Truck },
+  { id: 'payments', site: 'shared', ar: 'الأداء الأونلاين', fr: 'Paiements', icon: Wallet },
+  { id: 'whatsapp', site: 'shared', ar: 'رسائل واتساب', fr: 'Messages WhatsApp', icon: MessageCircle },
+  { id: 'legal', site: 'shared', ar: 'الخصوصية والشروط', fr: 'Pages légales', icon: Scale },
 ] as const
+const SITE_TABS: { id: Site; ar: string; fr: string; icon: string; color: string }[] = [
+  { id: 'services', ar: 'موقع الخدمات', fr: 'Site Services', icon: '🗂️', color: '#2563EB' },
+  { id: 'store', ar: 'موقع المتجر', fr: 'Site Boutique', icon: '🛍️', color: '#FF6B35' },
+  { id: 'shared', ar: 'مشترك بين الموقعين', fr: 'Commun aux deux', icon: '⚙️', color: '#475569' },
+]
 
 const TPL: [string, string, string][] = [
   ['order_received', 'استلام طلب المتجر', 'Commande reçue'],
@@ -51,7 +59,9 @@ export function WebsitePage() {
   const { sb } = useAuth()
   const { t, lang } = useLang()
   const qc = useQueryClient()
+  const [site, setSite] = useState<Site>('services')
   const [tab, setTab] = useState<(typeof TABS)[number]['id']>('home')
+  const pickSite = (x: Site) => (setSite(x), x !== 'store' && setTab(TABS.find((y) => y.site === x)!.id))
   const [w, setW] = useState<W | null>(null)
   const [d, setD] = useState<D | null>(null)
   const [p, setP] = useState<P | null>(null)
@@ -123,23 +133,38 @@ export function WebsitePage() {
         title={t('محرر الموقع', 'Éditeur du site')}
         description={t('غيّر نصوص الموقع وصوره وإعدادات الطلبات دون أي كود', 'Modifiez le site sans code')}
         actions={
-          <>
-            <Button asChild variant="outline">
-              <a href={import.meta.env.BASE_URL} target="_blank" rel="noreferrer">
-                <ExternalLink />
-                {t('فتح الموقع', 'Voir le site')}
-              </a>
-            </Button>
-            <Button onClick={save} loading={busy}>
-              <Save />
-              {t('حفظ', 'Enregistrer')}
-            </Button>
-          </>
+          site !== 'store' && (
+            <>
+              {site === 'services' && (
+                <Button asChild variant="outline">
+                  <a href={SITES.services} target="_blank" rel="noreferrer">
+                    <ExternalLink />
+                    {t('فتح موقع الخدمات', 'Voir le site Services')}
+                  </a>
+                </Button>
+              )}
+              <Button onClick={save} loading={busy}>
+                <Save />
+                {t('حفظ', 'Enregistrer')}
+              </Button>
+            </>
+          )
         }
       />
+      <div className="mb-5 grid gap-2 sm:grid-cols-3">
+        {SITE_TABS.map((x) => (
+          <button key={x.id} onClick={() => pickSite(x.id)} className={cn('flex items-center gap-3 rounded-2xl border-2 p-3 text-start transition-all', site === x.id ? 'bg-surface shadow-card' : 'border-transparent bg-surface-2/60 hover:bg-surface')} style={site === x.id ? { borderColor: x.color } : undefined}>
+            <span className="text-2xl">{x.icon}</span>
+            <span className="font-semibold">{t(x.ar, x.fr)}</span>
+          </button>
+        ))}
+      </div>
+      {site === 'store' ? (
+        <StoreSiteEditor />
+      ) : (
       <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
         <nav className="flex gap-1 overflow-x-auto lg:flex-col">
-          {TABS.map((x) => (
+          {TABS.filter((x) => x.site === site).map((x) => (
             <button key={x.id} onClick={() => setTab(x.id)} className={cn('flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium', tab === x.id ? 'bg-surface text-brand shadow-card' : 'text-muted hover:bg-surface')}>
               <x.icon className="size-4" />
               {t(x.ar, x.fr)}
@@ -198,7 +223,6 @@ export function WebsitePage() {
                     [
                       ['features', 'المزايا', 'Atouts'],
                       ['services', 'الخدمات الإدارية', 'Services'],
-                      ['featured', 'المنتجات المختارة', 'Produits'],
                       ['about', 'من نحن', 'À propos'],
                       ['faq', 'الأسئلة الشائعة', 'FAQ'],
                     ] as const
@@ -385,6 +409,7 @@ export function WebsitePage() {
           )}
         </div>
       </div>
+      )}
     </>
   )
 }

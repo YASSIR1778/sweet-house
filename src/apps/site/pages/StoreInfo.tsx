@@ -38,20 +38,14 @@ export function StoreFaqPage() {
   const site = useSite()
   useSeo(t('الأسئلة الشائعة', 'FAQ'))
   const d = site.data?.delivery
-  const items: [string, string, string, string][] = [
-    ['كيفاش نطلب؟', 'Comment commander ?', 'اختار المنتج، عمّر الاسم والهاتف والمدينة والعنوان، وأكّد. غادي نتاصلو بيك باش نأكدو الطلبية قبل ما نصيفطوها.', 'Choisissez le produit, remplissez nom, téléphone, ville et adresse, puis confirmez. Nous vous appelons pour confirmer avant l’envoi.'],
-    ['واش كنخلص عند الاستلام؟', 'Paiement à la livraison ?', 'إيه، كتخلص غير ملي توصلك الطلبية وتشوفها.', 'Oui, vous payez uniquement à la réception.'],
-    ['شحال كيدير التوصيل؟', 'Délais de livraison ?', 'عادة بين 24 و72 ساعة حسب المدينة. فتطوان والنواحي غالباً نفس النهار أو النهار الموالي.', 'En général 24 à 72 h selon la ville. Tétouan et environs : souvent le jour même ou le lendemain.'],
-    [
+  const items: [string, string, string, string][] = (site.data?.storeSite?.faq ?? []).map((q) => [q.q_ar, q.q_fr, q.a_ar, q.a_fr] as [string, string, string, string])
+  if (d?.zones?.length || d?.default_price)
+    items.splice(3, 0, [
       'شحال ثمن التوصيل؟',
       'Prix de la livraison ?',
       `حسب المدينة${d?.default_price ? ` (ابتداءً من ${money(Math.min(d.default_price, ...(d.zones ?? []).map((z) => z.price)))})` : ''}${d?.free_above ? `، ومجاني فوق ${money(d.free_above)}` : ''}. كيبان ليك الثمن قبل ما تأكد.`,
       `Selon la ville${d?.free_above ? `, offerte dès ${money(d.free_above)}` : ''}. Le prix s’affiche avant la confirmation.`,
-    ],
-    ['واش نقدر نستبدل ولا نرجع؟', 'Échange ou retour ?', 'إيه، شوف «الإرجاع والاستبدال». الأهم: تشوف المنتج قدام الموزع قبل ما تخلص.', 'Oui, voir « Retours et échanges ». Vérifiez le produit devant le livreur avant de payer.'],
-    ['نقدر نجي نشري من المحل؟', 'Retrait en boutique ?', 'مرحبا بيك فالمحل فتطوان، أو اطلب أونلاين وخلي الطلبية تتسنّاك.', 'Bienvenue en boutique à Tétouan, ou commandez en ligne et retirez sur place.'],
-    ['كيفاش نتبّع الطلبية؟', 'Suivre ma commande ?', 'من صفحة «تتبّع طلبيتي» برقم التتبّع ورقم الهاتف، ولا سولنا فواتساب.', 'Page « Suivi » avec le code et votre téléphone, ou sur WhatsApp.'],
-  ]
+    ])
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
       <h1 className="mb-2 text-4xl font-extrabold">{t('الأسئلة الشائعة', 'Questions fréquentes')}</h1>
@@ -65,14 +59,8 @@ export function StoreFaqPage() {
 export function ReturnsPage() {
   const { t } = useLang()
   useSeo(t('الإرجاع والاستبدال', 'Retours et échanges'))
-  const rules: [string, string][] = [
-    ['شوف الطلبية قدام الموزع قبل ما تخلص. إلا كان شي مشكل، ما تقبلهاش وما كتخلص والو.', 'Vérifiez devant le livreur avant de payer. En cas de problème, refusez sans rien payer.'],
-    ['عندك 3 أيام من الاستلام باش تطلب الاستبدال إلا كان المنتج فيه عيب أو ماشي هو اللي طلبتي.', '3 jours après réception pour demander un échange si le produit est défectueux ou non conforme.'],
-    ['المنتج خاصو يرجع فالحالة ديالو، مع الكارطونة ديالو، وما مستعملش.', 'Le produit doit être retourné neuf, dans son emballage.'],
-    ['إلا كان الغلط منّا (عيب أو منتج آخر)، الاستبدال والتوصيل علينا.', 'Si l’erreur vient de nous, l’échange et la livraison sont à notre charge.'],
-    ['إلا بدّلتي رأيك بلا عيب، التوصيل ديال الرجوع عليك.', 'Si vous changez d’avis sans défaut, la livraison du retour est à votre charge.'],
-    ['للطلب: راسلنا فواتساب برقم الطلبية وتصويرة ديال المنتج.', 'Pour demander : écrivez-nous sur WhatsApp avec le numéro de commande et une photo.'],
-  ]
+  const site = useSite()
+  const rules: [string, string][] = (site.data?.storeSite?.returns ?? []).map((r) => [r.text_ar, r.text_fr] as [string, string])
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
       <div className="mb-6 flex size-14 items-center justify-center rounded-2xl bg-brand-50 text-brand"><RotateCcw className="size-7" /></div>

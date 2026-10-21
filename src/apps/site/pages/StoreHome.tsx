@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import { motion } from 'motion/react'
-import { ArrowLeft, Backpack, MessageCircle, PackageCheck, RotateCcw, Search, ShieldCheck, Sparkles, Truck, Wallet } from 'lucide-react'
+import { ArrowLeft, Backpack, MessageCircle, PackageCheck, Search, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useLang } from '@/shared/lib/i18n'
@@ -13,12 +13,10 @@ import { useShop, useSite } from '../data'
 import { ProductCard, SectionTitle } from '../components'
 import { useSeo } from '../Layout'
 
-const TRUST = [
-  { icon: Truck, ar: 'توصيل لجميع المدن', fr: 'Livraison partout au Maroc' },
-  { icon: Wallet, ar: 'الدفع عند الاستلام', fr: 'Paiement à la livraison' },
-  { icon: RotateCcw, ar: 'استبدال سهل', fr: 'Échange facile' },
-  { icon: MessageCircle, ar: 'دعم على واتساب', fr: 'Support WhatsApp' },
-  { icon: ShieldCheck, ar: 'منتجات مختارة ومجرّبة', fr: 'Produits sélectionnés' },
+const TRUST_DEFAULT = [
+  { icon: 'truck', text_ar: 'توصيل لجميع المدن', text_fr: 'Livraison partout au Maroc' },
+  { icon: 'wallet', text_ar: 'الدفع عند الاستلام', text_fr: 'Paiement à la livraison' },
+  { icon: 'rotate-ccw', text_ar: 'استبدال سهل', text_fr: 'Échange facile' },
 ]
 
 /** Store home: show products fast, remove doubts (delivery, COD), one click to buy. */
@@ -38,6 +36,10 @@ export function StoreHome() {
   const freeAbove = site.data?.delivery?.free_above
   const month = new Date().getMonth() // 7 = Aug, 8 = Sep
   const schoolSeason = month === 7 || month === 8
+  const W = site.data?.storeSite
+  const sec = W?.sections ?? {}
+  const on = (k: string) => sec[k] !== false
+  const TRUST = (W?.trust?.length ? W.trust : TRUST_DEFAULT).map((x) => ({ Icon: x.icon, ar: x.text_ar, fr: x.text_fr }))
 
   return (
     <>
@@ -53,12 +55,12 @@ export function StoreHome() {
               {t(ME.name_ar, ME.name_fr)} · {t('تطوان', 'Tétouan')}
             </motion.div>
             <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="mt-6 text-4xl leading-[1.15] font-extrabold tracking-tight md:text-6xl">
-              {t('كلشي اللي محتاج،', 'Tout ce qu’il vous faut,')}
+              {W ? t(W.hero.title_ar, W.hero.title_fr) : t('كلشي اللي محتاج،', 'Tout ce qu’il vous faut,')}
               <br />
-              <span className="bg-gradient-to-l from-brand to-[#FBBF24] bg-clip-text text-transparent">{t('يوصلك لباب الدار', 'livré chez vous')}</span>
+              <span className="bg-gradient-to-l from-brand to-[#FBBF24] bg-clip-text text-transparent">{W ? t(W.hero.accent_ar, W.hero.accent_fr) : t('يوصلك لباب الدار', 'livré chez vous')}</span>
             </motion.h1>
             <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }} className="mt-5 max-w-xl text-lg leading-relaxed text-white/70">
-              {t('منتجات عملية مختارة للدار، المطبخ، الهاتف، الأطفال والمدرسة. اطلب فدقيقة، وخلّص غير ملي توصلك.', 'Des produits utiles et sélectionnés pour la maison, la cuisine, le téléphone, les enfants et l’école. Commandez en une minute, payez à la livraison.')}
+              {W ? t(W.hero.subtitle_ar, W.hero.subtitle_fr) : ''}
             </motion.p>
             <motion.form
               initial={{ opacity: 0, y: 16 }}
@@ -74,7 +76,7 @@ export function StoreHome() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/70">
               {TRUST.slice(0, 3).map((x) => (
                 <span key={x.ar} className="flex items-center gap-1.5">
-                  <x.icon className="size-4 text-brand" />
+                  <DynamicIcon name={x.Icon} className="size-4 text-brand" />
                   {t(x.ar, x.fr)}
                 </span>
               ))}
@@ -117,7 +119,7 @@ export function StoreHome() {
         <motion.div animate={{ x: ['0%', '-50%'] }} transition={{ duration: 28, repeat: Infinity, ease: 'linear' }} className="flex w-max gap-10 text-sm font-medium" dir="ltr">
           {[...TRUST, ...TRUST, ...TRUST, ...TRUST].map((x, i) => (
             <span key={i} className="flex items-center gap-2 whitespace-nowrap" dir="rtl">
-              <x.icon className="size-4 text-brand" />
+              <DynamicIcon name={x.Icon} className="size-4 text-brand" />
               {t(x.ar, x.fr)}
             </span>
           ))}
@@ -125,7 +127,7 @@ export function StoreHome() {
       </div>
 
       {/* ---------------------------------------------------------- categories */}
-      {cats.length > 0 && (
+      {on('categories') && cats.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 pt-14">
           <SectionTitle eyebrow={t('الأقسام', 'Rayons')} title={t('شنو كتقلب عليه؟', 'Que cherchez-vous ?')} />
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -144,6 +146,7 @@ export function StoreHome() {
       )}
 
       {/* ---------------------------------------------------------- best sellers */}
+      {on('best') && (
       <section className="mx-auto max-w-6xl px-4 pt-16">
         <SectionTitle
           eyebrow={t('الأكثر طلباً', 'Les plus demandés')}
@@ -161,16 +164,19 @@ export function StoreHome() {
           {shop.isLoading ? Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="aspect-[3/4]" />) : top.map((p, i) => <ProductCard key={p.id} p={p} index={i} />)}
         </div>
       </section>
+      )}
 
       {/* ---------------------------------------------------------- COD promise */}
+      {on('promise') && (
       <section className="mx-auto max-w-6xl px-4 pt-16">
         <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-brand to-[#ff9466] p-8 text-white md:p-12">
           <PackageCheck className="absolute -end-8 -bottom-8 size-56 opacity-15" />
           <div className="relative grid gap-8 md:grid-cols-[1.3fr_1fr] md:items-center">
             <div>
-              <h3 className="text-3xl leading-tight font-extrabold md:text-4xl">{t('ما كتخلص حتى توصلك وتشوفها بعينيك 👀', 'Vous payez seulement à la réception 👀')}</h3>
+              <h3 className="text-3xl leading-tight font-extrabold md:text-4xl">{W ? t(W.promise.title_ar, W.promise.title_fr) : ''}</h3>
               <p className="mt-3 text-lg text-white/85">
-                {freeAbove ? t(`والتوصيل مجاني فوق ${money(freeAbove)}`, `Livraison offerte dès ${money(freeAbove)}`) : t('توصيل سريع لجميع مدن المغرب، أو استلام من المحل فتطوان.', 'Livraison rapide partout au Maroc, ou retrait à Tétouan.')}
+                {W ? t(W.promise.text_ar, W.promise.text_fr) : ''}
+                {freeAbove ? ` ${t(`والتوصيل مجاني فوق ${money(freeAbove)}`, `Livraison offerte dès ${money(freeAbove)}`)}` : ''}
               </p>
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -188,9 +194,10 @@ export function StoreHome() {
           </div>
         </div>
       </section>
+      )}
 
       {/* ---------------------------------------------------------- new */}
-      {latest.length > 0 && (
+      {on('latest') && latest.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 pt-16">
           <SectionTitle eyebrow={t('جديدنا', 'Nouveautés')} title={t('وصل حديثاً', 'Fraîchement arrivé')} />
           <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2">
@@ -204,6 +211,7 @@ export function StoreHome() {
       )}
 
       {/* ---------------------------------------------------------- school list */}
+      {on('school') && (
       <section className="mx-auto max-w-6xl px-4 pt-16">
         <Link to="/school-list" className={`group flex flex-wrap items-center gap-5 rounded-3xl border p-6 transition-all hover:shadow-pop ${schoolSeason ? 'border-brand/40 bg-brand-50' : 'border-border bg-surface'}`}>
           <span className="flex size-16 items-center justify-center rounded-2xl bg-[#2563EB] text-white"><Backpack className="size-8" /></span>
@@ -214,9 +222,11 @@ export function StoreHome() {
           <ArrowLeft className="size-5 text-brand transition-transform group-hover:-translate-x-1 ltr:rotate-180" />
         </Link>
       </section>
+      )}
 
       {/* ---------------------------------------------------------- services cross-promo + whatsapp */}
       <section className="mx-auto grid max-w-6xl gap-4 px-4 pt-6 md:grid-cols-2">
+        {on('cross') && (
         <a href={SITES.services} className="group flex items-center gap-4 rounded-3xl bg-[#2563EB] p-6 text-white transition-all hover:-translate-y-1">
           <span className="text-4xl">🗂️</span>
           <span>
@@ -225,6 +235,7 @@ export function StoreHome() {
             <span className="block text-sm text-white/80">{t(BRANDS.services.tagline_ar, BRANDS.services.tagline_fr)}</span>
           </span>
         </a>
+        )}
         <a href={whatsappLink(site.data?.store.whatsapp ?? '', t('سلام، بغيت نسول على منتج', 'Bonjour, une question'))} target="_blank" rel="noreferrer" className="group flex items-center gap-4 rounded-3xl border border-border bg-surface p-6 transition-all hover:-translate-y-1 hover:shadow-pop">
           <span className="flex size-14 items-center justify-center rounded-2xl bg-[#25D366] text-white"><MessageCircle className="size-7" /></span>
           <span>
