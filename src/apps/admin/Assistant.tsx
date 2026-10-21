@@ -26,7 +26,7 @@ const SUGGESTIONS: [string, string][] = [
 ]
 
 /** **bold** and [label](/path) links, nothing else. */
-function Rich({ text, onNav }: { text: string; onNav: () => void }) {
+function Rich({ text, onNav, links = true }: { text: string; onNav: () => void; links?: boolean }) {
   const parts: ReactNode[] = []
   const re = /\*\*(.+?)\*\*|\[([^\]]+)\]\((\/[a-z-]*)\)/g
   let last = 0
@@ -36,6 +36,8 @@ function Rich({ text, onNav }: { text: string; onNav: () => void }) {
     parts.push(
       m[1] ? (
         <strong key={m.index}>{m[1]}</strong>
+      ) : !links ? (
+        <span key={m.index}>{m[2]}</span>
       ) : (
         <Link key={m.index} to={m[3]} onClick={onNav} className="font-medium text-brand underline">
           {m[2]}
@@ -111,7 +113,15 @@ function ProposalCard({ p }: { p: Proposal }) {
 }
 
 /** Owner's smart assistant: answers from the shop's real data, proposes changes for confirmation. */
-export function AssistantButton() {
+const POS_SUGGESTIONS: [string, string][] = [
+  ['واش كاين ستيلو أزرق؟ وبشحال؟', 'Avons-nous des stylos bleus ?'],
+  ['شنو هي الوثائق ديال جواز السفر؟', 'Documents pour le passeport ?'],
+  ['كيفاش ندير طلب السجل العدلي؟', 'Comment faire le casier judiciaire ?'],
+  ['شحال رصيد رياض دابا؟', 'Solde Riyad ?'],
+]
+
+/** Owner's smart assistant ("سويتي"), or with mode="pos" the staff helper in the POS (fewer tools, fast model). */
+export function AssistantButton({ mode = 'owner' }: { mode?: 'owner' | 'pos' }) {
   const { me, sb } = useAuth()
   const { t, lang } = useLang()
   const [open, setOpen] = useState(false)
@@ -123,7 +133,8 @@ export function AssistantButton() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [bubbles, busy])
-  if (!me?.is_owner) return null
+  const pos = mode === 'pos'
+  if (pos ? !me : !me?.is_owner) return null
 
   const ask = async (q: string) => {
     q = q.trim()
@@ -135,7 +146,7 @@ export function AssistantButton() {
     try {
       // keep the conversation short: the last ~30 turns
       const trimmed = next.length > 60 ? next.slice(next.findIndex((m, i) => i >= next.length - 60 && m.role === 'user' && typeof m.content === 'string')) : next
-      const r = await callFn<{ messages: ApiMsg[]; text: string; proposals: Proposal[] }>(sb, 'assistant', { messages: trimmed })
+      const r = await callFn<{ messages: ApiMsg[]; text: string; proposals: Proposal[] }>(sb, 'assistant', { messages: trimmed, mode })
       setApi([...trimmed, ...r.messages])
       setBubbles((b) => [...b, { role: 'assistant', text: r.text, proposals: r.proposals }])
     } catch (e) {
@@ -151,12 +162,12 @@ export function AssistantButton() {
       <Button variant="ghost" size="icon" onClick={() => setOpen(true)} title={t('المساعد الذكي', 'Assistant')} className="text-brand">
         <Sparkles />
       </Button>
-      <Sheet open={open} onOpenChange={setOpen} width="max-w-xl" title={t('المساعد الذكي', 'Assistant intelligent')} description={t('اسألني عن المبيعات، المخزون، الطلبات، رياض، الديون… أو كيف تستعمل النظام', 'Ventes, stock, demandes, Riyad, crédits… ou comment utiliser le système')}>
+      <Sheet open={open} onOpenChange={setOpen} width="max-w-xl" title={`✨ ${pos ? t('سويتي — مساعدتك في البيع', 'Sweety — aide caisse') : t('سويتي — مساعدتك الذكية', 'Sweety — votre assistante')}`} description={t('سوّلني على المبيعات، السلعة، الطلبات، رياض، الكريدي… ولا كيفاش تخدم بالنظام', 'Ventes, stock, demandes, Riyad, crédits… ou comment utiliser le système')}>
         <div className="flex h-[calc(100dvh-9rem)] flex-col">
           <div className="flex-1 space-y-3 overflow-y-auto pb-3">
             {!bubbles.length && (
               <div className="grid gap-2">
-                {SUGGESTIONS.map(([ar, fr]) => (
+                {(pos ? POS_SUGGESTIONS : SUGGESTIONS).map(([ar, fr]) => (
                   <button key={ar} onClick={() => ask(t(ar, fr))} className="rounded-xl border border-border p-3 text-start text-sm hover:border-brand hover:bg-brand-50">
                     {t(ar, fr)}
                   </button>
@@ -166,7 +177,7 @@ export function AssistantButton() {
             {bubbles.map((b, i) => (
               <div key={i} className={cn('flex', b.role === 'user' ? 'justify-start' : 'justify-end')}>
                 <div className={cn('max-w-[90%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap', b.role === 'user' ? 'bg-brand text-white' : 'bg-surface-2')}>
-                  {b.role === 'assistant' ? <Rich text={b.text} onNav={() => setOpen(false)} /> : b.text}
+                  {b.role === 'assistant' ? <Rich text={b.text} onNav={() => setOpen(false)} links={!pos} /> : b.text}
                   {b.proposals?.map((p) => <ProposalCard key={p.id} p={p} />)}
                 </div>
               </div>

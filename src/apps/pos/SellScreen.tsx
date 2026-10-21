@@ -51,6 +51,7 @@ import { CreateInvoiceDialog } from '@/shared/ui/invoice-dialog'
 import { OnlineSheet } from './online'
 import { useOnlinePending } from '@/shared/lib/online'
 import { AttendanceButton } from './attendance'
+import { AssistantButton } from '@/apps/admin/Assistant'
 import { WritingButton } from '@/shared/ui/ai-tools'
 
 type PosSettings = { allow_negative_stock: boolean; sound: boolean; auto_print: boolean; quick_cash: number[] }
@@ -439,6 +440,7 @@ Total : ${money(totals.total)}`,
             <WritingButton sb={sb} size="icon" />
           </span>
         </Tooltip>
+        <AssistantButton mode="pos" />
         <AttendanceButton deviceId={device.id} />
         <LangToggle compact />
         <ThemeToggle />

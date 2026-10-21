@@ -35,6 +35,15 @@ const SYSTEM = `أنت «مساعد سويت هاوس»، مساعد ذكي دا
 - لأسئلة «كيف أستعمل النظام» اعتمد على دليل الاستعمال أسفله، ولخطوات خدمة إدارية استعمل service_guide.
 - لا تكتب جداول Markdown طويلة؛ استعمل نقاطاً قصيرة. الخط العريض **هكذا** مسموح.`
 
+const POS_SYSTEM = (name: string) => `أنت «${name}» ✨، مساعدة الموظفين في نقطة البيع بمكتبة سويت هاوس في تطوان.
+تجيبين الموظفة بسرعة وباختصار شديد، بالدارجة المغربية أو بلغة سؤالها.
+- عن المنتجات (هل هو موجود، الثمن، الكمية) استعملي products.
+- عن خطوات خدمة إدارية أو الوثائق المطلوبة استعملي service_guide، واكتبي الخطوات مرقمة.
+- عن طلب زبون استعملي service_requests إن كان متاحاً.
+- عن رصيد رياض استعملي riyad.
+- المبالغ في الأدوات بالسنتيم: اقسمي على 100.
+لا تخمّني أي رقم. لا تذكري الأرباح أو التكلفة. إن لم تجدي الجواب قولي ذلك واقترحي سؤال المسؤول.`
+
 const TOOLS: Anthropic.Beta.BetaTool[] = [
   {
     name: 'sales_report',
@@ -212,7 +221,12 @@ Deno.serve(async (req) => {
 
     const caller = callerClient(req)
     const { data: owner } = await caller.rpc('is_owner')
-    if (owner !== true) return fail('forbidden', 403)
+    // POS helper: any staff member, fewer tools, fast model
+    const pos = body?.mode === 'pos'
+    if (pos) {
+      const { data: staff } = await caller.rpc('is_staff')
+      if (staff !== true) return fail('forbidden', 403)
+    } else if (owner !== true) return fail('forbidden', 403)
     const { data: me } = await caller.rpc('current_employee_id')
 
     const key = Deno.env.get('ANTHROPIC_API_KEY')
@@ -224,11 +238,14 @@ Deno.serve(async (req) => {
     const { count } = await admin.from('ai_usage').select('id', { count: 'exact', head: true }).gte('created_at', since)
     if ((count ?? 0) >= (cfg.monthly_limit ?? 500)) return fail('ai_limit_reached', 429)
 
-    const model = cfg.model_assistant || cfg.model_smart || 'claude-sonnet-5-5'
+    const helpers = ((await admin.from('settings').select('value').eq('key', 'helpers').single()).data?.value ?? {}) as { pos_enabled?: boolean; pos_name?: string; model_fast?: string }
+    if (pos && helpers.pos_enabled === false) return fail('ai_disabled', 412)
+    const model = pos ? helpers.model_fast || 'claude-haiku-5-5' : cfg.model_assistant || cfg.model_smart || 'claude-sonnet-5-5'
+    const tools = pos ? TOOLS.filter((t) => ['products', 'service_guide', 'service_requests', 'riyad'].includes(t.name)) : TOOLS
     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Casablanca' })
     const weekday = new Date().toLocaleDateString('ar-MA', { timeZone: 'Africa/Casablanca', weekday: 'long' })
     const system: Anthropic.Beta.BetaTextBlockParam[] = [
-      { type: 'text', text: `${SYSTEM}\n\n# دليل الاستعمال\n${await guide()}`, cache_control: { type: 'ephemeral' } },
+      { type: 'text', text: `${pos ? POS_SYSTEM(helpers.pos_name || 'سويتي') : SYSTEM}\n\n# دليل الاستعمال\n${await guide()}`, cache_control: { type: 'ephemeral' } },
       { type: 'text', text: `تاريخ اليوم: ${today} (${weekday}).` },
     ]
 
@@ -245,7 +262,7 @@ Deno.serve(async (req) => {
         model,
         max_tokens: 8000,
         system,
-        tools: TOOLS,
+        tools,
         messages: [...history, ...added],
         thinking: { type: 'adaptive' },
         output_config: { effort: 'medium' },
@@ -277,7 +294,7 @@ Deno.serve(async (req) => {
       added.push({ role: 'user', content: results })
     }
 
-    await admin.from('ai_usage').insert({ employee_id: me ?? null, action: 'assistant', model, ok: !!text, input_tokens: tin, output_tokens: tout })
+    await admin.from('ai_usage').insert({ employee_id: me ?? null, action: pos ? 'pos_helper' : 'assistant', model, ok: !!text, input_tokens: tin, output_tokens: tout })
     if (!text) text = 'لم أتمكن من إكمال الجواب، حاول صياغة السؤال بشكل أبسط.'
     return json({ messages: added, text, proposals })
   } catch (e) {

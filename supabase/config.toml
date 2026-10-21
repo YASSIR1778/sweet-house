@@ -443,3 +443,6 @@ verify_jwt = false
 
 [functions.agents]
 verify_jwt = false
+
+[functions.helper]
+verify_jwt = false

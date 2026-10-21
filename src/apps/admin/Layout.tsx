@@ -14,6 +14,7 @@ import { NAV } from './nav'
 import { NotificationsBell } from './Notifications'
 import { CommandPalette } from './CommandPalette'
 import { AssistantButton } from './Assistant'
+import { AgentChime } from './MorningBrief'
 import { SecurityDialog } from './Mfa'
 import { useOnlinePending } from '@/shared/lib/online'
 
@@ -140,6 +141,7 @@ export function Layout() {
 
       <SecurityDialog open={security} onClose={() => setSecurity(false)} />
       <CommandPalette />
+      <AgentChime />
       <div className="lg:ps-64">
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-surface/80 px-4 backdrop-blur-lg sm:px-6">
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)}>

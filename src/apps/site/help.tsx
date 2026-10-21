@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { CheckCircle2, ChevronDown, HelpCircle, MessageCircle, PhoneCall, X } from 'lucide-react'
+import { CheckCircle2, ChevronDown, Compass, HelpCircle, MessageCircle, PhoneCall, Send, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useLang } from '@/shared/lib/i18n'
 import { errorMessage } from '@/shared/lib/errors'
@@ -24,6 +24,7 @@ export function HelpBar({ service, step }: { service: Service; step: HelpStep })
   const { t, pick } = useLang()
   const site = useSite()
   const [callback, setCallback] = useState(false)
+  const [guide, setGuide] = useState(false)
   const [hidden, setHidden] = useState(false)
   const help = (site.data as unknown as { help?: { enabled?: boolean } } | undefined)?.help
   if (help?.enabled === false || hidden) return null
@@ -57,6 +58,10 @@ export function HelpBar({ service, step }: { service: Service; step: HelpStep })
             </div>
           </div>
           <div className="flex w-full gap-2 sm:w-auto">
+            <Button size="sm" className="flex-1 sm:flex-none" onClick={() => setGuide(true)}>
+              <Compass />
+              {t('اسأل المرشد', 'Demander')}
+            </Button>
             <Button size="sm" variant="success" className="flex-1 sm:flex-none" onClick={openWa} disabled={!wa}>
               <MessageCircle />
               {t('واتساب', 'WhatsApp')}
@@ -71,8 +76,98 @@ export function HelpBar({ service, step }: { service: Service; step: HelpStep })
           </div>
         </div>
       </motion.div>
+      <GuideChat open={guide} onClose={() => setGuide(false)} service={service} onWhatsApp={openWa} onCallback={() => (setGuide(false), setCallback(true))} />
       <CallbackDialog open={callback} onClose={() => setCallback(false)} service={service} step={step} serviceName={pick(service, 'name')} />
     </>
+  )
+}
+
+type Turn = { role: 'user' | 'assistant'; text: string; escalate?: boolean }
+
+/** 🧭 The guide answers from the service's public info; when unsure it hands over to staff. */
+function GuideChat({ open, onClose, service, onWhatsApp, onCallback }: { open: boolean; onClose: () => void; service: Service; onWhatsApp: () => void; onCallback: () => void }) {
+  const { t, pick } = useLang()
+  const [turns, setTurns] = useState<Turn[]>([])
+  const [q, setQ] = useState('')
+  const [busy, setBusy] = useState(false)
+  const end = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    end.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [turns, busy])
+  const ask = async (text: string) => {
+    text = text.trim()
+    if (!text || busy) return
+    setQ('')
+    const history = turns.map(({ role, text }) => ({ role, text }))
+    setTurns((x) => [...x, { role: 'user', text }])
+    setBusy(true)
+    const { data, error } = await sb.functions.invoke('helper', { body: { question: text, history, service_id: service.id } })
+    setBusy(false)
+    let errCode = ''
+    if (error) {
+      try {
+        errCode = (await (error as { context?: Response }).context?.json())?.error ?? ''
+      } catch {
+        /* ignore */
+      }
+    }
+    const answer = error
+      ? errCode === 'too_many_requests' || errCode === 'helper_busy'
+        ? t('المرشد مشغول الآن 🙏 تواصل معنا مباشرة وسنساعدك.', 'Le guide est occupé, contactez-nous directement.')
+        : t('المرشد غير متاح حالياً 🙏 تواصل معنا مباشرة وسنساعدك.', 'Guide indisponible, contactez-nous.')
+      : (data as { answer: string }).answer
+    setTurns((x) => [...x, { role: 'assistant', text: answer, escalate: !!error || !!(data as { escalate?: boolean })?.escalate }])
+  }
+  const starters = [
+    t('ما هي الوثائق المطلوبة؟', 'Quels documents faut-il ?'),
+    t('كم الثمن والمدة؟', 'Quel prix et quel délai ?'),
+    t('كيف أرفع الوثائق؟', 'Comment envoyer les documents ?'),
+  ]
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()} title={`🧭 ${t('مرشد سويت هاوس', 'Guide Sweet House')}`} description={pick(service, 'name')}>
+      <div className="flex h-[60vh] flex-col">
+        <div className="flex-1 space-y-2 overflow-y-auto pb-2">
+          <div className="rounded-2xl bg-surface-2 px-3 py-2 text-sm">{t('مرحباً 👋 أنا المرشد. اسألني عن هذه الخدمة: الوثائق، الثمن، المدة، أو كيف تكمل الطلب.', 'Bonjour 👋 Posez-moi vos questions sur ce service.')}</div>
+          {!turns.length && (
+            <div className="flex flex-wrap gap-2">
+              {starters.map((s) => (
+                <button key={s} onClick={() => ask(s)} className="rounded-full border border-border px-3 py-1.5 text-sm hover:border-brand hover:bg-brand-50">
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+          {turns.map((m, i) => (
+            <div key={i} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
+              <div className={cn('max-w-[88%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap', m.role === 'user' ? 'bg-brand text-white' : 'bg-surface-2')}>
+                {m.text}
+                {m.escalate && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button size="sm" variant="success" onClick={onWhatsApp}>
+                      <MessageCircle />
+                      {t('واتساب', 'WhatsApp')}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={onCallback}>
+                      <PhoneCall />
+                      {t('اتصلوا بي', 'Rappelez-moi')}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+          {busy && <div className="text-sm text-muted">{t('المرشد يكتب…', 'Le guide écrit…')}</div>}
+          <div ref={end} />
+        </div>
+        <form onSubmit={(e) => (e.preventDefault(), ask(q))} className="flex gap-2 border-t border-border pt-3">
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('اكتب سؤالك…', 'Votre question…')} maxLength={600} />
+          <Button type="submit" size="icon" disabled={!q.trim() || busy}>
+            <Send />
+          </Button>
+        </form>
+        <p className="mt-2 text-[11px] text-subtle">{t('لا تكتب هنا معطيات شخصية (رقم البطاقة…)؛ مكانها استمارة الطلب.', 'N’écrivez pas de données personnelles ici.')}</p>
+      </div>
+    </Dialog>
   )
 }
 

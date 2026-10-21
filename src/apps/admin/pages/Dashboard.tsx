@@ -9,6 +9,7 @@ import { money, qty } from '@/shared/lib/money'
 import { Avatar, Card, CardHeader, Skeleton } from '@/shared/ui/primitives'
 import { TodayTasks } from '../TodayTasks'
 import { LaunchChecklist } from '../LaunchChecklist'
+import { MorningBrief } from '../MorningBrief'
 import { DailyReportButton } from '../DailyReport'
 import { EmptyState, PageHeader, StatCard, Tabs } from '@/shared/ui/data'
 
@@ -113,6 +114,7 @@ export function DashboardPage() {
         }
       />
 
+      <MorningBrief />
       <LaunchChecklist />
       <TodayTasks />
 
