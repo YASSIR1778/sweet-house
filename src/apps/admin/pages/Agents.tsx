@@ -125,7 +125,7 @@ function PayloadView({ s }: { s: Suggestion }) {
           <div className="mt-2 flex gap-2">
             {m.to === 'customer' && m.phone ? (
               <Button size="sm" variant="success" asChild>
-                <a href={whatsappLink(m.phone, m.text)} target="_blank" rel="noreferrer">
+                <a href={whatsappLink(m.phone, m.text)} target="_blank" rel="noreferrer" onClick={() => s.agent_key === 'reviews' && sb.rpc('review_mark_asked', { p_phone: m.phone, p_name: m.name, p_source: 'agent' }).then(() => {})}>
                   <MessageCircle />
                   {t('إرسال على واتساب', 'WhatsApp')}
                 </a>

@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<title>Sweet House — اقتراحات التطوير</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@500;700;800&display=swap" rel="stylesheet" />
+<style>
+  @page { size: A4; margin: 16mm 14mm 18mm; }
+  @page cover { size: A4; margin: 0; }
+  html, body { width: auto; overflow: visible; }
+  * { box-sizing: border-box; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family: 'IBM Plex Sans Arabic', sans-serif; color: #0F172A; font-size: 10.5pt; line-height: 1.75; margin: 0; direction: rtl; text-align: right; }
+  .num, .latin { font-family: 'Inter', sans-serif; }
+  .cover { page: cover; width: 210mm; height: 296mm; display: flex; flex-direction: column; justify-content: space-between; background: #0F172A; color: #fff; margin: 0; padding: 26mm 20mm; page-break-after: always; position: relative; overflow: hidden; }
+  .cover::before { content: ''; position: absolute; width: 140mm; height: 140mm; border-radius: 50%; background: rgba(255,107,53,.35); filter: blur(30px); top: -40mm; left: -40mm; }
+  .cover::after { content: ''; position: absolute; width: 100mm; height: 100mm; border-radius: 50%; background: rgba(37,99,235,.25); filter: blur(30px); bottom: -30mm; right: -20mm; }
+  .cover > * { position: relative; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand img { width: 54px; height: 54px; }
+  .brand b { font-family: Inter; font-size: 20pt; font-weight: 800; }
+  .brand b span { color: #FF6B35; }
+  .cover h1 { font-size: 34pt; line-height: 1.3; margin: 0; font-weight: 700; }
+  .cover h1 span { color: #FF6B35; }
+  .cover p { color: rgba(255,255,255,.7); font-size: 12pt; max-width: 140mm; }
+  .stats { display: flex; gap: 10px; }
+  .stats div { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 10px 16px; }
+  .stats b { display: block; font-family: Inter; font-size: 20pt; color: #FF6B35; }
+  .stats span { font-size: 9pt; color: rgba(255,255,255,.65); }
+  .meta { font-size: 9pt; color: rgba(255,255,255,.5); }
+
+  h2, .lead { break-after: avoid; page-break-after: avoid; }
+  h2 { font-size: 16pt; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
+  h2 .badge { background: #FF6B35; color: #fff; border-radius: 10px; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; font-family: Inter; font-size: 13pt; }
+  .section { page-break-inside: auto; margin-bottom: 8mm; }
+  .lead { color: #475569; margin: 0 0 12px; }
+  .card { border: 1px solid #E2E8F0; border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; page-break-inside: avoid; display: grid; grid-template-columns: 34px 1fr; gap: 10px; background: #fff; }
+  .card .n { font-family: Inter; font-weight: 800; color: #FF6B35; font-size: 13pt; }
+  .card h3 { margin: 0; font-size: 11.5pt; }
+  .card p { margin: 2px 0 6px; color: #334155; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; font-size: 8.5pt; }
+  .tag { border-radius: 999px; padding: 1px 10px; background: #F1F5F9; color: #475569; }
+  .tag.why { background: #FFF3EE; color: #C2410C; }
+  .e1 { background: #DCFCE7; color: #166534; } .e2 { background: #FEF3C7; color: #92400E; } .e3 { background: #FEE2E2; color: #991B1B; }
+  .new { background: #DBEAFE; color: #1E40AF; font-weight: 600; }
+  .star { background: #0F172A; color: #fff; }
+  table { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin-top: 6px; }
+  th { background: #0F172A; color: #fff; padding: 7px 10px; text-align: right; font-weight: 600; }
+  td { border-bottom: 1px solid #E2E8F0; padding: 7px 10px; vertical-align: top; }
+  tr:nth-child(even) td { background: #F8FAFC; }
+  .legend { display: flex; gap: 8px; margin: 6px 0 14px; font-size: 9pt; }
+  .box { border-radius: 12px; padding: 12px 16px; background: #FFF3EE; border: 1px solid #FFD4C2; margin-bottom: 10px; page-break-inside: avoid; }
+  .footer-note { color: #94A3B8; font-size: 8.5pt; text-align: center; margin-top: 10mm; }
+  .check { display: inline-block; width: 12px; height: 12px; border: 1.5px solid #94A3B8; border-radius: 3px; margin-left: 6px; vertical-align: middle; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="brand"><img src="../public/logo.svg" alt="" /><b>Sweet <span>House</span></b></div>
+  <div>
+    <h1>اقتراحات تطوير<br /><span>مكتبة سويت هاوس</span></h1>
+    <p>أفكار لجعل الموقع ونقطة البيع ولوحة التحكم أكثر تميزاً: جلب زبائن جدد، وتوفير وقت الموظفين، ورؤية أوضح للمالك. للمراجعة واختيار ما يُنفَّذ لاحقاً.</p>
+    <div class="stats">
+      <div><b class="num">40</b><span>اقتراحاً</span></div>
+      <div><b class="num">8</b><span>محاور</span></div>
+      <div><b class="num">3</b><span>مراحل مقترحة</span></div>
+    </div>
+  </div>
+  <div class="meta">تطوان · <span class="num">2026</span> · وثيقة داخلية للمراجعة</div>
+</div>
+
+<div class="section">
+  <h2>كيف تقرأ هذه الوثيقة</h2>
+  <p class="lead">كل اقتراح فيه: ما هو، ولماذا يفيد مكتبتك، والجهد المطلوب لتنفيذه. الاقتراحات المعلَّمة بـ «جديد» لم تُذكر في المحادثة من قبل. ضع علامة ✓ أمام ما تريده.</p>
+  <div class="legend">
+    <span class="tag e1">جهد قليل: يوم إلى يومين</span>
+    <span class="tag e2">جهد متوسط: عدة أيام</span>
+    <span class="tag e3">جهد كبير: أسبوع أو أكثر</span>
+    <span class="tag star">★ أنصح به</span>
+    <span class="tag new">جديد</span>
+  </div>
+</div>
+
+<!-- 1 -->
+<div class="section">
+  <h2><span class="badge">1</span>جلب زبائن جدد والاحتفاظ بهم</h2>
+  <p class="lead">أفكار تجعل الزبون يختارك ويعود إليك.</p>
+
+  <div class="card"><div class="n">1</div><div><h3><span class="check"></span>موسم الدخول المدرسي: لوائح جاهزة حسب المؤسسة والمستوى</h3>
+    <p>صفحة خاصة في الموقع: يختار الولي المؤسسة والمستوى فيجد اللائحة جاهزة بثمنها، ويطلبها بضغطة. كل لائحة يرسلها ولي تُحفظ، فيجدها الولي التالي جاهزة.</p>
+    <div class="tags"><span class="tag why">مكتبات تطوان مزدحمة في سبتمبر، وأنت تحضّر قبل أن يأتي الزبون</span><span class="tag e2">متوسط</span><span class="tag star">★</span></div></div></div>
+
+  <div class="card"><div class="n">2</div><div><h3><span class="check"></span>تذكير تلقائي بمواعيد تجديد الوثائق</h3>
+    <p>السجل العدلي صالح 3 أشهر، والفينييت والتأمين سنوياً، والتصريح بالدخل كل سنة… يصل الزبون تذكير على واتساب قبل الموعد مع رابط الطلب.</p>
+    <div class="tags"><span class="tag why">الزبون يعود إليك بدل أن ينسى أو يذهب لغيرك</span><span class="tag e2">متوسط</span><span class="tag star">★</span></div></div></div>
+
+  <div class="card"><div class="n">3</div><div><h3><span class="check"></span>صفحة «وثائقي» للزبون</h3>
+    <p>برقم الهاتف ورمز يصله على واتساب، يرى الزبون كل طلباته السابقة ووثائقه الجاهزة ويعيد تحميلها.</p>
+    <div class="tags"><span class="tag why">لا تبحث له عن وثيقة قديمة، ويثق بك أكثر</span><span class="tag e1">قليل</span></div></div></div>
+
+  <div class="card"><div class="n">4</div><div><h3><span class="check"></span>بطاقة وفاء رقمية للخدمات الإدارية</h3>
+    <p>نقاط أو «الخدمة العاشرة مجانية» مرتبطة برقم الهاتف، تظهر في الوصل وفي صفحة التتبّع.</p>
+    <div class="tags"><span class="tag why">تشجّع الزبون على البقاء</span><span class="tag e1">قليل</span></div></div></div>
+
+  <div class="card"><div class="n">5</div><div><h3><span class="check"></span>دعوة لتقييم Google بعد كل طلب منجز</h3>
+    <p>رسالة واتساب تُقترح على الموظف بعد التسليم، فيها رابط تقييم المكتبة في Google Maps.</p>
+    <div class="tags"><span class="tag why">التقييمات ترفعك في البحث عن «مكتبة تطوان»</span><span class="tag e1">قليل</span><span class="tag star">★</span></div></div></div>
+
+  <div class="card"><div class="n">6</div><div><h3><span class="check"></span>العروض وقسائم التخفيض</h3>
+    <p>رمز تخفيض (مثلاً RENTREE10) يُستعمل في الموقع ونقطة البيع، بتاريخ بداية ونهاية وحد للاستعمال، مع تقرير عن نجاح كل عرض.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag why">حملات مدروسة في المواسم</span><span class="tag e2">متوسط</span></div></div></div>
+
+  <div class="card"><div class="n">7</div><div><h3><span class="check"></span>باقات الخدمات</h3>
+    <p>مثلاً «ملف مباراة كامل»: سيرة ذاتية + طلب خطي + تسجيل أونلاين + نسخ، بثمن واحد أقل من مجموعها.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag why">يرفع قيمة كل زبون</span><span class="tag e1">قليل</span></div></div></div>
+
+  <div class="card"><div class="n">8</div><div><h3><span class="check"></span>قائمة بث واتساب للمهتمين (بموافقتهم)</h3>
+    <p>إعلان المباريات الجديدة، وفتح التسجيل الجامعي، ومواعيد المنحة، والعروض… لكل زبون يختار المواضيع التي تهمه.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag why">يأتيك الزبون قبل أن يبحث</span><span class="tag e2">متوسط</span></div></div></div>
+
+  <div class="card"><div class="n">9</div><div><h3><span class="check"></span>اللغة الإسبانية في الموقع</h3>
+    <p>نسخة ثالثة بالإسبانية لأن تطوان قريبة من إسبانيا، ويزورها كثير من الإسبان والمغاربة المقيمين هناك.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag why">زبائن مغاربة العالم في الصيف</span><span class="tag e2">متوسط</span></div></div></div>
+
+  <div class="card"><div class="n">10</div><div><h3><span class="check"></span>خدمات مخصصة لمغاربة العالم</h3>
+    <p>قسم «أنا خارج المغرب»: طلب الوثائق عن بُعد (عقد الازدياد، شهادة الملكية…) مع الأداء بالتحويل والإرسال بالبريد أو بالإيميل.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag why">سوق كبير وقليل المنافسة</span><span class="tag e1">قليل</span></div></div></div>
+</div>
+
+<!-- 2 -->
+<div class="section">
+  <h2><span class="badge">2</span>البيع والمتجر</h2>
+
+  <div class="card"><div class="n">11</div><div><h3><span class="check"></span>الربط مع Glovo أو خدمة توصيل محلية</h3>
+    <p>طلبات Glovo تدخل مباشرة إلى نقطة البيع ويُخصم المخزون تلقائياً، أو على الأقل يُصدَّر لهم كتالوج المنتجات بأسعاره.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag why">بيع إضافي دون عمل يدوي</span><span class="tag e3">كبير</span></div></div></div>
+
+  <div class="card"><div class="n">12</div><div><h3><span class="check"></span>البيع بالتقسيط في الدخول المدرسي</h3>
+    <p>اللائحة على 2 أو 3 دفعات مع جدول وتذكير على واتساب، مرتبط بنظام الديون الحالي.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag why">يجذب الأسر ذات الميزانية المحدودة</span><span class="tag e1">قليل</span></div></div></div>
+
+  <div class="card"><div class="n">13</div><div><h3><span class="check"></span>حسابات المهنيين والشركات</h3>
+    <p>الشركات والإدارات المجاورة تشتري طوال الشهر، فتصدر لها فاتورة شهرية واحدة مجمّعة بالـ ICE وكشف حساب.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag why">زبائن دائمون بمبالغ كبيرة</span><span class="tag e2">متوسط</span></div></div></div>
+
+  <div class="card"><div class="n">14</div><div><h3><span class="check"></span>شاشة ثانية للزبون في الصندوق</h3>
+    <p>شاشة صغيرة أو تابلت مقابل الزبون تعرض السلة والمجموع والباقي، وفي وقت الفراغ العروض ورمز QR للموقع.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag why">ثقة واحترافية وإعلان مجاني</span><span class="tag e1">قليل</span></div></div></div>
+
+  <div class="card"><div class="n">15</div><div><h3><span class="check"></span>صور المنتجات تلقائياً من الباركود</h3>
+    <p>عند إضافة منتج بباركود معروف، يقترح النظام اسمه وصورته من قواعد بيانات المنتجات المفتوحة.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag why">متجر أونلاين جميل دون تصوير كل منتج</span><span class="tag e2">متوسط</span></div></div></div>
+
+  <div class="card"><div class="n">16</div><div><h3><span class="check"></span>الأداء الإلكتروني بالبطاقة في الموقع</h3>
+    <p>عبر CMI أو مزود دفع مغربي، فتُتاح الوثيقة للتحميل فوراً بعد الأداء دون انتظار تأكيد التحويل.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag why">سرعة أكبر للزبون (يحتاج عقداً مع البنك)</span><span class="tag e3">كبير</span></div></div></div>
+</div>
+
+<!-- 3 -->
+<div class="section">
+  <h2><span class="badge">3</span>الخدمات الإدارية</h2>
+
+  <div class="card"><div class="n">17</div><div><h3><span class="check"></span>قراءة البطاقة الوطنية بالكاميرا</h3>
+    <p>يصوّر الموظف أو الزبون البطاقة، فتُملأ خانات الاسم ورقم البطاقة وتاريخ الازدياد وحدها.</p>
+    <div class="tags"><span class="tag why">دقائق أقل في كل طلب وأخطاء أقل</span><span class="tag e3">كبير</span></div></div></div>
+
+  <div class="card"><div class="n">18</div><div><h3><span class="check"></span>مساعد ذكي للكتابة الإدارية</h3>
+    <p>يكتب الطلبات الخطية والشكايات والرسائل بالعربية الإدارية أو الفرنسية من بضع كلمات، ويقترح الوثائق الناقصة لكل خدمة.</p>
+    <div class="tags"><span class="tag why">خدمة الكتابة تصبح أسرع وأكثر ربحاً</span><span class="tag e2">متوسط</span></div></div></div>
+
+  <div class="card"><div class="n">19</div><div><h3><span class="check"></span>حجز موعد في المحل</h3>
+    <p>للخدمات التي تحتاج حضور الزبون (ملفات كبيرة، تسجيلات): يختار الوقت من الموقع ويصله تذكير.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag why">ازدحام أقل وتنظيم أفضل</span><span class="tag e2">متوسط</span></div></div></div>
+
+  <div class="card"><div class="n">20</div><div><h3><span class="check"></span>مدة الإنجاز الفعلية وتنبيه الطلب المتأخر</h3>
+    <p>لكل خدمة مدة مستهدفة، والطلب الذي يتجاوزها يظهر بالأحمر ويُنبَّه الموظف. وتقرير بمتوسط المدة لكل خدمة.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag why">لا طلب منسي، ووعود واقعية للزبائن</span><span class="tag e1">قليل</span><span class="tag star">★</span></div></div></div>
+
+  <div class="card"><div class="n">21</div><div><h3><span class="check"></span>دليل خطوات داخلي لكل خدمة</h3>
+    <p>داخل صفحة الطلب: خطوات الإنجاز في البوابة الرسمية، والأخطاء الشائعة، وصور توضيحية. يكتبها المالك مرة واحدة.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag why">الموظف الجديد يعمل من اليوم الأول</span><span class="tag e1">قليل</span></div></div></div>
+
+  <div class="card"><div class="n">22</div><div><h3><span class="check"></span>رقم دور (طابور) في المحل</h3>
+    <p>تذكرة برقم عند الدخول، وشاشة تعرض الرقم الحالي، ويمكن أخذ الرقم من الهاتف قبل الوصول.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag why">مفيد في أيام الازدحام والمواسم</span><span class="tag e2">متوسط</span></div></div></div>
+</div>
+
+<!-- 4 -->
+<div class="section">
+  <h2><span class="badge">4</span>رياض (الشعبي كاش)</h2>
+
+  <div class="card"><div class="n">23</div><div><h3><span class="check"></span>قراءة كشف رياض من صورة أو ملف</h3>
+    <p>بدل كتابة أرقام الداخل والخارج يدوياً عند الإغلاق، يصوّر الموظف الكشف أو يرفعه فتُستخرج الأرقام.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag why">أخطاء أقل في الصندوق</span><span class="tag e3">كبير</span></div></div></div>
+
+  <div class="card"><div class="n">24</div><div><h3><span class="check"></span>توقع حاجة الـ plafond</h3>
+    <p>من حركة الأسابيع الماضية يقترح النظام مبلغ التعبئة المناسب قبل نهاية الأسبوع أو أيام الذروة (بداية الشهر).</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag why">لا رفض لعمليات بسبب نفاد الرصيد</span><span class="tag e1">قليل</span></div></div></div>
+
+  <div class="card"><div class="n">25</div><div><h3><span class="check"></span>تقرير ربحية رياض الحقيقية</h3>
+    <p>الرسوم + العمولة − الوقت المستهلك، مقارنة بالأنشطة الأخرى، لتعرف هل يستحق التوسيع.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag e1">قليل</span></div></div></div>
+</div>
+
+<!-- 5 -->
+<div class="section">
+  <h2><span class="badge">5</span>المخزون والمشتريات</h2>
+
+  <div class="card"><div class="n">26</div><div><h3><span class="check"></span>قارئ باركود بكاميرا الهاتف</h3>
+    <p>للجرد بين الرفوف، واستلام البضاعة، والبحث السريع عن السعر دون حاسوب.</p>
+    <div class="tags"><span class="tag why">الجرد أسرع بكثير</span><span class="tag e1">قليل</span><span class="tag star">★</span></div></div></div>
+
+  <div class="card"><div class="n">27</div><div><h3><span class="check"></span>طلبية المورد الجاهزة</h3>
+    <p>عند انخفاض المخزون تُجمع قائمة الطلبية لكل مورد بالكميات المقترحة، وتُرسل له على واتساب بضغطة.</p>
+    <div class="tags"><span class="tag why">لا نفاد للمنتجات الأكثر مبيعاً</span><span class="tag e1">قليل</span></div></div></div>
+
+  <div class="card"><div class="n">28</div><div><h3><span class="check"></span>تنبيه المنتجات الراكدة</h3>
+    <p>المنتجات التي لم تُبع منذ 3 أو 6 أشهر، مع قيمتها، لعمل تخفيض عليها وتحرير المال.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag why">مال أقل مجمّد في الرفوف</span><span class="tag e1">قليل</span></div></div></div>
+
+  <div class="card"><div class="n">29</div><div><h3><span class="check"></span>توقع مشتريات الموسم</h3>
+    <p>قبل الدخول المدرسي: ما بِيع في سبتمبر الماضي، وما يجب شراؤه الآن بالكمية.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag e2">متوسط</span></div></div></div>
+</div>
+
+<!-- 6 -->
+<div class="section">
+  <h2><span class="badge">6</span>المالك والتقارير</h2>
+
+  <div class="card"><div class="n">30</div><div><h3><span class="check"></span>تقرير يومي على واتساب كل مساء</h3>
+    <p>المبيعات، والربح، وفرق الصندوق، ورصيد رياض، والطلبات المتأخرة، وأهم مهام الغد.</p>
+    <div class="tags"><span class="tag why">تعرف حال المحل وأنت خارجه</span><span class="tag e1">قليل</span><span class="tag star">★</span></div></div></div>
+
+  <div class="card"><div class="n">31</div><div><h3><span class="check"></span>ربحية كل قسم على حدة</h3>
+    <p>المكتبة، والخدمات الإدارية، والطباعة والنسخ، ورياض، والأونلاين، مع رسم شهري لكل قسم.</p>
+    <div class="tags"><span class="tag why">تعرف أين تستثمر</span><span class="tag e1">قليل</span></div></div></div>
+
+  <div class="card"><div class="n">32</div><div><h3><span class="check"></span>مقارنة المواسم بالسنة الماضية</h3>
+    <p>سبتمبر مقابل سبتمبر، ورمضان مقابل رمضان، والصيف مقابل الصيف.</p>
+    <div class="tags"><span class="tag e1">قليل</span></div></div></div>
+
+  <div class="card"><div class="n">33</div><div><h3><span class="check"></span>تقييم أداء الموظفين</h3>
+    <p>المبيعات، وعدد الطلبات المنجزة ومدتها، وفروقات الصندوق، والإلغاءات. يساعد في حساب المكافآت بعدل.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag e1">قليل</span></div></div></div>
+
+  <div class="card"><div class="n">34</div><div><h3><span class="check"></span>ربط كاميرات المحل بعمليات الصندوق</h3>
+    <p>كل إلغاء أو تخفيض كبير أو فرق في الصندوق يُربط بلقطة من الكاميرا (SmartPSS) في نفس الدقيقة.</p>
+    <div class="tags"><span class="tag why">رقابة قوية دون حضور</span><span class="tag e3">كبير</span></div></div></div>
+
+  <div class="card"><div class="n">35</div><div><h3><span class="check"></span>تصدير محاسبي للمحاسب</h3>
+    <p>ملف شهري جاهز للمحاسب: المبيعات، والضريبة المحصلة والمؤداة، والمصاريف، والمشتريات، بالشكل الذي يطلبه.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag why">يوفر أجرة وساعات عند التصريح الضريبي</span><span class="tag e1">قليل</span></div></div></div>
+</div>
+
+<!-- 7 -->
+<div class="section">
+  <h2><span class="badge">7</span>الموظفون</h2>
+
+  <div class="card"><div class="n">36</div><div><h3><span class="check"></span>وضع التدريب في نقطة البيع</h3>
+    <p>بيع تجريبي لا يُحسب ولا يغيّر المخزون، ليتعلم الموظف الجديد دون خوف من الخطأ.</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag e1">قليل</span></div></div></div>
+
+  <div class="card"><div class="n">37</div><div><h3><span class="check"></span>تطبيق إشعارات للموظف على الهاتف</h3>
+    <p>صوت وإشعار فوري عند وصول طلب جديد أو وثيقة من زبون، حتى لو كانت نقطة البيع مغلقة.</p>
+    <div class="tags"><span class="tag why">لا طلب يفوت</span><span class="tag e2">متوسط</span></div></div></div>
+
+  <div class="card"><div class="n">38</div><div><h3><span class="check"></span>تسجيل الحضور والانصراف</h3>
+    <p>بالرمز السري في نقطة البيع، مرتبط بالورديات والرواتب (ساعات إضافية، غياب).</p>
+    <div class="tags"><span class="tag new">جديد</span><span class="tag e1">قليل</span></div></div></div>
+</div>
+
+<!-- 8 -->
+<div class="section">
+  <h2><span class="badge">8</span>التقنية والأمان</h2>
+
+  <div class="card"><div class="n">39</div><div><h3><span class="check"></span>نطاق خاص (مثلاً sweethouse.ma)</h3>
+    <p>رابط احترافي بدل github.io، مع بريد إلكتروني باسم المكتبة. حوالي 100 إلى 150 درهم سنوياً.</p>
+    <div class="tags"><span class="tag why">ثقة أكبر وترتيب أفضل في Google</span><span class="tag e1">قليل</span><span class="tag star">★</span></div></div></div>
+
+  <div class="card"><div class="n">40</div><div><h3><span class="check"></span>نسخ احتياطي تلقائي أسبوعي إلى Google Drive</h3>
+    <p>نسخة كاملة من البيانات (والوثائق إن أردت) تُرسل وحدها كل أسبوع دون تدخل.</p>
+    <div class="tags"><span class="tag why">أمان دون تذكّر</span><span class="tag e2">متوسط</span></div></div></div>
+</div>
+
+<div class="section" style="page-break-before: always;">
+  <h2>الخطة المقترحة للتنفيذ</h2>
+  <p class="lead">ترتيب مقترح حسب الأثر والجهد. يمكن تغييره حسب أولوياتك.</p>
+  <table>
+    <thead><tr><th style="width:22%">المرحلة</th><th>الاقتراحات</th><th style="width:22%">الهدف</th></tr></thead>
+    <tbody>
+      <tr><td><b>أ. سريعة الأثر</b><br /><span class="num">1–2</span> أسبوع</td><td>5 دعوة التقييم · 20 مدة الإنجاز · 26 باركود بالهاتف · 30 التقرير اليومي · 31 ربحية الأقسام · 39 النطاق الخاص · 35 التصدير للمحاسب</td><td>صورة احترافية ورؤية يومية</td></tr>
+      <tr><td><b>ب. قبل الدخول المدرسي</b><br /><span class="num">2–3</span> أسابيع</td><td>1 اللوائح الجاهزة · 6 العروض · 12 التقسيط · 27 طلبية المورد · 29 توقع المشتريات · 14 شاشة الزبون</td><td>أكبر موسم في السنة</td></tr>
+      <tr><td><b>ج. النمو</b><br />حسب الحاجة</td><td>2 تذكير التجديد · 3 وثائقي · 8 قائمة البث · 10 مغاربة العالم · 18 المساعد الذكي · 13 حسابات الشركات · 40 النسخ التلقائي · 9 الإسبانية</td><td>زبائن دائمون وخدمات أوسع</td></tr>
+      <tr><td><b>د. مشاريع كبيرة</b></td><td>11 Glovo · 16 الأداء بالبطاقة · 17 قراءة البطاقة الوطنية · 23 قراءة كشف رياض · 34 الكاميرات</td><td>تُدرس كل واحدة على حدة</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box" style="margin-top:10mm">
+    <b>رأيي إن اخترت خمسة فقط:</b> 1 اللوائح المدرسية الجاهزة · 30 التقرير اليومي على واتساب · 39 النطاق الخاص · 2 تذكير مواعيد التجديد · 5 دعوة التقييم في Google.
+  </div>
+
+  <h2 style="margin-top:8mm">ملاحظاتي</h2>
+  <div style="border:1px dashed #CBD5E1; border-radius:12px; height:70mm;"></div>
+
+  <div class="footer-note">Sweet House · مكتبة سويت هاوس · تطوان — وثيقة اقتراحات للمراجعة، لم يُنفَّذ منها شيء بعد</div>
+</div>
+
+</body>
+</html>

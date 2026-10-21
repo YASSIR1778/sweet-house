@@ -211,6 +211,9 @@ export function SettingsPage() {
                     <Field label={t('رابط Google Maps', 'Lien Google Maps')}>
                       <Input value={store.maps_url ?? ''} onChange={(e) => setStore({ ...store, maps_url: e.target.value })} dir="ltr" />
                     </Field>
+                    <Field label={t('⭐ رابط «قيّمنا على Google»', '⭐ Lien « Laisser un avis Google »')} hint={t('من Google Business Profile ← «Demander des avis» ← انسخ الرابط. يظهر للزبون بعد إنجاز خدمته، ويستعمله وكيل التقييمات.', 'Business Profile → « Demander des avis » → copier le lien.')}>
+                      <Input value={store.google_review_url ?? ''} onChange={(e) => setStore({ ...store, google_review_url: e.target.value })} dir="ltr" placeholder="https://g.page/r/…/review" />
+                    </Field>
                     <Field label={t('العنوان (ع)', 'Adresse (ar)')}>
                       <Textarea value={store.address_ar ?? ''} onChange={(e) => setStore({ ...store, address_ar: e.target.value })} />
                     </Field>

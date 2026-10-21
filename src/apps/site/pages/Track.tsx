@@ -9,7 +9,7 @@ import { errorMessage } from '@/shared/lib/errors'
 import { money } from '@/shared/lib/money'
 import { cn } from '@/shared/lib/utils'
 import { Badge, Button, Card, Input, Spinner } from '@/shared/ui/primitives'
-import { sb } from '../data'
+import { sb, useSite } from '../data'
 import { useSeo } from '../Layout'
 import { ACCEPT, downloadPublicFile, uploadPublicFile } from '../upload'
 import { Row } from './Checkout'
@@ -112,6 +112,28 @@ export function TrackPage() {
   )
 }
 
+/** ⭐ After a successful service: invite the customer to review us on Google. */
+function ReviewCta() {
+  const { t } = useLang()
+  const site = useSite()
+  const url = site.data?.store.google_review_url
+  if (!url) return null
+  return (
+    <Card className="flex flex-wrap items-center gap-4 border-warning/30 bg-warning/5 p-5">
+      <div className="text-3xl">⭐</div>
+      <div className="min-w-0 flex-1">
+        <div className="font-bold">{t('أعجبتك خدمتنا؟', 'Satisfait de notre service ?')}</div>
+        <div className="text-sm text-muted">{t('تقييمك على Google يساعد جيرانك في تطوان يلقاونا. كياخد دقيقة وحدة 🙏', 'Votre avis Google aide d’autres personnes à nous trouver. 1 minute 🙏')}</div>
+      </div>
+      <Button asChild>
+        <a href={url} target="_blank" rel="noreferrer">
+          {t('قيّمنا على Google', 'Laisser un avis')}
+        </a>
+      </Button>
+    </Card>
+  )
+}
+
 function RequestView({ d, phone, reload }: { d: RequestTrack; phone: string; reload: () => void }) {
   const { t, pick } = useLang()
   const cancelled = d.status.is_cancel
@@ -176,6 +198,7 @@ function RequestView({ d, phone, reload }: { d: RequestTrack; phone: string; rel
 
       <Payment kind="request" code={d.tracking_code} phone={phone} amount={d.price} method={d.payment_method} status={d.payment_status} bank={d.bank} reload={reload} />
       {!d.status.is_final && <Uploader code={d.tracking_code} phone={phone} kind="upload" title={t('إضافة وثائق', 'Ajouter des documents')} existing={d.uploads.filter((u) => u.kind === 'upload')} reload={reload} />}
+      {d.status.allow_download && !cancelled && <ReviewCta />}
     </motion.div>
   )
 }

@@ -233,6 +233,7 @@ export type StoreSettings = {
   address_fr: string
   city: string
   maps_url: string
+  google_review_url?: string
   logo_url: string | null
   hours: { day: number; open: string | null; close: string | null }[]
   socials: Record<string, string>

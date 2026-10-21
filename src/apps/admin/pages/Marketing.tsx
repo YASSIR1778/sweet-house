@@ -140,6 +140,7 @@ export function MarketingTab() {
   const [days, setDays] = useState('30')
   const stats = useQuery({ queryKey: ['mk-stats', days], queryFn: async () => (await sb.rpc('marketing_stats', { p_days: Number(days) })).data as Stats })
   const promos = useQuery({ queryKey: ['promo-codes'], queryFn: async () => ((await sb.from('promo_codes').select('*').order('created_at', { ascending: false })).data ?? []) as Promo[] })
+  const asks = useQuery({ queryKey: ['review-asks'], queryFn: async () => (await sb.from('review_asks').select('phone', { count: 'exact', head: true }).gte('asked_at', new Date(Date.now() - 30 * 86400_000).toISOString())).count ?? 0 })
   const plan = useQuery({ queryKey: ['mk-plan'], queryFn: async () => ((await sb.from('marketing_plan').select('*').order('month', { ascending: false }).limit(2)).data ?? []) as { month: string; plan: Week[] }[] })
   const [nc, setNc] = useState({ code: '', channel: 'facebook', discount_pct: 0 })
   const addPromo = async () => {
@@ -199,6 +200,10 @@ export function MarketingTab() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+              <div className="rounded-xl bg-warning/10 p-3 text-sm">
+                ⭐ {t('دعوات التقييم على Google المرسلة خلال 30 يوماً:', 'Invitations à laisser un avis (30 j) :')} <b className="num">{asks.data ?? 0}</b>
+                <span className="text-muted"> — {t('راجع عدد التقييمات في صفحتك على Google', 'vérifiez le nombre d’avis sur Google')}</span>
               </div>
               {!!s.top_links.length && (
                 <div className="space-y-1 text-sm">

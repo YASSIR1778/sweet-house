@@ -92,6 +92,13 @@ link من: /sales /shifts /riyad /reports /employees /attendance.`,
 - لكل عرض: title، description (ماذا يحصل الزبون وبكم)، code (حروف وأرقام كبيرة 4-10، مثل BAC10 أو FB15)، channel (facebook/instagram/tiktok/whatsapp/other)، discount_pct (0 إن كان العرض بدون تخفيض)، ends_on (YYYY-MM-DD)، why (لماذا يربح، مع حساب الهامش إن عُرفت التكلفة).
 - لا تتجاوز حد التخفيض الذي وضعه المالك.
 أرجع item لكل عرض مع offers. link /agents.`,
+  reviews: `مهمتك: تقييمات Google.
+- إن كان review_url فارغاً: لا تكتب رسائل؛ أرجع item واحداً (severity warning) يطلب من المالك إضافة رابط التقييم في الإعدادات ← المحل.
+- لكل زبون في customers: messages (to=customer, name, phone كما هو) برسالة شكر قصيرة جداً بالدارجة (3 أسطر): شكر باسمه على «what»، ثم «إلا عجباتك الخدمة، تقييمك على Google كيعاونا بزاف 🙏» مع review_url، ثم «— مكتبة سويت هاوس». لا تطلب 5 نجوم صراحة، ولا تَعِد بشيء مقابل التقييم.
+- جمّع كل الرسائل في item واحد (title: «شكر زبائن اليوم»، link /agents).
+- إن كان weekday = 1 (الإثنين): أضف في نفس item منشوراً واحداً لصفحة Google في posts (channel=google): 2-4 أسطر عن خدمة أو منتج حسب plan، مع دعوة للزيارة، و link_path مناسب.
+- إن لم يكن هناك زبائن ولا إثنين: أرجع items فارغة.
+- في المحادثة: إن ألصق المالك نص تقييم، اكتب رداً مهذباً قصيراً باسم المحل (شكر للإيجابي، واعتذار وحل وطريقة تواصل للسلبي).`,
   analyst: `مهمتك: تقرير التسويق الأسبوعي للمالك.
 - من week و month: أي قناة جلبت نقرات وطلبات ومبيعات ومالاً، وأي رابط أو كود نجح.
 - قارن بالأسبوع الماضي إن أمكن. كن صريحاً: ما نجح، ما لم ينجح، وما لا نعرفه بعد (قلة البيانات).
@@ -191,6 +198,7 @@ async function agentData(admin: SupabaseClient, a: Agent, refId: string | null) 
     content: () => admin.rpc('agent_content_data'),
     brief: () => admin.rpc('agent_brief_data'),
     planner: () => admin.rpc('agent_marketing_data', { p_channel: null }),
+    reviews: () => admin.rpc('agent_reviews_data'),
     facebook: () => admin.rpc('agent_marketing_data', { p_channel: 'facebook' }),
     instagram: () => admin.rpc('agent_marketing_data', { p_channel: 'instagram' }),
     tiktok: () => admin.rpc('agent_marketing_data', { p_channel: 'tiktok' }),
@@ -353,7 +361,7 @@ Deno.serve(async (req) => {
     }
     // every post gets its own short tracking link (?src=CODE)
     const SITE = 'https://yassir1778.github.io/sweet-house'
-    const prefix: Record<string, string> = { facebook: 'fb', instagram: 'ig', tiktok: 'tt', whatsapp: 'wa' }
+    const prefix: Record<string, string> = { facebook: 'fb', instagram: 'ig', tiktok: 'tt', whatsapp: 'wa', google: 'go' }
     for (const it of items) {
       for (const post of it.posts ?? []) {
         const channel = prefix[post.channel] ? post.channel : 'other'
