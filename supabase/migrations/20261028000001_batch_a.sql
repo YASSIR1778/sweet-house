@@ -10,6 +10,28 @@
 -- (36 training mode lives in the POS only, nothing is stored.)
 -- =====================================================================
 
+-- 38 · Attendance table (functions further down)
+create table public.attendance (
+  id          uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references public.employees(id),
+  device_id   uuid references public.devices(id),
+  check_in    timestamptz not null default now(),
+  check_out   timestamptz,
+  note        text,
+  edited_by   uuid references public.employees(id),
+  created_at  timestamptz not null default now(),
+  check (check_out is null or check_out > check_in)
+);
+create index attendance_emp_idx on public.attendance (employee_id, check_in desc);
+create unique index attendance_one_open on public.attendance (employee_id) where check_out is null;
+create trigger audit_attendance after update or delete on public.attendance
+  for each row execute function public.audit_row();
+alter table public.attendance enable row level security;
+create policy attendance_read on public.attendance for select
+  using (employee_id = public.current_employee_id() or public.has_perm('employees.manage'));
+create policy attendance_write on public.attendance for all
+  using (public.has_perm('employees.manage')) with check (public.has_perm('employees.manage'));
+
 -- ---------------------------------------------------------------------
 -- 20 · Target duration
 -- ---------------------------------------------------------------------
@@ -223,27 +245,6 @@ end $$;
 -- ---------------------------------------------------------------------
 -- 38 · Attendance
 -- ---------------------------------------------------------------------
-create table public.attendance (
-  id          uuid primary key default gen_random_uuid(),
-  employee_id uuid not null references public.employees(id),
-  device_id   uuid references public.devices(id),
-  check_in    timestamptz not null default now(),
-  check_out   timestamptz,
-  note        text,
-  edited_by   uuid references public.employees(id),
-  created_at  timestamptz not null default now(),
-  check (check_out is null or check_out > check_in)
-);
-create index attendance_emp_idx on public.attendance (employee_id, check_in desc);
-create unique index attendance_one_open on public.attendance (employee_id) where check_out is null;
-create trigger audit_attendance after update or delete on public.attendance
-  for each row execute function public.audit_row();
-alter table public.attendance enable row level security;
-create policy attendance_read on public.attendance for select
-  using (employee_id = public.current_employee_id() or public.has_perm('employees.manage'));
-create policy attendance_write on public.attendance for all
-  using (public.has_perm('employees.manage')) with check (public.has_perm('employees.manage'));
-
 create or replace function public.my_attendance()
 returns jsonb language sql stable security definer set search_path = public as $$
   select jsonb_build_object(
