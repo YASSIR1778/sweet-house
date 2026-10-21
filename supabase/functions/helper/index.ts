@@ -37,7 +37,10 @@ Deno.serve(async (req) => {
     if (budget === 'over') return fail('team_budget_reached', 429)
 
     const ip = await sha((req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() + 'sweet')
-    const dayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString()
+    // midnight in Morocco (UTC+1, or UTC+0 during Ramadan)
+    const now = new Date()
+    const off = Math.round((new Date(now.toLocaleString('en-US', { timeZone: 'Africa/Casablanca' })).getTime() - new Date(now.toLocaleString('en-US', { timeZone: 'UTC' })).getTime()) / 60000)
+    const dayStart = new Date(new Date(`${now.toLocaleDateString('en-CA', { timeZone: 'Africa/Casablanca' })}T00:00:00Z`).getTime() - off * 60000).toISOString()
     const hourAgo = new Date(Date.now() - 3600_000).toISOString()
     const [{ count: today }, { count: mine }] = await Promise.all([
       admin.from('helper_usage').select('id', { count: 'exact', head: true }).eq('channel', 'site').gte('created_at', dayStart),

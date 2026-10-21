@@ -20,7 +20,7 @@ const ACTIONS: Record<string, [string, string]> = {
 
 /** Settings → AI: on/off, monthly cap, usage and how to add the API key. */
 export function AiSection() {
-  const { sb } = useAuth()
+  const { sb, me } = useAuth()
   const { t, lang } = useLang()
   const [cfg, setCfg] = useState<Cfg | null>(null)
   const q = useQuery({ queryKey: ['ai-cfg'], queryFn: async () => (await sb.from('settings').select('value').eq('key', 'ai').single()).data?.value as Cfg })
@@ -34,6 +34,8 @@ export function AiSection() {
     const { error } = await sb.from('settings').update({ value: next }).eq('key', 'ai')
     if (error) toast.error(errorMessage(error, lang))
   }
+  if (!me?.is_owner)
+    return <Card className="p-5 text-sm text-muted">{t('إعدادات الذكاء الاصطناعي خاصة بالمالك.', 'Réservé au propriétaire.')}</Card>
   if (!cfg) return null
   const u = usage.data
 

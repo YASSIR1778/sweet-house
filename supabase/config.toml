@@ -446,3 +446,6 @@ verify_jwt = false
 
 [functions.helper]
 verify_jwt = false
+
+[functions.backup]
+verify_jwt = false

@@ -10,6 +10,7 @@ import { Avatar, Card, CardHeader, Skeleton } from '@/shared/ui/primitives'
 import { TodayTasks } from '../TodayTasks'
 import { LaunchChecklist } from '../LaunchChecklist'
 import { MorningBrief } from '../MorningBrief'
+import { SystemHealthCard } from '../SystemHealth'
 import { DailyReportButton } from '../DailyReport'
 import { EmptyState, PageHeader, StatCard, Tabs } from '@/shared/ui/data'
 
@@ -115,6 +116,7 @@ export function DashboardPage() {
       />
 
       <MorningBrief />
+      <SystemHealthCard />
       <LaunchChecklist />
       <TodayTasks />
 

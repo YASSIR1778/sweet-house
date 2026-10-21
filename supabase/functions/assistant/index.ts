@@ -115,10 +115,13 @@ const TOOLS: Anthropic.Beta.BetaTool[] = [
   },
 ]
 
+// Morocco is UTC+1 most of the year and UTC+0 during Ramadan: ask the tz database
+const casaOffsetMin = (d: Date) =>
+  Math.round((new Date(d.toLocaleString('en-US', { timeZone: 'Africa/Casablanca' })).getTime() - new Date(d.toLocaleString('en-US', { timeZone: 'UTC' })).getTime()) / 60000)
 const day = (d: string, end = false) => {
-  const x = new Date(`${String(d).slice(0, 10)}T00:00:00+01:00`)
-  if (end) x.setDate(x.getDate() + 1)
-  return x.toISOString()
+  const x = new Date(`${String(d).slice(0, 10)}T00:00:00Z`)
+  if (end) x.setUTCDate(x.getUTCDate() + 1)
+  return new Date(x.getTime() - casaOffsetMin(x) * 60000).toISOString()
 }
 const safe = (v: unknown) => String(v ?? '').replace(/[,()%*\\]/g, ' ').trim().slice(0, 60)
 const clip = (v: unknown) => {
