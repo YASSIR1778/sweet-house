@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<title>Sweet House — خطة الانطلاق والنمو</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@500;700;800&display=swap" rel="stylesheet" />
+<style>
+  @page { size: A4; margin: 15mm 13mm 17mm; }
+  @page cover { size: A4; margin: 0; }
+  html, body { width: auto; overflow: visible; }
+  * { box-sizing: border-box; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family: 'IBM Plex Sans Arabic', sans-serif; color: #0F172A; font-size: 10pt; line-height: 1.7; margin: 0; direction: rtl; text-align: right; }
+  .num, .latin { font-family: 'Inter', sans-serif; }
+  .ltr { direction: ltr; unicode-bidi: embed; font-family: 'Inter', sans-serif; font-size: 9pt; }
+  .cover { page: cover; width: 210mm; height: 296mm; display: flex; flex-direction: column; justify-content: space-between; background: #0F172A; color: #fff; margin: 0; padding: 26mm 20mm; page-break-after: always; position: relative; overflow: hidden; }
+  .cover::before { content: ''; position: absolute; width: 140mm; height: 140mm; border-radius: 50%; background: rgba(255,107,53,.35); filter: blur(30px); top: -40mm; left: -40mm; }
+  .cover::after { content: ''; position: absolute; width: 100mm; height: 100mm; border-radius: 50%; background: rgba(37,99,235,.3); filter: blur(30px); bottom: -30mm; right: -20mm; }
+  .cover > * { position: relative; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand img { width: 54px; height: 54px; }
+  .brand b { font-family: Inter; font-size: 20pt; font-weight: 800; }
+  .brand b span { color: #FF6B35; }
+  .cover h1 { font-size: 32pt; line-height: 1.35; margin: 0; font-weight: 700; }
+  .cover h1 span { color: #FF6B35; }
+  .cover p { color: rgba(255,255,255,.72); font-size: 12pt; max-width: 150mm; }
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; }
+  .stats div { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 10px 16px; }
+  .stats b { display: block; font-family: Inter; font-size: 20pt; color: #FF6B35; }
+  .stats span { font-size: 9pt; color: rgba(255,255,255,.65); }
+  .meta { font-size: 9pt; color: rgba(255,255,255,.5); }
+  h2 { font-size: 15.5pt; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; break-after: avoid; page-break-after: avoid; }
+  h2 .badge { background: #FF6B35; color: #fff; border-radius: 10px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; font-family: Inter; font-size: 12pt; flex-shrink: 0; }
+  h2.services .badge { background: #2563EB; } h2.store .badge { background: #FF6B35; } h2.immo .badge { background: #16A34A; }
+  h3 { font-size: 11.5pt; margin: 12px 0 4px; break-after: avoid; page-break-after: avoid; }
+  .section { margin-bottom: 7mm; }
+  .newpage { page-break-before: always; }
+  .lead { color: #475569; margin: 0 0 10px; break-after: avoid; }
+  table { width: 100%; border-collapse: collapse; font-size: 9pt; margin: 6px 0 10px; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  th { background: #0F172A; color: #fff; padding: 6px 8px; text-align: right; font-weight: 600; }
+  .t-services th { background: #1E3A8A; } .t-store th { background: #9A3412; } .t-immo th { background: #14532D; }
+  td { border-bottom: 1px solid #E2E8F0; padding: 6px 8px; vertical-align: top; }
+  tr:nth-child(even) td { background: #F8FAFC; }
+  .box { border-radius: 12px; padding: 10px 14px; background: #FFF3EE; border: 1px solid #FFD4C2; margin: 8px 0; page-break-inside: avoid; }
+  .box.blue { background: #EFF6FF; border-color: #BFDBFE; }
+  .box.green { background: #F0FDF4; border-color: #BBF7D0; }
+  .box.red { background: #FEF2F2; border-color: #FECACA; }
+  .box.gray { background: #F8FAFC; border-color: #E2E8F0; }
+  .box b.t { display: block; margin-bottom: 2px; }
+  .tag { display: inline-block; border-radius: 999px; padding: 0 8px; font-size: 8pt; font-weight: 600; white-space: nowrap; }
+  .keep { background: #DCFCE7; color: #166534; } .renew { background: #FEF3C7; color: #92400E; } .new { background: #DBEAFE; color: #1E40AF; }
+  .del { background: #FEE2E2; color: #991B1B; } .later { background: #F1F5F9; color: #475569; } .top { background: #0F172A; color: #fff; }
+  .legend { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; font-size: 9pt; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .brandcard { border-radius: 12px; padding: 10px 12px; color: #fff; page-break-inside: avoid; }
+  .brandcard h4 { margin: 0 0 2px; font-size: 12pt; }
+  .brandcard p { margin: 0; font-size: 9pt; opacity: .9; }
+  .bc-store { background: #EA580C; } .bc-services { background: #2563EB; } .bc-immo { background: #16A34A; }
+  pre { white-space: pre-wrap; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 8px 12px; font-family: 'IBM Plex Sans Arabic', sans-serif; font-size: 9.5pt; margin: 4px 0 10px; page-break-inside: avoid; }
+  ul, ol { margin: 4px 0 8px; padding-inline-start: 18px; }
+  li { margin: 1px 0; }
+  .todo li { list-style: none; position: relative; padding-inline-start: 4px; }
+  .todo li::before { content: ''; display: inline-block; width: 11px; height: 11px; border: 1.5px solid #94A3B8; border-radius: 3px; margin-left: 6px; vertical-align: -1px; }
+  .toc { columns: 2; font-size: 10pt; }
+  .toc div { break-inside: avoid; padding: 2px 0; }
+  .toc b { font-family: Inter; color: #FF6B35; display: inline-block; width: 22px; }
+  .footer-note { color: #94A3B8; font-size: 8.5pt; text-align: center; margin-top: 8mm; }
+</style>
+</head>
+<body>
+
+<!-- ============================ COVER ============================ -->
+<section class="cover">
+  <div class="brand"><img src="../public/logo.svg" alt="" /><b>Sweet <span>House</span></b></div>
+  <div>
+    <h1>خطة الانطلاق والنمو<br /><span>فرعان · نظام واحد · هدف واحد: الربح</span></h1>
+    <p>الهيكل الجديد (المتجر، الخدمات، والعقار لاحقاً)، كل الصفحات والقنوات (ما يبقى وما يتجدد وما يُنشأ)، مصادر الربح، الأنظمة، الأهداف، وخطة التنفيذ أسبوعاً بأسبوع.</p>
+    <div class="stats">
+      <div><b>2</b><span>فرعان الآن</span></div>
+      <div><b>2</b><span>موقعان · نظام واحد</span></div>
+      <div><b>2</b><span>صفحتا Google</span></div>
+      <div><b>6</b><span>أسابيع للتنفيذ</span></div>
+      <div><b>90</b><span>يوماً لأول النتائج</span></div>
+    </div>
+  </div>
+  <div class="meta">Sweet House — تطوان · وثيقة عمل داخلية · أكتوبر 2026</div>
+</section>
+
+<!-- ============================ TOC ============================ -->
+<div class="section">
+  <h2><span class="badge">≡</span>المحتويات</h2>
+  <div class="toc">
+    <div><b>1</b>الملخص التنفيذي والقرارات</div>
+    <div><b>2</b>الهيكل: 3 علامات ونظام واحد</div>
+    <div><b>3</b>من أين يأتي الربح</div>
+    <div><b>4</b>المتجر: التموضع والشرائح والأقسام</div>
+    <div><b>5</b>المتجر: قواعد اختيار المنتجات</div>
+    <div><b>6</b>المتجر: الصفحات</div>
+    <div><b>7</b>المتجر: القنوات</div>
+    <div><b>8</b>الخدمات: خطوط الدخل والاشتراكات</div>
+    <div><b>9</b>الخدمات: الصفحات</div>
+    <div><b>10</b>الخدمات: القنوات</div>
+    <div><b>11</b>Google Maps: صفحتان وشروطهما</div>
+    <div><b>12</b>واتساب: رقمان</div>
+    <div><b>13</b>العقار (لاحقاً)</div>
+    <div><b>14</b>الأداء عند الاستلام والتوصيل</div>
+    <div><b>15</b>النظام: ما يتغير</div>
+    <div><b>16</b>فريق التسويق لكل فرع</div>
+    <div><b>17</b>الأهداف والمراجعة الأسبوعية</div>
+    <div><b>18</b>خطة التنفيذ أسبوعاً بأسبوع</div>
+    <div><b>19</b>النصوص الجاهزة (البايو والأوصاف)</div>
+    <div><b>20</b>القواعد والمخاطر</div>
+    <div><b>21</b>القرارات المطلوبة منك</div>
+  </div>
+</div>
+
+<!-- ============================ 1 ============================ -->
+<div class="section">
+  <h2><span class="badge">1</span>الملخص التنفيذي</h2>
+  <p class="lead">النشاط يُقسم أونلاين إلى علامتين واضحتين للزبون، بينما يبقى النظام الداخلي واحداً: نقطة بيع واحدة ولوحة تحكم واحدة، حتى يكبر حجم المعاملات.</p>
+  <table>
+    <thead><tr><th style="width:32%">القرار</th><th>التفاصيل</th></tr></thead>
+    <tbody>
+      <tr><td><b>فرعان أونلاين</b></td><td>🛍️ <b>Sweet House Store</b>: متجر إلكتروني <b>عام</b> للعائلة المغربية · 🗂️ <b>Sweet House Services</b>: الخدمات الإدارية والإلكترونية</td></tr>
+      <tr><td><b>المكتبة</b></td><td>تصبح <b>قسماً واحداً</b> داخل المتجر، يُنشَّط موسمياً (الدخول المدرسي). الطلب عليها ضعيف</td></tr>
+      <tr><td><b>الهدايا المخصصة</b></td><td><b>ليست محور المتجر</b>، لأن الطباعة تأخذ وقتاً. تبقى خياراً بسيطاً عند الطلب فقط</td></tr>
+      <tr><td><b>نظام واحد</b></td><td>نقطة بيع ولوحة تحكم وقاعدة بيانات واحدة، مع فصل التقارير والأرباح والتسويق حسب الفرع</td></tr>
+      <tr><td><b>Google Maps</b></td><td>صفحتان منفصلتان، بشرط رقم هاتف ثانٍ ولافتة خاصة لكل فرع</td></tr>
+      <tr><td><b>العقار</b></td><td>نشاط منفصل لاحقاً. يحتفظ بفيسبوك SweetHouseY وصفحة Google الحالية</td></tr>
+      <tr><td><b>محرّك الربح الثابت</b></td><td>الخدمات، وخصوصاً <b>الاشتراكات</b> (دخل شهري متكرر) و<b>مغاربة العالم</b></td></tr>
+      <tr><td><b>محرّك النمو</b></td><td>المتجر بمنتجات مختارة بقواعد الهامش والوزن والإرجاع، وتأكيد كل طلبية قبل الشحن</td></tr>
+      <tr><td><b>النطاق</b></td><td><span class="ltr">sweethouse.ma</span> للمتجر · <span class="ltr">services.sweethouse.ma</span> للخدمات · <span class="ltr">immo.sweethouse.ma</span> للعقار لاحقاً</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================ 2 ============================ -->
+<div class="section">
+  <h2><span class="badge">2</span>الهيكل: 3 علامات ونظام واحد</h2>
+  <p class="lead">علامة «Sweet House» واحدة يعرفها الزبائن، بثلاثة فروع. لكل فرع لونه ورسالته وجمهوره وحساباته.</p>
+  <div class="grid3">
+    <div class="brandcard bc-store"><h4>🛍️ Sweet House Store</h4><p>متجر سويت هاوس<br />«كلشي اللي محتاج، يوصلك لباب الدار»<br /><span class="ltr" style="color:#fff">sweethouse.ma</span></p></div>
+    <div class="brandcard bc-services"><h4>🗂️ Sweet House Services</h4><p>سويت هاوس للخدمات<br />«وراقك الإدارية من تيليفونك»<br /><span class="ltr" style="color:#fff">services.sweethouse.ma</span></p></div>
+    <div class="brandcard bc-immo"><h4>🏠 Sweet House Immobilier</h4><p>سويت هاوس للعقار (لاحقاً)<br />«دارك بثقة»<br /><span class="ltr" style="color:#fff">immo.sweethouse.ma</span></p></div>
+  </div>
+  <table>
+    <thead><tr><th>العنصر</th><th>الآن</th><th>لاحقاً (عند كبر المعاملات)</th></tr></thead>
+    <tbody>
+      <tr><td>نقطة البيع (POS)</td><td>واحدة للمتجر والخدمات</td><td>نقطة بيع لكل فرع إن صار لكل فرع فريق أو مكان</td></tr>
+      <tr><td>لوحة التحكم</td><td>واحدة، مع فلتر «الفرع» في كل شيء</td><td>لوحة لكل فرع</td></tr>
+      <tr><td>قاعدة البيانات والزبائن</td><td>واحدة (الزبون نفسه قد يشتري ويطلب خدمة)</td><td>تبقى واحدة</td></tr>
+      <tr><td>الموقع الإلكتروني</td><td>موقعان من نفس النظام</td><td>—</td></tr>
+      <tr><td>العقار</td><td>—</td><td>موقع ولوحة مستقلان تماماً</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================ 3 ============================ -->
+<div class="section">
+  <h2><span class="badge">3</span>من أين يأتي الربح</h2>
+  <p class="lead">مرتبة من الأعلى أثراً إلى الأقل.</p>
+  <table>
+    <thead><tr><th style="width:4%">#</th><th style="width:26%">الفرصة</th><th>لماذا تربح</th><th style="width:14%">الفرع</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td><b>اشتراكات الخدمات</b></td><td>المقاول الذاتي يصرّح كل 3 أشهر، والمقاولات الصغيرة تصرّح بأجرائها كل شهر (Damancom). زبون واحد يدفع طول السنة دون تسويق جديد</td><td>🗂️ الخدمات</td></tr>
+      <tr><td class="num">2</td><td><b>تأكيد كل طلبية قبل الشحن</b></td><td>في الأداء عند الاستلام، الطلبيات المرفوضة عند الباب تُخسّر التوصيل ذهاباً وإياباً. التأكيد بواتساب يقلّل الرفض مباشرة</td><td>🛍️ المتجر</td></tr>
+      <tr><td class="num">3</td><td><b>مغاربة العالم</b></td><td>يدفعون أكثر ولا يساومون، ويحتاجون الخدمة عن بعد. موسم قوي قبل الصيف وفيه</td><td>🗂️ الخدمات</td></tr>
+      <tr><td class="num">4</td><td><b>Google Maps + التقييمات</b></td><td>من يبحث «السجل العدلي تطوان» يقرر بالتقييمات. قناة مجانية دائمة</td><td>الاثنان</td></tr>
+      <tr><td class="num">5</td><td><b>اختيار المنتجات بالأرقام</b></td><td>اختبار صغير قبل الشراء الكبير، وإيقاف ما لا يبيع بسرعة (القسم 5)</td><td>🛍️ المتجر</td></tr>
+      <tr><td class="num">6</td><td><b>الباقات والخدمة المستعجلة</b></td><td>قيمة أكبر لنفس الزبون («باقة الطالب»، «إنجاز في نفس اليوم»)</td><td>🗂️ الخدمات</td></tr>
+      <tr><td class="num">7</td><td><b>رفع قيمة السلة</b></td><td>شحن مجاني فوق مبلغ معيّن، «منتجات مكملة»، عروض 2 بـ</td><td>🛍️ المتجر</td></tr>
+      <tr><td class="num">8</td><td><b>الزبون المشترك</b></td><td>من يطلب خدمة يرى المتجر، ومن يشتري يرى الخدمات. رابط في كل موقع، وفي الوصل</td><td>الاثنان</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================ 4 ============================ -->
+<div class="section newpage">
+  <h2 class="store"><span class="badge">4</span>🛍️ المتجر: التموضع والشرائح والأقسام</h2>
+  <div class="box"><b class="t">التموضع</b>متجر عام للعائلة المغربية: منتجات عملية ومفيدة للبيت والأطفال والهاتف والمدرسة، بأثمنة واضحة، توصيل سريع، والأداء عند الاستلام. <b>لا</b> نبيع «كل شيء»، بل منتجات مختارة تُختبر وتُقاس.</div>
+  <h3>الشرائح المستهدفة</h3>
+  <table class="t-store">
+    <thead><tr><th>الشريحة</th><th>ماذا تشتري</th><th>القناة الأقوى</th><th>متى</th></tr></thead>
+    <tbody>
+      <tr><td>👩 الأمهات وربات البيوت (25–50)</td><td>المنزل والمطبخ، التنظيم، الأطفال</td><td>فيسبوك، تيك توك</td><td>طول السنة، ذروة قبل رمضان والعيد</td></tr>
+      <tr><td>📱 الشباب (16–30)</td><td>إكسسوارات الهاتف، الأغراض العملية، الحقائب</td><td>تيك توك، إنستغرام</td><td>طول السنة</td></tr>
+      <tr><td>🧒 الأولياء</td><td>الأدوات المدرسية، الألعاب التعليمية</td><td>فيسبوك، واتساب</td><td>غشت–شتنبر</td></tr>
+      <tr><td>🚗 أصحاب السيارات</td><td>إكسسوارات السيارة</td><td>فيسبوك، تيك توك</td><td>طول السنة، قبل الصيف</td></tr>
+      <tr><td>🎁 من يبحث عن هدية</td><td>هدايا جاهزة (بدون طباعة)</td><td>إنستغرام</td><td>المناسبات</td></tr>
+      <tr><td>🏢 المكاتب والشركات الصغيرة</td><td>الأدوات المكتبية بالكمية</td><td>واتساب، المحل</td><td>بداية الشهر</td></tr>
+    </tbody>
+  </table>
+  <h3>الأقسام</h3>
+  <div class="legend"><span class="tag top">رئيسي</span><span class="tag new">جديد</span><span class="tag keep">يبقى</span><span class="tag later">لاحقاً</span><span class="tag del">لا الآن</span></div>
+  <table class="t-store">
+    <thead><tr><th style="width:28%">القسم</th><th style="width:10%">القرار</th><th style="width:12%">الهامش المتوقع</th><th>ملاحظات</th></tr></thead>
+    <tbody>
+      <tr><td>🏠 المنزل والمطبخ</td><td><span class="tag top">رئيسي</span></td><td>متوسط → مرتفع</td><td>أدوات ذكية وعملية تُعرض جيداً بالفيديو</td></tr>
+      <tr><td>🧺 التنظيم والتخزين</td><td><span class="tag top">رئيسي</span></td><td>مرتفع</td><td>خفيف الوزن، طلب دائم</td></tr>
+      <tr><td>📱 إكسسوارات الهاتف والإلكترونيات الصغيرة</td><td><span class="tag top">رئيسي</span></td><td>مرتفع</td><td>شواحن، كابلات، سماعات، حوامل. خفيفة فالتوصيل رخيص. اختر جودة تقلّل الإرجاع</td></tr>
+      <tr><td>🧸 الأطفال والألعاب التعليمية</td><td><span class="tag new">جديد</span></td><td>متوسط</td><td>يتكامل مع قسم المدرسة</td></tr>
+      <tr><td>🎒 الحقائب والإكسسوارات</td><td><span class="tag new">جديد</span></td><td>متوسط → مرتفع</td><td>حقائب الظهر، المحافظ، المنظمات</td></tr>
+      <tr><td>🚗 إكسسوارات السيارة</td><td><span class="tag new">جديد</span></td><td>مرتفع</td><td>منظمات، شواحن، حوامل، معطرات</td></tr>
+      <tr><td>🎁 الهدايا الجاهزة</td><td><span class="tag new">جديد</span></td><td>متوسط</td><td>بدون طباعة. التخصيص البسيط فقط عند الطلب</td></tr>
+      <tr><td>📚 المدرسة والمكتب (المكتبة)</td><td><span class="tag keep">يبقى</span></td><td>منخفض</td><td>قسم موسمي يُنشَّط في غشت–شتنبر، والأدوات المكتبية طول السنة</td></tr>
+      <tr><td>🖨️ الطباعة والنسخ</td><td><span class="tag keep">يبقى</span></td><td>متوسط</td><td>في المحل، وصفحة «اطلب طباعة»</td></tr>
+      <tr><td>🏋️ الرياضة والصحة (أدوات)</td><td><span class="tag later">لاحقاً</span></td><td>متوسط</td><td>بعد نجاح الأقسام الأولى</td></tr>
+      <tr><td>👗 الملابس والأحذية</td><td><span class="tag del">لا الآن</span></td><td>—</td><td>إرجاع مرتفع بسبب المقاسات</td></tr>
+      <tr><td>💄 مستحضرات التجميل · 🍫 المواد الغذائية · 💊 المكملات</td><td><span class="tag del">لا الآن</span></td><td>—</td><td>تحتاج ترخيصات وشروطاً صحية في المغرب، وفيها خطر قانوني</td></tr>
+      <tr><td>🛋️ الأثاث والمنتجات الثقيلة</td><td><span class="tag del">لا الآن</span></td><td>—</td><td>تكلفة توصيل مرتفعة وخطر الكسر</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================ 5 ============================ -->
+<div class="section">
+  <h2 class="store"><span class="badge">5</span>🛍️ المتجر: قواعد اختيار المنتجات</h2>
+  <p class="lead">في التجارة الإلكترونية الربح في الاختيار. كل منتج يمر بهذه القواعد قبل أن يدخل المتجر.</p>
+  <div class="grid2">
+    <div class="box green"><b class="t">✅ المنتج الجيد</b>
+      <ul>
+        <li><b>هامش ≥ 40%</b> بعد تكلفة الشراء والتغليف</li>
+        <li><b>خفيف وصغير</b>: توصيل رخيص وبدون كسر</li>
+        <li><b>يُفهم في فيديو 15 ثانية</b> («شوف كيف كيخدم»)</li>
+        <li><b>يحل مشكلة يومية</b> أو يُشترى كهدية</li>
+        <li><b>إرجاع قليل</b>: بدون مقاسات أو ألوان معقدة</li>
+        <li><b>ثمن بيع بين 50 و300 درهم</b> (قرار سريع عند الاستلام)</li>
+        <li>مورد يعيد التوريد بسرعة</li>
+      </ul>
+    </div>
+    <div class="box red"><b class="t">❌ نتجنب</b>
+      <ul>
+        <li>ما يحتاج ترخيصاً (تجميل، غذاء، أدوية)</li>
+        <li>الثقيل والقابل للكسر</li>
+        <li>المقاسات (ملابس، أحذية)</li>
+        <li>المنتجات المقلدة لعلامات معروفة</li>
+        <li>ما يباع أرخص في كل مكان (لا هامش)</li>
+        <li>شراء كميات كبيرة قبل الاختبار</li>
+      </ul>
+    </div>
+  </div>
+  <h3>دورة الاختبار الأسبوعية (3 إلى 5 منتجات في الأسبوع)</h3>
+  <table class="t-store">
+    <thead><tr><th style="width:18%">المرحلة</th><th>ماذا نفعل</th><th style="width:26%">المقياس</th></tr></thead>
+    <tbody>
+      <tr><td><b>1. اختيار</b></td><td>نختار من الموردين حسب القواعد أعلاه. «التاجر» 🎯 يقترح، وأنت تقرر</td><td>الهامش ≥ 40%</td></tr>
+      <tr><td><b>2. كمية صغيرة</b></td><td>شراء 10 إلى 20 وحدة فقط</td><td>مخاطرة صغيرة</td></tr>
+      <tr><td><b>3. عرض</b></td><td>فيديو تيك توك/ريلز + منشور فيسبوك + ستوري، برابط خاص لكل منتج</td><td>النقرات والطلبيات (تبويب «التسويق»)</td></tr>
+      <tr><td><b>4. قرار بعد 7 أيام</b></td><td>
+        <b>نجح</b>: طلبيات كثيرة ونسبة تأكيد ≥ 70% ← نشتري أكثر، ونضيف إعلاناً صغيراً<br />
+        <b>متوسط</b>: نجرب فيديو آخر أو ثمناً آخر<br />
+        <b>فشل</b>: نصفّي الكمية (عرض أو باقة) ولا نعيد الشراء
+      </td><td>طلبيات/7 أيام · نسبة التأكيد · نسبة الإرجاع</td></tr>
+    </tbody>
+  </table>
+  <div class="box gray"><b class="t">رفع قيمة السلة</b>
+    <ul>
+      <li><b>شحن مجاني فوق مبلغ معيّن</b>، مثلاً 250 درهماً. نحدده بعد معرفة تكلفة التوصيل الحقيقية</li>
+      <li><b>«غالباً يُشترى معه»</b> في صفحة كل منتج</li>
+      <li><b>باقات</b>: «باك المطبخ»، «باك السيارة»، «باك الدخول المدرسي»</li>
+      <li><b>2 بثمن أقل</b> للمنتجات الصغيرة</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================ 6 ============================ -->
+<div class="section newpage">
+  <h2 class="store"><span class="badge">6</span>🛍️ المتجر: الصفحات (<span class="ltr" style="font-size:12pt">sweethouse.ma</span>)</h2>
+  <div class="legend"><span class="tag keep">يبقى</span><span class="tag renew">يتجدد</span><span class="tag new">جديد</span><span class="tag del">يُحذف / ينتقل</span></div>
+  <table class="t-store">
+    <thead><tr><th style="width:4%">#</th><th style="width:22%">الصفحة</th><th style="width:12%">الرابط</th><th style="width:10%">القرار</th><th>المحتوى والتغيير</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>الرئيسية</td><td class="ltr">/</td><td><span class="tag renew">يتجدد كلياً</span></td><td>عرض الأسبوع، الأقسام، الأكثر مبيعاً، «جديدنا»، شريط الثقة (توصيل، أداء عند الاستلام، إرجاع)، تقييمات الزبائن</td></tr>
+      <tr><td class="num">2</td><td>كل المنتجات</td><td class="ltr">/shop</td><td><span class="tag keep">يبقى</span></td><td>نضيف فلاتر: القسم، الثمن، «أقل من 100 درهم»، المتوفر</td></tr>
+      <tr><td class="num">3</td><td>صفحة القسم</td><td class="ltr">/shop/:قسم</td><td><span class="tag new">جديد</span></td><td>صفحة لكل قسم بوصف قصير، تساعد في ظهوره على Google</td></tr>
+      <tr><td class="num">4</td><td>صفحة المنتج</td><td class="ltr">/product/:id</td><td><span class="tag renew">يتجدد</span></td><td>صور أكبر، فيديو قصير، «يوصلك في 24–48 ساعة»، «الأداء عند الاستلام»، «غالباً يُشترى معه»، زر واتساب للسؤال</td></tr>
+      <tr><td class="num">5</td><td>العروض</td><td class="ltr">/offers</td><td><span class="tag new">جديد</span></td><td>عروض «التاجر» 🎯 وأكوادها ومدتها</td></tr>
+      <tr><td class="num">6</td><td>الباقات</td><td class="ltr">/packs</td><td><span class="tag new">جديد</span></td><td>باك المطبخ، السيارة، الدخول المدرسي…</td></tr>
+      <tr><td class="num">7</td><td>جديدنا</td><td class="ltr">/new</td><td><span class="tag new">جديد</span></td><td>المنتجات قيد الاختبار هذا الأسبوع</td></tr>
+      <tr><td class="num">8</td><td>اللائحة المدرسية</td><td class="ltr">/school-list</td><td><span class="tag renew">ينتقل من الخدمات</span></td><td>صوّر اللائحة ونجهّزها. تظهر بقوة في غشت–شتنبر</td></tr>
+      <tr><td class="num">9</td><td>اطلب طباعة</td><td class="ltr">/print</td><td><span class="tag new">جديد</span></td><td>ارفع الملف، اختر النوع والعدد، واستلمه من المحل</td></tr>
+      <tr><td class="num">10</td><td>الطلبات بالكمية</td><td class="ltr">/business</td><td><span class="tag new">جديد</span></td><td>المكاتب والجمعيات: طلب عرض ثمن</td></tr>
+      <tr><td class="num">11</td><td>السلة والأداء</td><td class="ltr">/checkout</td><td><span class="tag renew">يتجدد</span></td><td>شريط «باقي X درهم للشحن المجاني»، تأكيد واتساب، اختيار التوصيل أو الاستلام من المحل</td></tr>
+      <tr><td class="num">12</td><td>تتبّع الطلبية</td><td class="ltr">/track</td><td><span class="tag keep">يبقى</span></td><td>مع زر تقييم Google بعد الاستلام</td></tr>
+      <tr><td class="num">13</td><td>الأسئلة الشائعة</td><td class="ltr">/faq</td><td><span class="tag new">جديد</span></td><td>التوصيل، المدة، الأداء، الإرجاع، الضمان</td></tr>
+      <tr><td class="num">14</td><td>سياسة الإرجاع والاستبدال</td><td class="ltr">/returns</td><td><span class="tag new">جديد</span></td><td>ضرورية للثقة وللحد من النزاعات</td></tr>
+      <tr><td class="num">15</td><td>تواصل · الخصوصية · الشروط</td><td class="ltr">/contact…</td><td><span class="tag keep">يبقى</span></td><td>الاسم «Sweet House Store» ورقم المتجر</td></tr>
+      <tr><td class="num">16</td><td>المرشد 🧭</td><td>كل الصفحات</td><td><span class="tag renew">يتجدد</span></td><td>نسخة للمتجر: المنتجات، التوصيل، الإرجاع</td></tr>
+      <tr><td class="num">—</td><td>صفحات الخدمات الإدارية</td><td>—</td><td><span class="tag del">تنتقل</span></td><td>إلى موقع الخدمات، ويبقى رابط صغير في الأسفل: «عندنا أيضاً: خدمات إدارية 🗂️»</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================ 7 ============================ -->
+<div class="section">
+  <h2 class="store"><span class="badge">7</span>🛍️ المتجر: القنوات</h2>
+  <table class="t-store">
+    <thead><tr><th style="width:15%">القناة</th><th style="width:22%">الحساب</th><th style="width:13%">القرار</th><th>الدور</th><th style="width:15%">الوتيرة</th></tr></thead>
+    <tbody>
+      <tr><td>🎵 <b>تيك توك</b><br /><span class="tag top">القناة 1</span></td><td>@sweethouse470 ← <b class="ltr">@sweethouse.store</b></td><td><span class="tag renew">يتحوّل</span></td><td>«شوف كيف كيخدم»، فتح الطلبيات، «منتج الأسبوع»، قبل/بعد</td><td>5 في الأسبوع</td></tr>
+      <tr><td>📸 <b>إنستغرام</b></td><td>@sweethouse02 ← <b class="ltr">@sweethouse.store</b></td><td><span class="tag renew">يتحوّل</span> (يحتفظ بـ 530 متابعاً)</td><td>نفس الريلز، كاروسيل، ستوريات يومية، كتالوج المنتجات</td><td>4 في الأسبوع + ستوريات</td></tr>
+      <tr><td>📘 <b>فيسبوك</b></td><td><b>Sweet House Store</b></td><td><span class="tag new">صفحة جديدة</span></td><td>الإعلانات الممولة، Marketplace، مجموعات تطوان والمغرب</td><td>3 في الأسبوع</td></tr>
+      <tr><td>💬 <b>واتساب Business</b></td><td>رقم المتجر</td><td><span class="tag renew">يتجدد</span></td><td>كتالوج، تأكيد الطلبيات، ردود سريعة، تسميات</td><td>يومياً</td></tr>
+      <tr><td>📣 قائمة البث</td><td>مواضيع: العروض، جديدنا، الدخول المدرسي</td><td><span class="tag keep">يبقى</span></td><td>العروض للمشتركين</td><td>مرتين في الشهر</td></tr>
+      <tr><td>📍 <b>Google Maps</b></td><td><b>Sweet House Store</b></td><td><span class="tag new">جديد</span></td><td>«متجر» و«أدوات مكتبية» في تطوان</td><td>منشور أسبوعي</td></tr>
+      <tr><td>▶️ يوتيوب Shorts</td><td>نفس فيديوهات تيك توك</td><td><span class="tag later">بعد شهرين</span></td><td>بدون جهد إضافي</td><td>—</td></tr>
+      <tr><td>📌 Pinterest</td><td>—</td><td><span class="tag later">لاحقاً</span></td><td>المنزل والتنظيم</td><td>—</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================ 8 ============================ -->
+<div class="section newpage">
+  <h2 class="services"><span class="badge">8</span>🗂️ الخدمات: خطوط الدخل والاشتراكات</h2>
+  <div class="box blue"><b class="t">التموضع</b>«وراقك الإدارية من تيليفونك»: اطلب، ارفع الوثائق، تتبّع، واستلم، بأثمنة واضحة وخطوات مشروحة. الميزة: أكثر من 40 خدمة، تتبّع حي، خدمة عن بعد لمغاربة العالم.</div>
+  <table class="t-services">
+    <thead><tr><th style="width:26%">خط الدخل</th><th style="width:10%">القرار</th><th>لماذا يربح</th></tr></thead>
+    <tbody>
+      <tr><td>📄 الخدمات الفردية (43)</td><td><span class="tag keep">يبقى</span></td><td>الأساس. تضع الأسعار من «الأسعار دفعة واحدة»</td></tr>
+      <tr><td>🔁 <b>الاشتراكات</b></td><td><span class="tag top">الأهم</span></td><td>دخل شهري متكرر وثابت</td></tr>
+      <tr><td>🌍 مغاربة العالم</td><td><span class="tag renew">يتقوّى</span></td><td>ثمن أعلى، وموسم مضمون</td></tr>
+      <tr><td>📦 الباقات</td><td><span class="tag new">جديد</span></td><td>قيمة طلب أكبر</td></tr>
+      <tr><td>⚡ الخدمة المستعجلة</td><td><span class="tag new">جديد</span></td><td>نفس الخدمة بثمن أعلى وإنجاز في نفس اليوم (حين يسمح الموقع الرسمي)</td></tr>
+      <tr><td>🖨️ الخدمات المكملة في المحل</td><td><span class="tag keep">يبقى</span></td><td>نسخ وطباعة الوثائق والصور لنفس الزبون</td></tr>
+    </tbody>
+  </table>
+  <h3>الاشتراكات المقترحة (الأسعار تحددها أنت)</h3>
+  <table class="t-services">
+    <thead><tr><th style="width:24%">الاشتراك</th><th>ما يشمله</th><th style="width:22%">لمن</th></tr></thead>
+    <tbody>
+      <tr><td><b>المقاول الذاتي</b> (سنوي أو ربع سنوي)</td><td>التصريح برقم المعاملات كل 3 أشهر، تذكير قبل الأجل، تتبّع CNSS والـ AMO، شهادة عند الحاجة</td><td>المقاولون الذاتيون (حرفيون، تجار صغار، مستقلون)</td></tr>
+      <tr><td><b>المقاولة الصغيرة</b> (شهري)</td><td>Damancom (التصريح بالأجراء)، التذكير بالآجال الضريبية، الشهادات</td><td>المحلات والشركات الصغيرة</td></tr>
+      <tr><td><b>الأسرة</b> (سنوي)</td><td>الفينييت، التصريح السنوي، المنحة والتسجيل، تذكير بالآجال</td><td>الأسر</td></tr>
+      <tr><td><b>مغاربة العالم</b> (حسب الملف)</td><td>متابعة ملف كامل عن بعد، وتواصل منتظم</td><td>المقيمون بالخارج</td></tr>
+    </tbody>
+  </table>
+  <h3>الباقات</h3>
+  <table class="t-services">
+    <thead><tr><th style="width:26%">الباقة</th><th>تجمع</th></tr></thead>
+    <tbody>
+      <tr><td>🎓 باقة الطالب</td><td>التسجيل الجامعي + منحتي + مسار + نسخ الوثائق</td></tr>
+      <tr><td>💼 باقة بداية النشاط</td><td>التسجيل كمقاول ذاتي + التعريف الضريبي + CNSS + السيرة الذاتية أو بطاقة الزيارة</td></tr>
+      <tr><td>🏠 باقة السكن</td><td>دعم السكن + شهادة الملكية + الوثائق المطلوبة</td></tr>
+      <tr><td>🌍 باقة المغترب</td><td>عقد الازدياد + السجل العدلي + مواعيد البطاقة والجواز</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================ 9 ============================ -->
+<div class="section">
+  <h2 class="services"><span class="badge">9</span>🗂️ الخدمات: الصفحات (<span class="ltr" style="font-size:12pt">services.sweethouse.ma</span>)</h2>
+  <table class="t-services">
+    <thead><tr><th style="width:4%">#</th><th style="width:22%">الصفحة</th><th style="width:12%">الرابط</th><th style="width:10%">القرار</th><th>المحتوى والتغيير</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>الرئيسية</td><td class="ltr">/</td><td><span class="tag renew">يتجدد</span></td><td>خانة «شنو بغيتي تدير؟»، الأكثر طلباً، «كيف نخدم في 3 خطوات»، الاشتراكات، تقييمات، مغاربة العالم</td></tr>
+      <tr><td class="num">2</td><td>كل الخدمات</td><td class="ltr">/services</td><td><span class="tag keep">يبقى</span></td><td>مرتبة حسب المجال</td></tr>
+      <tr><td class="num">3</td><td>صفحة المجال</td><td class="ltr">/c/:مجال</td><td><span class="tag new">جديد</span></td><td>الهوية والوثائق · المقاول والضرائب · CNSS وAMO · التعليم والمباريات · السيارة · العقار والتعمير · القضاء والشكايات · الدعم الاجتماعي</td></tr>
+      <tr><td class="num">4</td><td>صفحة الخدمة والطلب</td><td class="ltr">/services/:id</td><td><span class="tag keep">يبقى</span></td><td>+ خيار «⚡ مستعجل»، والأسئلة الشائعة، والمرشد 🧭</td></tr>
+      <tr><td class="num">5</td><td><b>الاشتراكات</b></td><td class="ltr">/plans</td><td><span class="tag new">جديد</span></td><td>المقاول الذاتي، المقاولة الصغيرة، الأسرة، المغترب، مع زر «اشترك»</td></tr>
+      <tr><td class="num">6</td><td>الباقات</td><td class="ltr">/packs</td><td><span class="tag new">جديد</span></td><td>الطالب، بداية النشاط، السكن، المغترب</td></tr>
+      <tr><td class="num">7</td><td>مغاربة العالم</td><td class="ltr">/abroad</td><td><span class="tag renew">يتقوّى</span></td><td>حسب البلد، الأداء من الخارج، شهادات زبائن</td></tr>
+      <tr><td class="num">8</td><td>لم تجد خدمتك؟</td><td class="ltr">/custom</td><td><span class="tag keep">يبقى</span></td><td></td></tr>
+      <tr><td class="num">9</td><td>تتبّع الطلب</td><td class="ltr">/track</td><td><span class="tag keep">يبقى</span></td><td>رفع الوثائق، التحميل، زر التقييم ⭐</td></tr>
+      <tr><td class="num">10</td><td>وثائقي</td><td class="ltr">/my</td><td><span class="tag keep">يبقى</span></td><td></td></tr>
+      <tr><td class="num">11</td><td>الرزنامة الإدارية</td><td class="ltr">/calendar</td><td><span class="tag new">جديد</span></td><td>آجال الضرائب، CNSS، الباك، المنحة، التسجيل، مع زر «نبّهني»</td></tr>
+      <tr><td class="num">12</td><td>دليل الخطوات</td><td class="ltr">/guides</td><td><span class="tag new">جديد</span></td><td>«شنو خاصك باش…» لكل خدمة. زوار مجانيون من Google</td></tr>
+      <tr><td class="num">13</td><td>التنبيهات</td><td class="ltr">/alerts</td><td><span class="tag keep">يبقى</span></td><td></td></tr>
+      <tr><td class="num">14</td><td>تواصل · الخصوصية · الشروط</td><td class="ltr">/contact…</td><td><span class="tag keep">يبقى</span></td><td>الاسم «Sweet House Services» ورقم الخدمات</td></tr>
+      <tr><td class="num">—</td><td>المتجر، السلة، اللائحة المدرسية، الطباعة</td><td>—</td><td><span class="tag del">تنتقل</span></td><td>إلى المتجر، مع رابط «عندنا أيضاً: متجر سويت هاوس 🛍️»</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================ 10 ============================ -->
+<div class="section">
+  <h2 class="services"><span class="badge">10</span>🗂️ الخدمات: القنوات</h2>
+  <table class="t-services">
+    <thead><tr><th style="width:15%">القناة</th><th style="width:22%">الحساب</th><th style="width:13%">القرار</th><th>الدور</th><th style="width:15%">الوتيرة</th></tr></thead>
+    <tbody>
+      <tr><td>📍 <b>Google Maps</b><br /><span class="tag top">القناة 1</span></td><td><b>Sweet House Services</b></td><td><span class="tag new">جديد</span></td><td>الظهور لمن يبحث «السجل العدلي تطوان»، «CNSS تطوان»… والتقييمات</td><td>منشور أسبوعي + تقييمات يومية</td></tr>
+      <tr><td>📘 <b>فيسبوك</b></td><td><b>Sweet House Services</b></td><td><span class="tag new">صفحة جديدة</span></td><td>نصائح وآجال، مجموعات تطوان، إعلانات للمقاولين ومغاربة العالم</td><td>3 في الأسبوع</td></tr>
+      <tr><td>🎵 <b>تيك توك</b></td><td><b class="ltr">@sweethouse.services</b></td><td><span class="tag new">حساب جديد</span></td><td>«كيفاش تدير… في 30 ثانية»، الأخطاء الشائعة، الآجال</td><td>مرتين في الأسبوع</td></tr>
+      <tr><td>💬 <b>واتساب Business</b></td><td>رقم الخدمات</td><td><span class="tag new">جديد</span></td><td>الطلبات، المتابعة، تذكير المشتركين</td><td>يومياً</td></tr>
+      <tr><td>📣 قائمة البث</td><td>مواضيع: الباك، المنحة، الضرائب، CNSS، مغاربة العالم</td><td><span class="tag keep">يبقى</span></td><td>تنبيه قبل كل أجل</td><td>حسب الآجال</td></tr>
+      <tr><td>▶️ يوتيوب Shorts</td><td>نفس فيديوهات تيك توك</td><td><span class="tag later">بعد شهرين</span></td><td></td><td>—</td></tr>
+      <tr><td>📸 إنستغرام</td><td>—</td><td><span class="tag del">لا الآن</span></td><td>جمهوره أقل للخدمات. لا نشتت الجهد</td><td>—</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================ 11 ============================ -->
+<div class="section newpage">
+  <h2><span class="badge">11</span>📍 Google Maps: صفحتان وشروطهما</h2>
+  <p class="lead">قواعد Google تسمح بصفحة لكل علامة تعمل بشكل مستقل في نفس العنوان، وتمنع صفحة لكل نوع منتجات داخل نفس النشاط. لذلك يجب أن يظهر أن الفرعين نشاطان مستقلان.</p>
+  <table>
+    <thead><tr><th style="width:30%">الشرط</th><th style="width:12%">الأهمية</th><th>كيف نحققه</th></tr></thead>
+    <tbody>
+      <tr><td>اسمان مختلفان</td><td>🔴 ضروري</td><td>«Sweet House Store» و«Sweet House Services» (نفس المكتوب على اللافتات)</td></tr>
+      <tr><td>فئات مختلفة</td><td>🔴 ضروري</td><td>المتجر: «Magasin» أو «Papeterie» · الخدمات: «Service administratif» أو «Cybercafé» (الأقرب في القائمة)</td></tr>
+      <tr><td>رقما هاتف مختلفان</td><td>🟠 مهم جداً</td><td>الرقم الحالي لفرع، ورقم جديد للفرع الآخر</td></tr>
+      <tr><td>موقعان مختلفان</td><td>🟠 مهم</td><td>كل صفحة برابط موقعها</td></tr>
+      <tr><td>لافتة خاصة لكل فرع</td><td>🟠 مهم</td><td>لافتة أو ركن واضح باسم كل فرع، تظهر في الصور وفي فيديو التحقق</td></tr>
+      <tr><td>ساعات مختلفة</td><td>🟡 يقوّي</td><td>مثلاً الخدمات حتى 19:00، والمتجر حتى 21:00</td></tr>
+      <tr><td>مدخل مستقل</td><td>🟡 يقوّي</td><td>إن أمكن</td></tr>
+    </tbody>
+  </table>
+  <div class="box red"><b class="t">⚠️ ممنوع</b>كلمات زائدة في الاسم («أرخص طباعة تطوان»)، تقييمات من العائلة أو الموظفين، مقابل مادي للتقييم، نفس الرقم في الصفحتين، أو إنشاء الصفحتين في نفس الدقيقة. أنشئ الثانية بعد التحقق من الأولى.</div>
+  <table>
+    <thead><tr><th>الترتيب</th><th>الصفحة</th><th>لماذا</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>🗂️ Sweet House Services</td><td>البحث عن الخدمات الإدارية مرتفع والمنافسة عليه ضعيفة</td></tr>
+      <tr><td class="num">2</td><td>🛍️ Sweet House Store</td><td>بعد التحقق من الأولى، برقم مختلف</td></tr>
+      <tr><td class="num">—</td><td>🏠 SWEET HOUSE Y &amp; el (الحالية)</td><td>تبقى للعقار. طالب بها الآن حتى لا يأخذها غيرك</td></tr>
+    </tbody>
+  </table>
+  <p>بعد التحقق من كل صفحة: «Demander des avis» ← انسخ الرابط ← الصقه في الإعدادات حسب الفرع. «نجمة» ⭐ تراسل زبون الخدمات برابط صفحة الخدمات، وزبون المتجر برابط صفحة المتجر.</p>
+</div>
+
+<!-- ============================ 12 ============================ -->
+<div class="section">
+  <h2><span class="badge">12</span>💬 واتساب: رقمان</h2>
+  <table>
+    <thead><tr><th style="width:18%">الرقم</th><th style="width:20%">الفرع</th><th>الإعداد</th></tr></thead>
+    <tbody>
+      <tr><td>الرقم الحالي<br /><span class="ltr">+212 6 42 66 25 68</span></td><td>🗂️ <b>الخدمات</b> (مقترح)</td><td>زبائن الخدمات يعرفونه، وعندهم معه طلبات ووثائق قائمة. تسميات: جديد · ينتظر وثائق · جاهز · مشترك</td></tr>
+      <tr><td>الرقم الجديد</td><td>🛍️ <b>المتجر</b></td><td>WhatsApp Business مع <b>الكتالوج</b>، الردود السريعة (الثمن، التوصيل، الأداء)، رسالة الترحيب، تسميات: طلبية جديدة · مؤكدة · مشحونة · مرتجعة</td></tr>
+    </tbody>
+  </table>
+  <p>إن فضّلت العكس (الرقم الحالي للمتجر)، فقط قل لي. المهم ألّا يتغير بعد النشر.</p>
+</div>
+
+<!-- ============================ 13 ============================ -->
+<div class="section">
+  <h2 class="immo"><span class="badge">13</span>🏠 العقار (لاحقاً)</h2>
+  <table class="t-immo">
+    <thead><tr><th style="width:30%">العنصر</th><th style="width:14%">القرار</th><th>ماذا نفعل</th></tr></thead>
+    <tbody>
+      <tr><td>📘 فيسبوك SweetHouseY (121 متابعاً)</td><td><span class="tag keep">يبقى</span></td><td>الاسم: «Sweet House Immobilier»، الفئة: «Agence immobilière». لا ننشر الآن</td></tr>
+      <tr><td>📍 Google «SWEET HOUSE Y &amp; el»</td><td><span class="tag keep">يبقى</span></td><td>طالب بها الآن، وصحّح الهاتف والمعلومات لاحقاً</td></tr>
+      <tr><td>🌐 <span class="ltr">immo.sweethouse.ma</span> + لوحة خاصة</td><td><span class="tag later">لاحقاً</span></td><td>نظام مستقل: العقارات، الطلبات، الزيارات، العمولات</td></tr>
+      <tr><td>📸 إنستغرام + 🎵 تيك توك للعقار</td><td><span class="tag later">لاحقاً</span></td><td>مع إطلاق الموقع</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================ 14 ============================ -->
+<div class="section newpage">
+  <h2 class="store"><span class="badge">14</span>🚚 الأداء عند الاستلام والتوصيل</h2>
+  <p class="lead">هنا يُربح المال في المتجر أو يضيع. كل طلبية مرفوضة عند الباب تكلّف التوصيل مرتين.</p>
+  <table class="t-store">
+    <thead><tr><th style="width:5%">#</th><th style="width:22%">الخطوة</th><th>ماذا يحدث</th><th style="width:18%">من</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>الطلبية تصل</td><td>إشعار + تسجيل في النظام + الرابط الخاص الذي جاءت منه</td><td>النظام</td></tr>
+      <tr><td class="num">2</td><td><b>التأكيد</b></td><td>رسالة واتساب للزبون فيها الملخص والثمن والعنوان وزر «نعم، أكّد». بدون رد خلال ساعتين: اتصال</td><td>🆕 وكيل التأكيد + الموظفة</td></tr>
+      <tr><td class="num">3</td><td>التحضير</td><td>بعد التأكيد فقط: تغليف ووصل</td><td>الموظفة</td></tr>
+      <tr><td class="num">4</td><td>الشحن</td><td>تسليم لشركة التوصيل + رقم التتبّع للزبون</td><td>الموظفة / الربط لاحقاً</td></tr>
+      <tr><td class="num">5</td><td>المتابعة</td><td>تذكير يوم التوصيل: «طلبيتك غادي توصلك اليوم»</td><td>الوكيل</td></tr>
+      <tr><td class="num">6</td><td>بعد الاستلام</td><td>شكر + رابط تقييم Google + كود عرض للطلبية القادمة</td><td>⭐ نجمة</td></tr>
+      <tr><td class="num">7</td><td>الإرجاع</td><td>تسجيل السبب. «المحلل» يكتشف المنتجات والمدن ذات الرفض المرتفع</td><td>النظام + 📈 المحلل</td></tr>
+    </tbody>
+  </table>
+  <div class="grid2">
+    <div class="box gray"><b class="t">قواعد تقلّل الرفض</b>
+      <ul>
+        <li>صور حقيقية للمنتج، لا صور المورد فقط</li>
+        <li>الثمن والتوصيل واضحان قبل الطلب</li>
+        <li>لا شحن قبل التأكيد</li>
+        <li>مدة توصيل قصيرة (كل يوم تأخير يزيد الرفض)</li>
+        <li>قائمة سوداء للأرقام التي ترفض بشكل متكرر</li>
+      </ul>
+    </div>
+    <div class="box gray"><b class="t">التوصيل</b>
+      <ul>
+        <li>اختر شركة واحدة الآن (مثلاً Sendit، الذي رأيناه في حسابك) وقارن الأثمنة حسب المدن</li>
+        <li>تطوان والنواحي: توصيل خاص أو الاستلام من المحل</li>
+        <li>الربط الآلي مع شركة التوصيل: مرحلة لاحقة</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============================ 15 ============================ -->
+<div class="section">
+  <h2><span class="badge">15</span>🧠 النظام: ما يتغير</h2>
+  <table>
+    <thead><tr><th style="width:30%">التعديل</th><th style="width:12%">الحالة</th><th>الفائدة</th></tr></thead>
+    <tbody>
+      <tr><td><b>حقل «الفرع»</b> على المنتجات والخدمات والفئات والطلبات والمبيعات</td><td><span class="tag new">جديد</span></td><td>كل شيء يُفرز تلقائياً</td></tr>
+      <tr><td>تقارير وأرباح لكل فرع</td><td><span class="tag renew">يتجدد</span></td><td>تعرف أي فرع يربح فعلاً</td></tr>
+      <tr><td>إعدادات لكل فرع (الاسم، الهاتف، واتساب، رابط التقييم، الألوان)</td><td><span class="tag new">جديد</span></td><td>هوية منفصلة من لوحة واحدة</td></tr>
+      <tr><td>موقعان من نفس النظام</td><td><span class="tag new">جديد</span></td><td>تكلفة إضافية شبه صفر</td></tr>
+      <tr><td>الوصل يحمل اسم الفرع ورقمه، وQR التقييم</td><td><span class="tag renew">يتجدد</span></td><td>هوية واضحة وتقييمات أكثر</td></tr>
+      <tr><td>🆕 وكيل تأكيد الطلبيات</td><td><span class="tag new">جديد</span></td><td>رفض أقل</td></tr>
+      <tr><td>🆕 السلة المتروكة</td><td><span class="tag new">جديد</span></td><td>استرجاع مبيعات ضائعة</td></tr>
+      <tr><td>🆕 الاشتراكات (التسجيل، التجديد، الآجال)</td><td><span class="tag new">جديد</span></td><td>دخل متكرر</td></tr>
+      <tr><td>🆕 الباقات والخدمة المستعجلة</td><td><span class="tag new">جديد</span></td><td>قيمة أكبر</td></tr>
+      <tr><td>🆕 الشحن المجاني فوق مبلغ + «غالباً يُشترى معه»</td><td><span class="tag new">جديد</span></td><td>سلة أكبر</td></tr>
+      <tr><td>🆕 سبب الإرجاع والقائمة السوداء</td><td><span class="tag new">جديد</span></td><td>حماية من الخسارة</td></tr>
+      <tr><td>الروابط الخاصة، أكواد العروض، تبويب «التسويق»</td><td><span class="tag keep">موجود</span></td><td>نعرف ربح كل قناة</td></tr>
+      <tr><td>إخفاء أرقام البطاقات قبل إرسالها للذكاء الاصطناعي</td><td><span class="tag new">مُوصى به</span></td><td>الخصوصية وتصريح CNDP</td></tr>
+      <tr><td>الربط الآلي مع شركة التوصيل</td><td><span class="tag later">لاحقاً</span></td><td>تتبّع الشحنات آلياً</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================ 16 ============================ -->
+<div class="section newpage">
+  <h2><span class="badge">16</span>🤖 فريق التسويق لكل فرع</h2>
+  <table>
+    <thead><tr><th style="width:22%">الوكيل</th><th style="width:12%">الفرع</th><th>المهمة</th><th style="width:18%">الوتيرة</th></tr></thead>
+    <tbody>
+      <tr><td>📅 سي المخطِّط</td><td>الاثنان</td><td>خطة 4 أسابيع لكل فرع حسب المواسم</td><td>الأحد</td></tr>
+      <tr><td>🎬 المخرج</td><td>🛍️ + 🗂️</td><td>سيناريوهات تيك توك: منتجات للمتجر، و«كيفاش تدير» للخدمات</td><td>5 للمتجر + 2 للخدمات أسبوعياً</td></tr>
+      <tr><td>📸 لالة إنستا</td><td>🛍️</td><td>ريلز، كاروسيل، ستوريات المتجر</td><td>4 في الأسبوع</td></tr>
+      <tr><td>📘 سي الفيسبوكي</td><td>🛍️ + 🗂️</td><td>منشورات صفحتي فيسبوك، ونصوص المجموعات</td><td>3 + 3 أسبوعياً</td></tr>
+      <tr><td>💬 ساعي البريد</td><td>🛍️ + 🗂️</td><td>قوائم البث لكل فرع</td><td>أسبوعياً</td></tr>
+      <tr><td>🎯 التاجر</td><td>🛍️</td><td>المنتجات للاختبار، العروض، الباقات، الأكواد</td><td>الإثنين</td></tr>
+      <tr><td>🆕 📦 وكيل التأكيد</td><td>🛍️</td><td>تأكيد كل طلبية قبل الشحن</td><td>عند كل طلبية</td></tr>
+      <tr><td>🆕 🛒 السلة المتروكة</td><td>🛍️</td><td>تذكير لطيف بعد ساعتين</td><td>يومياً</td></tr>
+      <tr><td>🆕 🔁 وكيل الاشتراكات</td><td>🗂️</td><td>تذكير الآجال للمشتركين، والتجديد</td><td>يومياً</td></tr>
+      <tr><td>⭐ نجمة</td><td>الاثنان</td><td>التقييمات حسب الفرع</td><td>يومياً 19:30</td></tr>
+      <tr><td>📋 سي الكاتب · 🌸 لالة زهور</td><td>🗂️</td><td>مراجعة الطلبات والمتابعة</td><td>عند كل طلب / يومياً</td></tr>
+      <tr><td>📈 المحلل</td><td>الاثنان</td><td>تقرير لكل فرع: قنوات، منتجات، رفض، اشتراكات</td><td>الإثنين</td></tr>
+      <tr><td>🦉 الحارس · 🐿️ المقتصد · ☕ سويتي</td><td>الاثنان</td><td>المراقبة، المشتريات، قهوة الصباح</td><td>كما هو</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================ 17 ============================ -->
+<div class="section">
+  <h2><span class="badge">17</span>🎯 الأهداف والمراجعة الأسبوعية</h2>
+  <p class="lead">أهداف أولية نعدّلها بعد أول شهر من البيانات الحقيقية.</p>
+  <table>
+    <thead><tr><th style="width:40%">المؤشر</th><th>الشهر 1</th><th>الشهر 3</th><th>أين نراه</th></tr></thead>
+    <tbody>
+      <tr><td>🗂️ طلبات الخدمات أونلاين</td><td class="num">30</td><td class="num">100</td><td>التسويق / الطلبات</td></tr>
+      <tr><td>🗂️ <b>المشتركون</b></td><td class="num">5</td><td class="num">25</td><td>الاشتراكات</td></tr>
+      <tr><td>🗂️ تقييمات Google (الخدمات)</td><td class="num">15</td><td class="num">50</td><td>Google</td></tr>
+      <tr><td>🛍️ طلبيات المتجر</td><td class="num">20</td><td class="num">100</td><td>الطلبيات</td></tr>
+      <tr><td>🛍️ <b>نسبة التأكيد قبل الشحن</b></td><td class="num">100%</td><td class="num">100%</td><td>وكيل التأكيد</td></tr>
+      <tr><td>🛍️ نسبة الرفض عند الباب</td><td>نقيسها</td><td>تنخفض كل شهر</td><td>المحلل</td></tr>
+      <tr><td>🛍️ منتجات مختبرة / ناجحة</td><td class="num">12 / 3</td><td class="num">40 / 10</td><td>التاجر</td></tr>
+      <tr><td>🛍️ تقييمات Google (المتجر)</td><td class="num">10</td><td class="num">40</td><td>Google</td></tr>
+      <tr><td>🎵 متابعو تيك توك المتجر</td><td class="num">300</td><td class="num">2 000</td><td>تيك توك</td></tr>
+      <tr><td>💰 حصة المال القادم من التسويق</td><td>نقيسها</td><td>ترتفع</td><td>تبويب «التسويق»</td></tr>
+    </tbody>
+  </table>
+  <div class="box green"><b class="t">المراجعة الأسبوعية (كل إثنين، 20 دقيقة)</b>
+    <ol>
+      <li>اقرأ تقرير 📈 المحلل لكل فرع</li>
+      <li>تبويب «التسويق»: أي قناة وأي منشور جلب مالاً؟</li>
+      <li>المنتجات المختبرة: من نكمل معه، ومن نوقفه؟</li>
+      <li>المشتركون الجدد والتجديدات</li>
+      <li>قرار واحد للأسبوع القادم فقط</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============================ 18 ============================ -->
+<div class="section newpage">
+  <h2><span class="badge">18</span>📅 خطة التنفيذ أسبوعاً بأسبوع</h2>
+  <table>
+    <thead><tr><th style="width:11%">الأسبوع</th><th style="width:45%">ما أنجزه أنا (Claude)</th><th>ما تنجزه أنت</th></tr></thead>
+    <tbody>
+      <tr><td><b>1</b><br />الأساس + الخدمات</td><td>
+        <ul class="todo">
+          <li>حقل الفرع وإعدادات لكل فرع في النظام</li>
+          <li>موقع الخدمات (من الموقع الحالي)</li>
+          <li>صفحة Google للخدمات: الملء (بموافقتك)</li>
+          <li>صفحة فيسبوك للخدمات: الملء (بموافقتك)</li>
+          <li>نصوص البايو والأوصاف</li>
+        </ul></td><td>
+        <ul class="todo">
+          <li>الموافقة على الوثيقة</li>
+          <li>شراء النطاق <span class="ltr">sweethouse.ma</span></li>
+          <li>شريحة الرقم الثاني + واتساب Business</li>
+          <li>رمز تحقق Google</li>
+          <li>وضع الأسعار في «الأسعار دفعة واحدة»</li>
+        </ul></td></tr>
+      <tr><td><b>2</b><br />المتجر</td><td>
+        <ul class="todo">
+          <li>موقع المتجر بالأقسام الجديدة</li>
+          <li>صفحات: العروض، الباقات، جديدنا، الأسئلة، الإرجاع</li>
+          <li>تحويل إنستغرام وتيك توك (بموافقتك)</li>
+          <li>صفحة فيسبوك للمتجر</li>
+        </ul></td><td>
+        <ul class="todo">
+          <li>إضافة أول 20 منتجاً بصور حقيقية</li>
+          <li>اختيار شركة التوصيل وأثمنتها</li>
+          <li>لافتتا الفرعين في المحل</li>
+        </ul></td></tr>
+      <tr><td><b>3</b><br />حماية الربح</td><td>
+        <ul class="todo">
+          <li>وكيل تأكيد الطلبيات</li>
+          <li>السلة المتروكة، الشحن المجاني، «غالباً يُشترى معه»</li>
+          <li>سبب الإرجاع والقائمة السوداء</li>
+          <li>صفحة Google للمتجر (بعد تحقق الأولى)</li>
+          <li>QR التقييم في الوصل</li>
+        </ul></td><td>
+        <ul class="todo">
+          <li>أول 3 منتجات للاختبار</li>
+          <li>تصوير أول 5 فيديوهات</li>
+          <li>رمز تحقق Google الثاني</li>
+        </ul></td></tr>
+      <tr><td><b>4</b><br />الدخل المتكرر</td><td>
+        <ul class="todo">
+          <li>صفحة الاشتراكات والباقات</li>
+          <li>وكيل الاشتراكات</li>
+          <li>الرزنامة الإدارية</li>
+          <li>الخدمة المستعجلة</li>
+        </ul></td><td>
+        <ul class="todo">
+          <li>أسعار الاشتراكات والباقات</li>
+          <li>أول 5 مشتركين من زبائنك الحاليين</li>
+        </ul></td></tr>
+      <tr><td><b>5–6</b><br />النمو</td><td>
+        <ul class="todo">
+          <li>دليل الخطوات (المدونة)</li>
+          <li>تقارير كل فرع</li>
+          <li>إخفاء الأرقام الشخصية (الخصوصية)</li>
+          <li>اقتراحات أول إعلان ممول</li>
+        </ul></td><td>
+        <ul class="todo">
+          <li>أول إعلان صغير (أنت تطلقه وتحدد ميزانيته)</li>
+          <li>المراجعة الأسبوعية كل إثنين</li>
+        </ul></td></tr>
+    </tbody>
+  </table>
+  <div class="box blue">الوكلاء والمساعدون يبدؤون العمل الحقيقي بعد تفعيل رصيد Anthropic يوم 26 أكتوبر. قبلها نبني ونجهّز.</div>
+</div>
+
+<!-- ============================ 19 ============================ -->
+<div class="section newpage">
+  <h2><span class="badge">19</span>✍️ النصوص الجاهزة</h2>
+  <p class="lead">تُعدَّل بعد تأكيد الهاتفين والعنوان والأقسام النهائية. لا يُنشر شيء دون موافقتك.</p>
+  <h3>🛍️ بايو المتجر (تيك توك وإنستغرام)</h3>
+<pre>🛍️ Sweet House Store — تطوان
+🏠 الدار · 📱 إكسسوارات · 🧸 الأطفال · 🎒 المدرسة
+🚚 توصيل سريع · 💵 الأداء عند الاستلام
+👇 اطلب من هنا</pre>
+  <p>الرابط: <span class="ltr">https://sweethouse.ma/?src=igbio</span> (إنستغرام) · <span class="ltr">…/?src=ttbio</span> (تيك توك)</p>
+  <h3>🗂️ بايو الخدمات (فيسبوك وتيك توك)</h3>
+<pre>🗂️ Sweet House Services — تطوان
++40 خدمة إدارية: السجل العدلي، جواز السفر، CNSS، المقاول الذاتي، الضرائب، منحتي…
+📲 اطلب وتبّع من تيليفونك · 🌍 حتى لمغاربة العالم
+👇 اطلب خدمتك</pre>
+  <h3>📍 وصف Google: الخدمات</h3>
+<pre>Sweet House Services في تطوان: أكثر من 40 خدمة إدارية وإلكترونية: السجل العدلي، مواعيد جواز السفر والبطاقة الوطنية، CNSS و AMO، التسجيل كمقاول ذاتي والتصريح برقم المعاملات، الضرائب، منحتي، مسار، التسجيل في المباريات والجامعة، ودعم السكن… نساعدك خطوة بخطوة، ويمكنك طلب خدمتك من موقعنا وتتبّعها من هاتفك، حتى من خارج المغرب.
+
+Sweet House Services Tétouan : plus de 40 services administratifs en ligne (casier judiciaire, RDV passeport et CNIE, CNSS, AMO, auto-entrepreneur, impôts, Minhaty, Massar…). Demandez et suivez votre dossier en ligne, même depuis l’étranger.</pre>
+  <h3>📍 وصف Google: المتجر</h3>
+<pre>Sweet House Store في تطوان: منتجات عملية للدار والمطبخ، التنظيم، إكسسوارات الهاتف والسيارة، ألعاب الأطفال، الحقائب، والأدوات المدرسية والمكتبية. اطلب من موقعنا، والتوصيل سريع والأداء عند الاستلام، أو مرّ علينا في المحل.
+
+Sweet House Store Tétouan : maison et cuisine, rangement, accessoires téléphone et voiture, jouets, sacs, fournitures scolaires et de bureau. Commande en ligne, livraison rapide, paiement à la livraison.</pre>
+  <h3>📘 أول منشور: صفحة الخدمات</h3>
+<pre>السلام عليكم 👋 مرحبا بكم فـ Sweet House Services
+وراقك الإدارية من تيليفونك: السجل العدلي، جواز السفر، CNSS، المقاول الذاتي، الضرائب… أكثر من 40 خدمة.
+📲 اطلب من الموقع، صيفط الوثائق بالتصاور، وتبّع الطلب ديالك خطوة بخطوة.
+👉 [الرابط]</pre>
+  <h3>🎵 أول فيديو: المتجر</h3>
+<pre>[0–3 ث] «هاد الحاجة غادي تبدّل ليك المطبخ 👀»
+[3–12 ث] المنتج في يد الموظفة، وكيف يُستعمل في 3 حركات
+[12–15 ث] الثمن على الشاشة + «التوصيل والخلاص عند الاستلام»
+[النهاية] «الرابط فالبيو 👆»</pre>
+</div>
+
+<!-- ============================ 20 ============================ -->
+<div class="section">
+  <h2><span class="badge">20</span>⚖️ القواعد والمخاطر</h2>
+  <table>
+    <thead><tr><th style="width:24%">الموضوع</th><th>القاعدة</th></tr></thead>
+    <tbody>
+      <tr><td>المنتجات المرخصة</td><td>لا مستحضرات تجميل ولا غذاء ولا مكملات ولا أدوية قبل التأكد من الترخيص المطلوب</td></tr>
+      <tr><td>المنتجات المقلدة</td><td>لا بيع لمنتجات تحمل علامات تجارية مقلدة، لأن ذلك يعرّض الحسابات للإيقاف ويخالف القانون</td></tr>
+      <tr><td>معطيات الزبائن (CNDP)</td><td>التصريح لدى اللجنة (تتكفل به). ذكر استعمال الذكاء الاصطناعي في سياسة الخصوصية، وإخفاء الأرقام الشخصية</td></tr>
+      <tr><td>تقييمات Google</td><td>لا مقابل، لا تقييمات من العائلة والموظفين، والرد على كل تقييم خلال يومين</td></tr>
+      <tr><td>رسائل واتساب</td><td>فقط لمن تعامل معك أو اشترك. رابط إلغاء الاشتراك دائماً، ولا رسائل كثيرة</td></tr>
+      <tr><td>الإعلانات</td><td>الوكلاء يقترحون فقط، وأنت تطلق الإعلان وتحدد الميزانية. ابدأ بمبالغ صغيرة على المنتجات التي نجحت بدون إعلان</td></tr>
+      <tr><td>المخزون</td><td>لا شراء كبير قبل الاختبار، ومراجعة المنتجات الراكدة شهرياً (🐿️ المقتصد)</td></tr>
+      <tr><td>الحسابات</td><td>كلمات السر ورموز التحقق تبقى عندك فقط. فعّل التحقق بخطوتين في كل الحسابات</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================ 21 ============================ -->
+<div class="section">
+  <h2><span class="badge">21</span>✅ القرارات المطلوبة منك</h2>
+  <table>
+    <thead><tr><th style="width:5%">#</th><th>القرار</th><th style="width:34%">اقتراحي</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>الموافقة على الهيكل (فرعان + نظام واحد + العقار لاحقاً)</td><td>نعم</td></tr>
+      <tr><td class="num">2</td><td>أي رقم لأي فرع؟</td><td>الحالي للخدمات، والجديد للمتجر</td></tr>
+      <tr><td class="num">3</td><td>العنوان الدقيق للمحل</td><td>—</td></tr>
+      <tr><td class="num">4</td><td>أقسام المتجر النهائية</td><td>الجدول في القسم 4</td></tr>
+      <tr><td class="num">5</td><td>الموردون الحاليون أو المحتملون</td><td>—</td></tr>
+      <tr><td class="num">6</td><td>شركة التوصيل</td><td>واحدة الآن، مثلاً Sendit</td></tr>
+      <tr><td class="num">7</td><td>أسعار الخدمات والاشتراكات والباقات</td><td>تضعها في اللوحة</td></tr>
+      <tr><td class="num">8</td><td>النطاق</td><td><span class="ltr">sweethouse.ma</span> بفروع</td></tr>
+      <tr><td class="num">9</td><td>ساعات كل فرع</td><td>الخدمات 9:00–19:00 · المتجر 9:00–21:00</td></tr>
+    </tbody>
+  </table>
+  <div class="footer-note">Sweet House · وثيقة عمل · تُحدَّث مع كل مرحلة</div>
+</div>
+
+</body>
+</html>
