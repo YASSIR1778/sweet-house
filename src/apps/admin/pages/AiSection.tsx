@@ -16,6 +16,8 @@ const ACTIONS: Record<string, [string, string]> = {
   write: ['المساعد الكتابي', 'Rédaction'],
   service_docs: ['اقتراح وثائق الخدمات', 'Suggestions services'],
   assistant: ['المساعد الذكي', 'Assistant'],
+  pos_helper: ['مساعدة نقطة البيع', 'Aide caisse'],
+  landing: ['صفحات الهبوط', 'Pages de destination'],
 }
 
 /** Settings → AI: on/off, monthly cap, usage and how to add the API key. */

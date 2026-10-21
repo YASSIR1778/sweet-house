@@ -9,21 +9,35 @@ import { LangToggle, Logo } from '@/shared/ui/brand'
 import { useCart } from './cart'
 import { CartDrawer } from './pages/Checkout'
 import { openStatus, useSite } from './data'
+import { loadPixels } from './pixels'
+import { FocusProductPage } from './pages/ProductLanding'
+import { BRAND, BRANDS, ME, OTHER, SITES } from '@/shared/lib/brand'
 
-const LINKS = [
-  { to: '/', ar: 'الرئيسية', fr: 'Accueil', end: true },
-  { to: '/shop', ar: 'المتجر', fr: 'Boutique' },
-  { to: '/services', ar: 'الخدمات الإدارية', fr: 'Services administratifs' },
-  { to: '/abroad', ar: '🌍 خارج المغرب', fr: '🌍 MRE' },
-  { to: '/my', ar: 'وثائقي', fr: 'Mes documents' },
-  { to: '/contact', ar: 'تواصل معنا', fr: 'Contact' },
-]
+const LINKS =
+  BRAND === 'store'
+    ? [
+        { to: '/', ar: 'الرئيسية', fr: 'Accueil', end: true },
+        { to: '/shop', ar: 'كل المنتجات', fr: 'Produits' },
+        { to: '/school-list', ar: '🎒 اللائحة المدرسية', fr: '🎒 Liste scolaire' },
+        { to: '/faq', ar: 'الأسئلة الشائعة', fr: 'FAQ' },
+        { to: '/track', ar: 'تتبّع طلبيتي', fr: 'Suivi' },
+        { to: '/contact', ar: 'تواصل معنا', fr: 'Contact' },
+      ]
+    : [
+        { to: '/', ar: 'الرئيسية', fr: 'Accueil', end: true },
+        { to: '/services', ar: 'الخدمات الإدارية', fr: 'Services administratifs' },
+        { to: '/abroad', ar: '🌍 خارج المغرب', fr: '🌍 MRE' },
+        { to: '/my', ar: 'وثائقي', fr: 'Mes documents' },
+        { to: '/track', ar: 'تتبّع طلب', fr: 'Suivi' },
+        { to: '/contact', ar: 'تواصل معنا', fr: 'Contact' },
+      ]
+const OTHER_LINK = { url: SITES[OTHER], ...BRANDS[OTHER], icon: OTHER === 'store' ? '🛍️' : '🗂️' }
 
 export function useSeo(title?: string) {
   const { t, pick } = useLang()
   const site = useSite()
   useEffect(() => {
-    const name = site.data ? pick(site.data.store, 'name') : 'Sweet House'
+    const name = t(ME.name_ar, ME.name_fr)
     document.title = title ? `${title} — ${name}` : name
     const desc = site.data ? pick(site.data.website.seo, 'description') : ''
     let m = document.querySelector('meta[name="description"]')
@@ -36,6 +50,20 @@ export function useSeo(title?: string) {
   }, [title, site.data, pick, t])
 }
 
+/** Ad landing page shell: page only, plus the pixels. */
+export function FocusLayout() {
+  const site = useSite()
+  useEffect(() => {
+    if (BRAND === 'store') loadPixels(site.data?.tracking)
+  }, [site.data?.tracking])
+  return (
+    <div className="min-h-screen bg-bg">
+      <ScrollRestoration />
+      <FocusProductPage />
+    </div>
+  )
+}
+
 export function SiteLayout() {
   const { t, pick } = useLang()
   const site = useSite()
@@ -45,6 +73,9 @@ export function SiteLayout() {
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => setMenu(false), [loc.pathname])
+  useEffect(() => {
+    if (BRAND === 'store') loadPixels(site.data?.tracking)
+  }, [site.data?.tracking])
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 8)
     on()
@@ -63,7 +94,7 @@ export function SiteLayout() {
       <header className={cn('sticky top-0 z-40 transition-all', scrolled ? 'border-b border-border/70 bg-bg/85 shadow-sm backdrop-blur-xl' : 'bg-bg')}>
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
           <Link to="/">
-            <Logo />
+            <Logo color={ME.color} subtitle={t(ME.sub_ar, ME.sub_fr)} />
           </Link>
           <nav className="ms-6 hidden items-center gap-1 lg:flex">
             {LINKS.map((l) => (
@@ -74,12 +105,18 @@ export function SiteLayout() {
           </nav>
           <div className="ms-auto flex items-center gap-1">
             <OpenBadge />
-            <Button asChild variant="ghost" size="icon" className="hidden sm:inline-flex">
-              <Link to="/shop" aria-label="search">
-                <Search />
-              </Link>
-            </Button>
+            <a href={OTHER_LINK.url} className="me-1 hidden rounded-full border border-border px-3 py-1 text-xs font-medium text-muted hover:text-text xl:inline-block">
+              {OTHER_LINK.icon} {t(OTHER_LINK.name_ar, OTHER_LINK.name_fr)}
+            </a>
+            {BRAND === 'store' && (
+              <Button asChild variant="ghost" size="icon" className="hidden sm:inline-flex">
+                <Link to="/shop" aria-label="search">
+                  <Search />
+                </Link>
+              </Button>
+            )}
             <LangToggle compact />
+            {BRAND === 'store' && (
             <Button variant="ghost" size="icon" className="relative" onClick={() => cart.setOpen(true)} aria-label="cart">
               <ShoppingBag />
               <AnimatePresence>
@@ -90,6 +127,7 @@ export function SiteLayout() {
                 )}
               </AnimatePresence>
             </Button>
+            )}
             <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMenu(!menu)}>
               {menu ? <X /> : <Menu />}
             </Button>
@@ -104,6 +142,9 @@ export function SiteLayout() {
                     {t(l.ar, l.fr)}
                   </NavLink>
                 ))}
+                <a href={OTHER_LINK.url} className="rounded-lg px-3 py-3 text-sm font-medium text-muted">
+                  {OTHER_LINK.icon} {t(`زوروا ${OTHER_LINK.name_ar}`, `Voir ${OTHER_LINK.name_fr}`)}
+                </a>
               </div>
             </motion.nav>
           )}
@@ -121,8 +162,15 @@ export function SiteLayout() {
       <footer className="mt-20 bg-navy text-white">
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:grid-cols-4">
           <div className="md:col-span-2">
-            <Logo invert />
-            <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/60">{store ? pick(store, 'tagline') : ''}</p>
+            <Logo invert color={ME.color} subtitle={t(ME.sub_ar, ME.sub_fr)} />
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/60">{t(ME.tagline_ar, ME.tagline_fr)}</p>
+            <a href={OTHER_LINK.url} className="mt-5 flex max-w-sm items-center gap-3 rounded-2xl bg-white/5 p-3 text-sm hover:bg-white/10">
+              <span className="text-2xl">{OTHER_LINK.icon}</span>
+              <span>
+                <span className="block text-white/50">{t('عندنا أيضاً', 'Découvrez aussi')}</span>
+                <span className="block font-semibold">{t(OTHER_LINK.name_ar, OTHER_LINK.name_fr)} — {t(OTHER_LINK.tagline_ar, OTHER_LINK.tagline_fr)}</span>
+              </span>
+            </a>
             <div className="mt-5 flex gap-2">
               {store?.socials?.facebook && (
                 <a href={store.socials.facebook} target="_blank" rel="noreferrer" className="flex size-9 items-center justify-center rounded-lg bg-white/10 hover:bg-brand">
@@ -149,16 +197,19 @@ export function SiteLayout() {
                   </Link>
                 </li>
               ))}
-              <li>
-                <Link to="/alerts" className="hover:text-white">
-                  {t('🔔 تنبيهات المباريات على واتساب', '🔔 Alertes WhatsApp')}
-                </Link>
-              </li>
-              <li>
-                <Link to="/track" className="hover:text-white">
-                  {t('تتبّع طلب', 'Suivre une demande')}
-                </Link>
-              </li>
+              {BRAND === 'services' ? (
+                <li>
+                  <Link to="/alerts" className="hover:text-white">
+                    {t('🔔 تنبيهات المباريات على واتساب', '🔔 Alertes WhatsApp')}
+                  </Link>
+                </li>
+              ) : (
+                <li>
+                  <Link to="/returns" className="hover:text-white">
+                    {t('الإرجاع والاستبدال', 'Retours et échanges')}
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link to="/privacy" className="hover:text-white">
                   {t('سياسة الخصوصية', 'Confidentialité')}
@@ -188,7 +239,7 @@ export function SiteLayout() {
           </div>
         </div>
         <div className="border-t border-white/10 py-5 text-center text-xs text-white/40">
-          © {new Date().getFullYear()} {store ? pick(store, 'name') : 'Sweet House'}
+          © {new Date().getFullYear()} {t(ME.name_ar, ME.name_fr)}
           {site.data?.legal.cndp && <span className="num"> · CNDP {site.data.legal.cndp}</span>}
         </div>
       </footer>
@@ -199,7 +250,7 @@ export function SiteLayout() {
         <MessageCircle className="relative size-7" />
       </a>
       )}
-      <CartDrawer />
+      {BRAND === 'store' && <CartDrawer />}
     </div>
   )
 }

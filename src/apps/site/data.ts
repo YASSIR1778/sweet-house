@@ -18,7 +18,7 @@ export type DeliverySettings = { enabled: boolean; cod: boolean; default_price: 
 export type PaymentSettings = { cod: boolean; in_store: boolean; bank_transfer: boolean; bank_name: string; rib: string; account_holder: string }
 
 export type AbroadSettings = { enabled: boolean; post_note_ar: string; post_note_fr: string; payment_note_ar: string; payment_note_fr: string }
-export type SiteData = { store: StoreSettings; website: WebsiteSettings; delivery: DeliverySettings; payments: PaymentSettings; legal: { cndp?: string; company_name?: string; ice?: string }; abroad: AbroadSettings | null; help: { enabled?: boolean; alert_minutes?: number } | null }
+export type SiteData = { store: StoreSettings; website: WebsiteSettings; delivery: DeliverySettings; payments: PaymentSettings; legal: { cndp?: string; company_name?: string; ice?: string }; abroad: AbroadSettings | null; help: { enabled?: boolean; alert_minutes?: number } | null; tracking: { meta_pixel_id?: string; tiktok_pixel_id?: string } | null }
 
 /** Opening status from the weekly hours (Morocco local time). */
 export function openStatus(hours: StoreSettings['hours'] | undefined, now = new Date()) {
@@ -44,10 +44,10 @@ export function useSite() {
     queryKey: ['site-settings'],
     staleTime: 5 * 60_000,
     queryFn: async () => {
-      const { data, error } = await sb.from('settings').select('key, value').in('key', ['store', 'website', 'delivery', 'online_payments', 'legal', 'abroad', 'help'])
+      const { data, error } = await sb.from('settings').select('key, value').in('key', ['store', 'website', 'delivery', 'online_payments', 'legal', 'abroad', 'help', 'tracking'])
       if (error) throw error
       const m = Object.fromEntries((data ?? []).map((r) => [r.key, r.value]))
-      return { store: m.store, website: m.website, delivery: m.delivery, payments: m.online_payments, legal: m.legal ?? {}, abroad: m.abroad ?? null, help: m.help ?? null } as SiteData
+      return { store: m.store, website: m.website, delivery: m.delivery, payments: m.online_payments, legal: m.legal ?? {}, abroad: m.abroad ?? null, help: m.help ?? null, tracking: m.tracking ?? null } as SiteData
     },
   })
 }
@@ -66,6 +66,26 @@ export type ShopProduct = {
   is_featured: boolean
   created_at: string
   product_variants: ShopVariant[]
+  landing?: Landing
+}
+
+/** Landing page content of a product (edited in the dashboard). Prices in cents. */
+export type Landing = {
+  enabled?: boolean
+  headline_ar?: string
+  headline_fr?: string
+  sub_ar?: string
+  sub_fr?: string
+  benefits?: { icon?: string; text_ar: string; text_fr?: string }[]
+  video_url?: string
+  sections?: { image?: string; title_ar: string; text_ar: string; title_fr?: string; text_fr?: string }[]
+  faq?: { q_ar: string; a_ar: string; q_fr?: string; a_fr?: string }[]
+  reviews?: { name: string; city?: string; text: string; rating?: number; image?: string }[]
+  offers?: { qty: number; price: number; label_ar?: string; label_fr?: string; badge_ar?: string }[]
+  free_delivery?: boolean
+  guarantee_ar?: string
+  guarantee_fr?: string
+  urgency?: boolean
 }
 export type ShopCategory = { id: string; name_ar: string; name_fr: string; icon: string | null; color: string; sort: number }
 
@@ -75,7 +95,7 @@ export function useShop() {
     staleTime: 60_000,
     queryFn: async () => {
       const [p, c] = await Promise.all([
-        sb.from('products').select('id, category_id, name_ar, name_fr, description_ar, description_fr, brand, images, track_stock, is_featured, created_at, product_variants(id, name_ar, name_fr, price, compare_at_price, stock_qty, image_url, sort)').order('sort').order('created_at', { ascending: false }),
+        sb.from('products').select('id, category_id, name_ar, name_fr, description_ar, description_fr, brand, images, track_stock, is_featured, created_at, landing, product_variants(id, name_ar, name_fr, price, compare_at_price, stock_qty, image_url, sort)').order('sort').order('created_at', { ascending: false }),
         sb.from('categories').select('id, name_ar, name_fr, icon, color, sort').order('sort'),
       ])
       if (p.error) throw p.error

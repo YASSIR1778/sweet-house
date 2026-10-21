@@ -137,8 +137,9 @@ export function CustomRequestBanner({ compact }: { compact?: boolean }) {
 
 type Done = { number: string; tracking_code: string; phone: string; failed: string[] }
 
-export function ServiceRequestPage() {
-  const { id } = useParams()
+export function ServiceRequestPage({ serviceId }: { serviceId?: string } = {}) {
+  const routeParams = useParams()
+  const id = serviceId ?? routeParams.id
   const { t, pick, lang } = useLang()
   const data = useAdminServices()
   const site = useSite()

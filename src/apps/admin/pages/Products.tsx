@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Copy, Eye, FileSpreadsheet, MoreVertical, Package, Pencil, Plus, Search, SlidersHorizontal, Star, Trash } from 'lucide-react'
+import { Copy, Eye, FileSpreadsheet, Megaphone, MoreVertical, Package, Pencil, Plus, Search, SlidersHorizontal, Star, Trash } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -14,6 +14,7 @@ import { Select } from '@/shared/ui/select'
 import { ProductEditor } from './ProductEditor'
 import { StockDialog } from './StockDialog'
 import { ImportProductsDialog } from './ImportProducts'
+import { LandingEditor } from './LandingEditor'
 
 export type ProductRow = Product & {
   categories: Pick<Category, 'id' | 'name_ar' | 'name_fr' | 'color'> | null
@@ -29,6 +30,7 @@ export function ProductsPage() {
   const [cat, setCat] = useState<string | null>(null)
   const [stockFilter, setStockFilter] = useState<string | null>(null)
   const [editing, setEditing] = useState<string | 'new' | null>(null)
+  const [landing, setLanding] = useState<string | null>(null)
   const [duplicateOf, setDuplicateOf] = useState<string | null>(null)
   const [stockFor, setStockFor] = useState<ProductRow | null>(null)
   const [importing, setImporting] = useState(false)
@@ -197,6 +199,9 @@ export function ProductsPage() {
                   {t('تعديل المخزون', 'Ajuster le stock')}
                 </DropdownItem>
               )}
+              <DropdownItem icon={<Megaphone />} onSelect={() => setLanding(p.id)}>
+                {t('صفحة الهبوط (إعلانات)', 'Page de destination (pub)')}
+              </DropdownItem>
               <DropdownItem icon={<Eye />} onSelect={() => toggleOnline(p)}>
                 {p.is_online ? t('إخفاء من الموقع', 'Masquer du site') : t('إظهار في الموقع', 'Afficher sur le site')}
               </DropdownItem>
@@ -291,6 +296,7 @@ export function ProductsPage() {
         }
       />
 
+      <LandingEditor productId={landing} onClose={() => setLanding(null)} />
       <ProductEditor
         id={editing}
         duplicateOf={duplicateOf}

@@ -361,6 +361,7 @@ Deno.serve(async (req) => {
     }
     // every post gets its own short tracking link (?src=CODE)
     const SITE = 'https://yassir1778.github.io/sweet-house'
+    const STORE_SITE = 'https://yassir1778.github.io/sweet-house-store'
     const prefix: Record<string, string> = { facebook: 'fb', instagram: 'ig', tiktok: 'tt', whatsapp: 'wa', google: 'go' }
     for (const it of items) {
       for (const post of it.posts ?? []) {
@@ -369,7 +370,9 @@ Deno.serve(async (req) => {
         const path = /^\/[a-z0-9/_-]*$/i.test(post.link_path ?? '') ? post.link_path : '/'
         await admin.from('campaign_links').insert({ code, channel, path, label: post.text.slice(0, 80) })
         post.code = code
-        post.link = `${SITE}${path === '/' ? '/' : path}?src=${code}`
+        // store paths (and instagram/tiktok home links) go to the Store site
+        const toStore = /^\/(shop|p|school-list|faq|returns|checkout)(\/|$)/.test(path) || (['instagram', 'tiktok'].includes(channel) && path === '/')
+        post.link = `${toStore ? STORE_SITE : SITE}${path === '/' ? '/' : path}?src=${code}`
       }
       // the planner's weeks become the plan the channel agents follow
       if (key === 'planner' && it.plan?.length) {

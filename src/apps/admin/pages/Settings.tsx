@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Banknote, Building2, Database, FileText, Hash, Landmark, MonitorPlay, Printer, Receipt as ReceiptIcon, Save, Scale, Settings as SettingsIcon, Sparkles, Store } from 'lucide-react'
+import { Banknote, Building2, Database, FileText, Hash, Landmark, Megaphone, MonitorPlay, Printer, Receipt as ReceiptIcon, Save, Scale, Settings as SettingsIcon, Sparkles, Store } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -16,6 +16,7 @@ import { PrintTestTicket, Receipt } from '@/shared/ui/receipt'
 import { DataSection } from './DataSection'
 import { AiSection } from './AiSection'
 import { BankSection } from './BankSection'
+import { AdsSection } from './AdsSection'
 
 type Cash = { opening_float: number; blind_count: boolean; diff_alert: number; auto_lock_minutes: number }
 type Pos = { allow_negative_stock: boolean; sound: boolean; auto_print: boolean; quick_cash: number[] }
@@ -25,6 +26,7 @@ const SECTIONS = [
   { id: 'store', ar: 'المكتبة', fr: 'Librairie', icon: Store },
   { id: 'legal', ar: 'المعلومات القانونية', fr: 'Mentions légales', icon: Scale },
   { id: 'bank', ar: 'الحساب البنكي والأداء', fr: 'Compte bancaire', icon: Landmark },
+  { id: 'ads', ar: 'الإعلانات (Pixel)', fr: 'Publicité (Pixel)', icon: Megaphone },
   { id: 'cash', ar: 'الصندوق ونقطة البيع', fr: 'Caisse & POS', icon: Banknote },
   { id: 'receipt', ar: 'الوصل', fr: 'Ticket', icon: ReceiptIcon },
   { id: 'invoice', ar: 'الفواتير', fr: 'Factures', icon: FileText },
@@ -429,6 +431,7 @@ export function SettingsPage() {
             {section === 'data' && <DataSection />}
             {section === 'ai' && <AiSection />}
             {section === 'bank' && <BankSection />}
+            {section === 'ads' && <AdsSection />}
 
             {section === 'numbers' && (
               <Card>

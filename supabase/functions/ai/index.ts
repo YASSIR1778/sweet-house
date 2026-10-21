@@ -14,6 +14,7 @@ const PERMS: Record<string, string[]> = {
   riyad: ['cash.shift', 'riyad.manage'],
   write: ['pos.sell', 'requests.manage'],
   service_docs: ['services.manage'],
+  landing: ['products.manage'],
 }
 
 const ID_PROMPT = `هذه صورة بطاقة تعريف وطنية مغربية (CNIE) — الوجه أو الظهر.
@@ -46,6 +47,19 @@ const SERVICE_PROMPT = (name: string) => `أنت خبير في الإجراءا�
 أجب بـ JSON فقط:
 {"required_documents":[{"name_ar":"","name_fr":"","required":true}],"fields":[{"key":"snake_case","label_ar":"","label_fr":"","type":"text|textarea|number|date|select","required":true,"options":[]}],"duration_ar":"","duration_fr":"","official_url":"" }
 اختصر: من 1 إلى 6 وثائق، ومن 1 إلى 8 حقول. لا تضف رابطاً رسمياً إلا إذا كنت متأكداً منه.`
+
+const LANDING_PROMPT = (name: string, desc: string, price: number) => `أنت كاتب إعلانات محترف لمتجر إلكتروني مغربي (الدفع عند الاستلام). اكتب محتوى صفحة هبوط لمنتج واحد.
+المنتج: "${name}"
+الوصف المتوفر: "${desc || '—'}"
+الثمن العادي: ${price} درهم.
+اكتب بالدارجة المغربية بحروف عربية، جمل قصيرة وواضحة، تتكلم على الفائدة والمشكل اللي كيحل، ماشي على المواصفات فقط.
+قواعد صارمة: لا وعود كاذبة، لا ادعاءات طبية أو صحية، لا أرقام أو شهادات مخترعة، ولا آراء زبائن.
+أجب بـ JSON فقط:
+{"headline_ar":"عنوان قوي فيه الفائدة (أقل من 60 حرف)","sub_ar":"جملة أو جملتان","benefits":[{"text_ar":""}],"sections":[{"title_ar":"","text_ar":""}],"faq":[{"q_ar":"","a_ar":""}],"offers":[{"qty":1,"price_dh":0,"badge_ar":""}]}
+- benefits: من 5 إلى 7.
+- sections: 3 فقرات (المشكل، الحل، كيفاش كيتستعمل).
+- faq: 5 أسئلة (التوصيل، الدفع عند الاستلام، الجودة، الاستعمال، الاستبدال). لا تذكر مدة توصيل أو ضمان محدد بالأرقام.
+- offers: 3 عروض: 1 بالثمن العادي، 2 بخصم صغير، 3 بخصم أكبر (أثمنة تنتهي بـ 9)، وضع badge_ar «الأكثر طلباً» على عرض 2.`
 
 function parseJson(text: string) {
   const m = text.match(/\{[\s\S]*\}/)
@@ -109,6 +123,10 @@ Deno.serve(async (req) => {
           f('tone') && `الأسلوب: ${f('tone')}`,
         ].filter(Boolean).join('\n'),
       }]
+    } else if (action === 'landing') {
+      model = cfg.model_smart || 'claude-sonnet-5-5'
+      maxTokens = 3000
+      content = [{ type: 'text', text: LANDING_PROMPT(String(body.name ?? '').slice(0, 200), String(body.description ?? '').slice(0, 1500), Number(body.price) || 0) }]
     } else {
       maxTokens = 1500
       content = [{ type: 'text', text: SERVICE_PROMPT(String(body.name ?? '').slice(0, 200)) }]
@@ -128,6 +146,11 @@ Deno.serve(async (req) => {
     const text = (out.content ?? []).filter((c: { type: string }) => c.type === 'text').map((c: { text: string }) => c.text).join('\n').trim()
 
     if (action === 'write') return json({ text })
+    if (action === 'landing') {
+      const l = parseJson(text)
+      l.offers = (l.offers ?? []).map((o: { qty: number; price_dh: number; badge_ar?: string }) => ({ qty: o.qty, price: Math.round(Number(o.price_dh) * 100), badge_ar: o.badge_ar || undefined }))
+      return json(l)
+    }
     return json(parseJson(text))
   } catch (e) {
     return fail(String((e as Error).message ?? e), 500)

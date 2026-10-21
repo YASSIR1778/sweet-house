@@ -6,8 +6,9 @@ import { useLang } from '@/shared/lib/i18n'
 import { cn, whatsappLink } from '@/shared/lib/utils'
 import { Button, Skeleton } from '@/shared/ui/primitives'
 import { DynamicIcon } from '@/shared/ui/icon'
-import { useAdminServices, useShop, useSite } from '../data'
-import { ProductCard, SectionTitle, ServiceCard } from '../components'
+import { useAdminServices, useSite } from '../data'
+import { BRANDS, SITES } from '@/shared/lib/brand'
+import { SectionTitle, ServiceCard } from '../components'
 import { useSeo } from '../Layout'
 import { CustomRequestBanner } from './Services'
 import { OpenBadge } from '../Layout'
@@ -15,7 +16,6 @@ import { OpenBadge } from '../Layout'
 export function HomePage() {
   const { t, pick } = useLang()
   const site = useSite()
-  const shop = useShop()
   const services = useAdminServices()
   const nav = useNavigate()
   const [code, setCode] = useState('')
@@ -25,8 +25,6 @@ export function HomePage() {
   const w = site.data?.website
   const store = site.data?.store
   const sec = w?.sections ?? { features: true, featured: true, services: true, about: true, faq: true }
-  const featured = (shop.data?.products ?? []).filter((p) => p.is_featured).slice(0, 8)
-  const latest = featured.length ? featured : (shop.data?.products ?? []).slice(0, 8)
   const popular = (services.data?.services ?? []).filter((x) => x.system_key !== 'custom_request').slice(0, 6)
   const catColor = (id: string | null) => services.data?.categories.find((c) => c.id === id)?.color
 
@@ -60,8 +58,8 @@ export function HomePage() {
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10">
-                <Link to="/shop">
-                  {t('تصفّح المتجر', 'Voir la boutique')}
+                <Link to="/abroad">
+                  {t('🌍 أنا خارج المغرب', '🌍 Je suis à l’étranger')}
                   <ArrowLeft className="ltr:rotate-180" />
                 </Link>
               </Button>
@@ -92,7 +90,7 @@ export function HomePage() {
                   {[
                     [String(services.data?.services.length ?? '40') + '+', t('خدمة إدارية', 'services')],
                     ['48h', t('متوسط الإنجاز', 'délai moyen')],
-                    ['🇲🇦', t('توصيل لكل المغرب', 'livraison Maroc')],
+                    ['🌍', t('حتى من خارج المغرب', 'même depuis l’étranger')],
                   ].map(([a, b]) => (
                     <div key={b} className="rounded-2xl bg-white/5 p-3">
                       <div className="num text-2xl font-extrabold text-brand">{a}</div>
@@ -168,41 +166,20 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* products */}
-      {sec.featured && latest.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 pt-20">
-          <SectionTitle
-            eyebrow={t('المتجر', 'Boutique')}
-            title={featured.length ? t('منتجات مختارة', 'Notre sélection') : t('وصل حديثاً', 'Nouveautés')}
-            action={
-              <Button asChild variant="outline">
-                <Link to="/shop">
-                  {t('كل المنتجات', 'Tous les produits')}
-                  <ArrowLeft className="ltr:rotate-180" />
-                </Link>
-              </Button>
-            }
-          />
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {latest.map((p, i) => (
-              <ProductCard key={p.id} p={p} index={i} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* delivery banner */}
+      {/* the store, on its own site */}
       <section className="mx-auto max-w-6xl px-4 pt-20">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand to-[#ff9466] p-10 text-white md:p-14">
+        <a href={SITES.store} className="group relative block overflow-hidden rounded-3xl bg-gradient-to-br from-[#FF6B35] to-[#ff9466] p-10 text-white md:p-14">
           <Truck className="absolute -end-6 -bottom-6 size-48 opacity-15" />
           <div className="relative max-w-xl">
-            <h3 className="text-3xl font-extrabold">{t('نوصل طلبك لكل مدن المغرب 🚚', 'Livraison dans tout le Maroc 🚚')}</h3>
-            <p className="mt-3 text-white/85">{t('أو استلمه من المحل في تطوان. الأداء عند الاستلام متاح.', 'Ou retrait en boutique à Tétouan. Paiement à la livraison disponible.')}</p>
-            <Button asChild size="lg" variant="navy" className="mt-6">
-              <Link to="/shop">{t('ابدأ التسوق', 'Commencer')}</Link>
-            </Button>
+            <div className="text-sm font-semibold text-white/80">🛍️ {t(BRANDS.store.name_ar, BRANDS.store.name_fr)}</div>
+            <h3 className="mt-1 text-3xl font-extrabold">{t(BRANDS.store.tagline_ar, BRANDS.store.tagline_fr)}</h3>
+            <p className="mt-3 text-white/85">{t('منتجات عملية للدار، الهاتف، الأطفال والمدرسة. توصيل لكل المغرب والأداء عند الاستلام.', 'Maison, téléphone, enfants, école. Livraison partout au Maroc, paiement à la livraison.')}</p>
+            <span className="mt-6 inline-flex items-center gap-2 rounded-xl bg-navy px-5 py-3 font-semibold transition-transform group-hover:translate-x-[-4px]">
+              {t('زوروا المتجر', 'Visiter la boutique')}
+              <ArrowLeft className="size-4 ltr:rotate-180" />
+            </span>
           </div>
-        </div>
+        </a>
       </section>
 
       {/* customer shortcuts: my documents, abroad, alerts */}
