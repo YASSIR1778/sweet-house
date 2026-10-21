@@ -437,3 +437,6 @@ verify_jwt = false
 
 [functions.retention]
 verify_jwt = false
+
+[functions.assistant]
+verify_jwt = false

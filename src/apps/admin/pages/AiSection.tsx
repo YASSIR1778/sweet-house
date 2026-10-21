@@ -15,6 +15,7 @@ const ACTIONS: Record<string, [string, string]> = {
   riyad: ['قراءة كشف رياض', 'Relevé Riyad'],
   write: ['المساعد الكتابي', 'Rédaction'],
   service_docs: ['اقتراح وثائق الخدمات', 'Suggestions services'],
+  assistant: ['المساعد الذكي', 'Assistant'],
 }
 
 /** Settings → AI: on/off, monthly cap, usage and how to add the API key. */
@@ -57,6 +58,12 @@ export function AiSection() {
                 </span>
               ))}
             </div>
+            {!!u && (u.tokens_in > 0 || u.tokens_out > 0) && (
+              <div className="mt-2 text-xs text-muted">
+                {t('التكلفة التقريبية هذا الشهر (أقصى تقدير):', 'Coût estimé ce mois (max) :')}{' '}
+                <span className="num font-semibold text-text">≈ {((u.tokens_in * 2 + u.tokens_out * 10) / 1e6 * 10).toFixed(1)} {t('درهم', 'DH')}</span>
+              </div>
+            )}
           </div>
         </div>
       </Card>

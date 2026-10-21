@@ -13,6 +13,7 @@ import { EmptyState } from '@/shared/ui/data'
 import { NAV } from './nav'
 import { NotificationsBell } from './Notifications'
 import { CommandPalette } from './CommandPalette'
+import { AssistantButton } from './Assistant'
 import { SecurityDialog } from './Mfa'
 import { useOnlinePending } from '@/shared/lib/online'
 
@@ -159,6 +160,7 @@ export function Layout() {
           <Button variant="ghost" size="icon" className="sm:hidden" onClick={() => window.dispatchEvent(new Event('open-palette'))}>
             <Search />
           </Button>
+          <AssistantButton />
           <NotificationsBell />
           <LangToggle />
           <ThemeToggle />
