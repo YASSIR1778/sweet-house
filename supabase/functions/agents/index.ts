@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
     const ai = ((await admin.from('settings').select('value').eq('key', 'ai').single()).data?.value ?? {}) as { enabled?: boolean }
     if (ai.enabled === false) return fail('ai_disabled', 412)
     const since = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
-    const { count } = await admin.from('agent_runs').select('id', { count: 'exact', head: true }).eq('agent_key', key).gte('started_at', since)
+    const { count } = await admin.from('agent_runs').select('id', { count: 'exact', head: true }).eq('agent_key', key).gte('started_at', since).or('ok.is.null,ok.eq.true')
     if ((count ?? 0) >= agent.monthly_runs) return fail('ai_limit_reached', 429)
 
     const { data: run } = await admin.from('agent_runs').insert({ agent_key: key, trigger, model: agent.model }).select('id').single()
