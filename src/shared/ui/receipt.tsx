@@ -4,6 +4,17 @@ import { format } from 'date-fns'
 import type { LegalSettings, ReceiptSettings, Sale, StoreSettings } from '@/shared/lib/types'
 import { money, qty } from '@/shared/lib/money'
 import QRCode from 'qrcode'
+import { storage } from '@/shared/lib/utils'
+
+// Same cache as useReceiptConfig: printing must work offline too.
+const cfgCache = storage<{ receipt?: Partial<ReceiptSettings> } | null>('sh-receipt-cfg', null)
+
+/** Roll printer geometry from Settings → receipt (defaults fit 80mm printers like the K200). */
+export function rollGeometry(r?: Partial<ReceiptSettings>) {
+  const g = r ?? cfgCache.get()?.receipt ?? {}
+  const paper = g.paper_mm ?? 80
+  return { paper, width: g.print_width_mm ?? (paper === 58 ? 48 : 72), offset: g.offset_mm ?? 0, font: g.font_size ?? 12 }
+}
 
 export type ReceiptConfig = {
   store: Partial<StoreSettings>
@@ -26,7 +37,7 @@ export function Receipt({ sale, cfg }: { sale: Sale; cfg: ReceiptConfig }) {
   ].filter(Boolean)
 
   return (
-    <div className="receipt" style={{ width: '72mm', fontFamily: "'IBM Plex Sans Arabic', 'Inter', sans-serif", fontSize: 12, color: '#000', lineHeight: 1.35, direction: 'rtl' }}>
+    <div className="receipt" style={{ width: `${rollGeometry(r).width}mm`, maxWidth: '100%', fontFamily: "'IBM Plex Sans Arabic', 'Inter', sans-serif", fontSize: rollGeometry(r).font, color: '#000', lineHeight: 1.35, direction: 'rtl' }}>
       <div style={{ textAlign: 'center' }}>
         {r.show_logo !== false && (
           <img src={cfg.store.logo_url || `${import.meta.env.BASE_URL}logo.svg`} alt="" style={{ width: 44, height: 44, margin: '0 auto 4px', filter: 'grayscale(1)' }} />
@@ -125,7 +136,13 @@ function Dash() {
 }
 
 /** Renders children into a print-only area, opens the print dialog once, then calls onDone. */
-export function PrintArea({ children, onDone, page = '80mm auto', margin = '3mm 4mm' }: { children: React.ReactNode; onDone: () => void; page?: string; margin?: string }) {
+export function PrintArea({ children, onDone, page, margin, geo: geoOverride }: { children: React.ReactNode; onDone: () => void; page?: string; margin?: string; geo?: Partial<ReceiptSettings> }) {
+  // Roll (ticket) prints: exact printable width, anchored to the paper's left
+  // edge (where thermal printers start), whatever the page direction.
+  const roll = !page || !/A4|A5|letter/i.test(page)
+  const geo = rollGeometry(geoOverride)
+  page = roll ? `${geo.paper}mm auto` : page
+  margin = roll ? '0' : (margin ?? '10mm')
   const done = useRef(onDone)
   done.current = onDone
   const started = useRef(false)
@@ -146,8 +163,8 @@ export function PrintArea({ children, onDone, page = '80mm auto', margin = '3mm 
   }, [page, margin])
 
   return createPortal(
-    <div className="print-area" aria-hidden style={{ position: 'fixed', left: -10000, top: 0 }}>
-      {children}
+    <div className="print-area" aria-hidden style={{ position: 'fixed', left: -10000, top: 0, direction: 'ltr' }}>
+      {roll ? <div style={{ width: `${geo.width}mm`, marginLeft: `${geo.offset}mm`, marginRight: 'auto', overflow: 'hidden' }}>{children}</div> : children}
     </div>,
     document.body,
   )
@@ -158,6 +175,30 @@ export function PrintReceipt({ sale, cfg, onDone }: { sale: Sale; cfg: ReceiptCo
   return (
     <PrintArea onDone={onDone}>
       <Receipt sale={sale} cfg={cfg} />
+    </PrintArea>
+  )
+}
+
+/** Calibration ticket: shows the printed width with edge marks and a mm ruler. */
+export function PrintTestTicket({ geo, onDone }: { geo?: Partial<ReceiptSettings>; onDone: () => void }) {
+  const g = rollGeometry(geo)
+  const ticks = Array.from({ length: Math.floor(g.width / 5) + 1 }, (_, i) => i * 5)
+  return (
+    <PrintArea onDone={onDone} geo={geo}>
+      <div style={{ fontFamily: "'Inter', sans-serif", color: '#000', fontSize: 11, direction: 'ltr' }}>
+        <div style={{ border: '2px solid #000', padding: '2mm', textAlign: 'center', fontWeight: 700 }}>
+          ◀ TEST {g.width}mm ▶
+          <div style={{ fontWeight: 400, direction: 'rtl', fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>يجب أن يظهر الإطار كاملاً من الجهتين</div>
+        </div>
+        <div style={{ position: 'relative', height: '9mm', marginTop: '2mm', borderBottom: '1px solid #000' }}>
+          {ticks.map((mm) => (
+            <div key={mm} style={{ position: 'absolute', left: `${mm}mm`, bottom: 0, width: 1, height: mm % 10 === 0 ? '4mm' : '2mm', background: '#000' }}>
+              {mm % 10 === 0 && <span style={{ position: 'absolute', bottom: '4.5mm', left: -3, fontSize: 8 }}>{mm}</span>}
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: '2mm', fontSize: 10 }}>paper {g.paper}mm · width {g.width}mm · offset {g.offset}mm</div>
+      </div>
     </PrintArea>
   )
 }

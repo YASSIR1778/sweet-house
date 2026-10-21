@@ -532,7 +532,7 @@ function ShiftPrint({ status, result, onDone }: { status: Extract<ShiftStatus, {
   ]
   return (
     <PrintArea onDone={onDone}>
-    <div style={{ width: '72mm', fontSize: 12, color: '#000', direction: 'rtl' }}>
+    <div style={{ width: '100%', fontSize: 12, color: '#000', direction: 'rtl' }}>
       <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 14 }}>{t('تقرير الوردية', 'Rapport de caisse')}</div>
       <div style={{ textAlign: 'center' }}>
         #{status.shift.number} · {status.employee_name}

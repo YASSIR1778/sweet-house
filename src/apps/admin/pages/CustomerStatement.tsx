@@ -182,7 +182,7 @@ export function CustomerStatement({ customer, onClose }: { customer: Customer | 
 
       {printing && s && (
         <PrintArea onDone={() => setPrinting(false)}>
-          <div style={{ width: '72mm', fontSize: 12, color: '#000', direction: 'rtl' }}>
+          <div style={{ width: '100%', fontSize: 12, color: '#000', direction: 'rtl' }}>
             <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 14 }}>كشف الحساب</div>
             <div style={{ textAlign: 'center' }}>{s.customer.full_name}</div>
             <div style={{ textAlign: 'center' }}>{format(new Date(), 'dd/MM/yyyy HH:mm')}</div>

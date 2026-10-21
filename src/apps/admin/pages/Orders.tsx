@@ -240,7 +240,7 @@ function OrderSheet({ id, onClose }: { id: string | null; onClose: () => void })
 
           {printing && (
             <PrintArea onDone={() => setPrinting(false)}>
-              <div style={{ width: '72mm', fontSize: 12, color: '#000', direction: 'rtl' }}>
+              <div style={{ width: '100%', fontSize: 12, color: '#000', direction: 'rtl' }}>
                 <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 15 }}>{store.data?.name_ar}</div>
                 <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 16, margin: '4px 0' }}>{o.number}</div>
                 <div>{o.customer_name} — <span style={{ direction: 'ltr' }}>+{o.phone}</span></div>

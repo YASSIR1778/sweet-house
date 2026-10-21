@@ -253,4 +253,8 @@ export type ReceiptSettings = {
   qr_url?: string
   qr_label_ar?: string
   qr_label_fr?: string
+  paper_mm?: number // roll width: 80 or 58
+  print_width_mm?: number // printable width, 72 for 80mm rolls
+  offset_mm?: number // shift to the right if the left edge is cut
+  font_size?: number
 }

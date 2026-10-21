@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Banknote, Building2, Database, FileText, Hash, MonitorPlay, Receipt as ReceiptIcon, Save, Scale, Settings as SettingsIcon, Sparkles, Store } from 'lucide-react'
+import { Banknote, Building2, Database, FileText, Hash, MonitorPlay, Printer, Receipt as ReceiptIcon, Save, Scale, Settings as SettingsIcon, Sparkles, Store } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -12,7 +12,7 @@ import { Button, Card, CardHeader, Field, Input, Skeleton, SwitchRow, Textarea }
 import { PageHeader } from '@/shared/ui/data'
 import { MoneyInput } from '@/shared/ui/pickers'
 import { ImageInput } from '@/shared/ui/media'
-import { Receipt } from '@/shared/ui/receipt'
+import { PrintTestTicket, Receipt } from '@/shared/ui/receipt'
 import { DataSection } from './DataSection'
 import { AiSection } from './AiSection'
 
@@ -79,6 +79,7 @@ export function SettingsPage() {
   const [cash, setCash] = useState<Partial<Cash>>({})
   const [pos, setPos] = useState<Partial<Pos>>({})
   const [receipt, setReceipt] = useState<Partial<ReceiptSettings>>({})
+  const [testPrint, setTestPrint] = useState(false)
   const [invoice, setInvoice] = useState<{ notes_fr?: string; bank_name?: string; rib?: string; payment_terms_fr?: string }>({})
   const [seqs, setSeqs] = useState<Seq[]>([])
   const [busy, setBusy] = useState(false)
@@ -314,6 +315,32 @@ export function SettingsPage() {
                 <Card>
                   <CardHeader title={t('شكل الوصل', 'Mise en page du ticket')} icon={<ReceiptIcon />} />
                   <div className="space-y-3 p-5">
+                    <div className="space-y-3 rounded-xl border border-border p-4">
+                      <div className="text-sm font-semibold">{t('مقاس الطابعة', 'Format de l’imprimante')}</div>
+                      <div className="flex gap-2">
+                        {[80, 58].map((p) => (
+                          <button key={p} onClick={() => setReceipt({ ...receipt, paper_mm: p, print_width_mm: p === 58 ? 48 : 72, offset_mm: 0 })} className={cn('num rounded-lg border px-3 py-1.5 text-sm', (receipt.paper_mm ?? 80) === p ? 'border-brand bg-brand-50 text-brand' : 'border-border')}>
+                            {p}mm
+                          </button>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-3 gap-3">
+                        <Field label={t('عرض الطباعة (مم)', 'Largeur (mm)')}>
+                          <Input type="number" min={30} max={80} value={receipt.print_width_mm ?? ((receipt.paper_mm ?? 80) === 58 ? 48 : 72)} onChange={(e) => setReceipt({ ...receipt, print_width_mm: Number(e.target.value) })} className="num" />
+                        </Field>
+                        <Field label={t('إزاحة لليمين (مم)', 'Décalage (mm)')}>
+                          <Input type="number" min={0} max={20} value={receipt.offset_mm ?? 0} onChange={(e) => setReceipt({ ...receipt, offset_mm: Number(e.target.value) })} className="num" />
+                        </Field>
+                        <Field label={t('حجم الخط', 'Taille du texte')}>
+                          <Input type="number" min={9} max={16} value={receipt.font_size ?? 12} onChange={(e) => setReceipt({ ...receipt, font_size: Number(e.target.value) })} className="num" />
+                        </Field>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => setTestPrint(true)}>
+                        <Printer />
+                        {t('طباعة وصل تجريبي للمعايرة', 'Ticket de test')}
+                      </Button>
+                      <p className="text-xs text-muted">{t('إن قُطع جزء من اليسار: قلّل «عرض الطباعة» (مثلاً 70 ثم 68) أو زد «الإزاحة». احفظ ثم أعد التجربة. في نافذة الطباعة: المقياس 100% والهوامش «بلا».', 'Bord gauche coupé : réduisez la largeur ou augmentez le décalage, enregistrez puis refaites le test.')}</p>
+                    </div>
                     <Field label={t('اللغة', 'Langue')}>
                       <div className="flex gap-2">
                         {(
@@ -366,6 +393,7 @@ export function SettingsPage() {
                   <div className="mb-2 text-center text-xs font-medium text-muted">{t('معاينة حية', 'Aperçu en direct')}</div>
                   <div className="rounded-xl bg-white p-4 shadow-pop ring-1 ring-border">
                     <Receipt sale={sampleSale} cfg={{ store, legal, receipt }} />
+                    {testPrint && <PrintTestTicket geo={receipt} onDone={() => setTestPrint(false)} />}
                   </div>
                 </div>
               </div>
