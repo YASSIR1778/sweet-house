@@ -486,6 +486,10 @@ function RequestDone({ done, serviceName }: { done: Done; serviceName: string })
           </a>
         </Button>
       </div>
+      <Link to="/alerts" className="mt-8 flex items-center gap-3 rounded-2xl border border-dashed border-success/40 bg-success/5 p-4 text-start text-sm">
+        <MessageCircle className="size-5 shrink-0 text-success" />
+        <span>{t('هل تريد أن نخبرك بالمباريات والتسجيلات الجديدة على واتساب؟ اشترك هنا', 'Être prévenu des concours et inscriptions ? Inscrivez-vous')}</span>
+      </Link>
       <Badge className="mt-8">{t('يمكنك إغلاق هذه الصفحة', 'Vous pouvez fermer cette page')}</Badge>
     </div>
   )

@@ -8,6 +8,7 @@ import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
 import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/primitives'
+import { PushToggle } from '@/shared/ui/push-toggle'
 
 type N = { id: string; type: string; severity: 'info' | 'success' | 'warning' | 'danger'; title_ar: string; title_fr: string; body: string | null; link: string | null; read_at: string | null; created_at: string }
 
@@ -65,13 +66,16 @@ export function NotificationsBell() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium">{pick(n, 'title')}</div>
-                    {n.body && <div className="num text-xs text-muted">{n.body}</div>}
+                    {n.body && <div className="num line-clamp-4 text-xs whitespace-pre-line text-muted">{n.body}</div>}
                     <div className="mt-0.5 text-[11px] text-subtle">{formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: lang === 'ar' ? arLocale : frLocale })}</div>
                   </div>
                   {!n.read_at && <span className="mt-2 size-2 shrink-0 rounded-full bg-brand" />}
                 </button>
               ))
             )}
+          </div>
+          <div className="border-t border-border p-3">
+            <PushToggle sb={sb} app="admin" />
           </div>
         </Popover.Content>
       </Popover.Portal>

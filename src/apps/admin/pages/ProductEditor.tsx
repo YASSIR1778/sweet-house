@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Barcode, Boxes, ImagePlus, Layers, Package, Plus, Trash, X } from 'lucide-react'
+import { Barcode, Boxes, ImagePlus, Layers, Package, Plus, Sparkles, Trash, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
 import { errorMessage } from '@/shared/lib/errors'
+import { callFn } from '@/shared/lib/fn'
 import { money } from '@/shared/lib/money'
 import type { Pack, Variant } from '@/shared/lib/types'
 import { Badge, Button, Card, Field, Input, Spinner, SwitchRow, Textarea } from '@/shared/ui/primitives'
@@ -56,6 +57,30 @@ export function ProductEditor({ id, duplicateOf, onClose }: { id: string | 'new'
   const [form, setForm] = useState<Form>(blank)
   const [tab, setTab] = useState('general')
   const [saving, setSaving] = useState(false)
+  const [looking, setLooking] = useState(false)
+
+  // 15 · Suggest name, brand and photo from open product databases
+  const lookup = async (code: string) => {
+    if (code.replace(/\D/g, '').length < 8) return
+    setLooking(true)
+    try {
+      const r = await callFn<{ found: boolean; name?: string | null; brand?: string | null; image?: string | null }>(sb, 'barcode-lookup', { code })
+      if (!r.found) return toast.info(t('لم نجد هذا الباركود في قواعد البيانات المفتوحة. أدخل المعلومات يدوياً.', 'Code-barres inconnu des bases ouvertes.'))
+      const arabic = !!r.name && /[؀-ۿ]/.test(r.name)
+      setForm((f) => ({
+        ...f,
+        name_ar: f.name_ar || r.name || '',
+        name_fr: f.name_fr || (!arabic ? (r.name ?? '') : ''),
+        brand: f.brand || r.brand || '',
+        images: r.image && f.images.length < 4 && !f.images.includes(r.image) ? [...f.images, r.image] : f.images,
+      }))
+      toast.success(t('وجدنا المنتج ✨ راجع الاسم والصورة قبل الحفظ', 'Produit trouvé ✨ vérifiez avant d’enregistrer'))
+    } catch (e) {
+      toast.error(errorMessage(e, lang))
+    } finally {
+      setLooking(false)
+    }
+  }
   const canCost = can('products.view_cost')
   const loadId = id === 'new' ? duplicateOf : id
 
@@ -318,7 +343,14 @@ export function ProductEditor({ id, duplicateOf, onClose }: { id: string | 'new'
                       </Field>
                     )}
                     <Field label={t('الباركود', 'Code-barres')} hint={t('اتركه فارغاً ليُولَّد تلقائياً', 'Laissez vide pour en générer un')}>
-                      <Input icon={<Barcode />} value={v.barcode ?? ''} onChange={(e) => setV(i, { barcode: e.target.value })} dir="ltr" className="num" />
+                      <div className="flex gap-2">
+                        <Input icon={<Barcode />} value={v.barcode ?? ''} onChange={(e) => setV(i, { barcode: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), lookup(v.barcode ?? ''))} dir="ltr" className="num" />
+                        {(v.barcode ?? '').replace(/\D/g, '').length >= 8 && (
+                          <Button type="button" variant="outline" size="icon" loading={looking} onClick={() => lookup(v.barcode ?? '')} title={t('ابحث عن اسم المنتج وصورته', 'Chercher nom et photo')}>
+                            <Sparkles />
+                          </Button>
+                        )}
+                      </div>
                     </Field>
                     <Field label={t('المرجع (SKU)', 'Référence (SKU)')}>
                       <Input value={v.sku ?? ''} onChange={(e) => setV(i, { sku: e.target.value })} dir="ltr" />

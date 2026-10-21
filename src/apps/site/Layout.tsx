@@ -15,7 +15,7 @@ const LINKS = [
   { to: '/shop', ar: 'المتجر', fr: 'Boutique' },
   { to: '/services', ar: 'الخدمات الإدارية', fr: 'Services administratifs' },
   { to: '/abroad', ar: '🌍 خارج المغرب', fr: '🌍 MRE' },
-  { to: '/track', ar: 'تتبّع طلبك', fr: 'Suivi' },
+  { to: '/my', ar: 'وثائقي', fr: 'Mes documents' },
   { to: '/contact', ar: 'تواصل معنا', fr: 'Contact' },
 ]
 
@@ -149,6 +149,16 @@ export function SiteLayout() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <Link to="/alerts" className="hover:text-white">
+                  {t('🔔 تنبيهات المباريات على واتساب', '🔔 Alertes WhatsApp')}
+                </Link>
+              </li>
+              <li>
+                <Link to="/track" className="hover:text-white">
+                  {t('تتبّع طلب', 'Suivre une demande')}
+                </Link>
+              </li>
               <li>
                 <Link to="/privacy" className="hover:text-white">
                   {t('سياسة الخصوصية', 'Confidentialité')}

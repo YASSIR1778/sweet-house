@@ -8,6 +8,7 @@ import { useLang } from '@/shared/lib/i18n'
 import { money, qty } from '@/shared/lib/money'
 import { Avatar, Card, CardHeader, Skeleton } from '@/shared/ui/primitives'
 import { TodayTasks } from '../TodayTasks'
+import { DailyReportButton } from '../DailyReport'
 import { EmptyState, PageHeader, StatCard, Tabs } from '@/shared/ui/data'
 
 type Summary = {
@@ -96,6 +97,8 @@ export function DashboardPage() {
         title={`${greet}، ${me?.full_name.split(' ')[0] ?? ''} 👋`}
         description={t('هذه نظرة سريعة على نشاط المكتبة', 'Voici un aperçu de l’activité')}
         actions={
+          <div className="flex flex-wrap items-center gap-2">
+          <DailyReportButton />
           <Tabs
             value={range}
             onChange={(v) => setRange(v as keyof typeof RANGES)}
@@ -105,6 +108,7 @@ export function DashboardPage() {
               { value: 'month', label: t('30 يوماً', '30 jours') },
             ]}
           />
+          </div>
         }
       />
 

@@ -4,7 +4,7 @@
 import { copyFileSync, mkdirSync, writeFileSync } from 'node:fs'
 
 const BASE = 'https://yassir1778.github.io/sweet-house'
-const ROUTES = ['shop', 'services', 'abroad', 'track', 'contact', 'privacy', 'terms', 'checkout']
+const ROUTES = ['shop', 'services', 'abroad', 'my', 'alerts', 'unsubscribe', 'track', 'contact', 'privacy', 'terms', 'checkout']
 
 copyFileSync('dist/index.html', 'dist/404.html')
 for (const r of ROUTES) {

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { AnimatePresence, motion } from 'motion/react'
-import { ArrowLeft, ChevronDown, FileCheck2, MessageCircle, PackageSearch, Search, ShieldCheck, Sparkles, Truck } from 'lucide-react'
+import { ArrowLeft, BellRing, ChevronDown, FileCheck2, FolderOpen, Globe2, MessageCircle, PackageSearch, Search, ShieldCheck, Sparkles, Truck } from 'lucide-react'
 import { useLang } from '@/shared/lib/i18n'
 import { cn, whatsappLink } from '@/shared/lib/utils'
 import { Button, Skeleton } from '@/shared/ui/primitives'
@@ -203,6 +203,25 @@ export function HomePage() {
             </Button>
           </div>
         </div>
+      </section>
+
+      {/* customer shortcuts: my documents, abroad, alerts */}
+      <section className="mx-auto grid max-w-6xl gap-4 px-4 pt-12 md:grid-cols-3">
+        {[
+          { to: '/my', icon: FolderOpen, color: '#FF6B35', ar: 'وثائقي وطلباتي', fr: 'Mes documents', d_ar: 'كل طلباتك ووثائقك الجاهزة في مكان واحد', d_fr: 'Toutes vos demandes au même endroit' },
+          { to: '/abroad', icon: Globe2, color: '#2563EB', ar: 'أنت خارج المغرب؟', fr: 'À l’étranger ?', d_ar: 'اطلب وثائقك عن بُعد واستلمها بالإيميل أو بالبريد', d_fr: 'Vos documents à distance' },
+          { to: '/alerts', icon: BellRing, color: '#16A34A', ar: 'تنبيهات واتساب', fr: 'Alertes WhatsApp', d_ar: 'المباريات والتسجيلات والمنح فور فتحها', d_fr: 'Concours, inscriptions, bourses' },
+        ].map((x) => (
+          <Link key={x.to} to={x.to} className="group flex items-center gap-4 rounded-2xl border border-border bg-surface p-5 transition-all hover:-translate-y-1 hover:shadow-pop">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl text-white transition-transform group-hover:scale-110" style={{ background: x.color }}>
+              <x.icon className="size-6" />
+            </span>
+            <span>
+              <span className="block font-bold">{t(x.ar, x.fr)}</span>
+              <span className="block text-sm text-muted">{t(x.d_ar, x.d_fr)}</span>
+            </span>
+          </Link>
+        ))}
       </section>
 
       {/* about + faq */}

@@ -9,6 +9,7 @@ import {
   ClipboardList,
   FileText,
   Globe,
+  Megaphone,
   LayoutDashboard,
   MonitorSmartphone,
   Package,
@@ -51,6 +52,7 @@ import { WebsitePage } from './pages/Website'
 import { InvoicesPage } from './pages/Invoices'
 import { LabelsPage } from './pages/Labels'
 import { AttendancePage } from './pages/Attendance'
+import { BroadcastsPage } from './pages/Broadcasts'
 
 export type NavItem = {
   path: string
@@ -100,6 +102,7 @@ export const NAV: NavGroup[] = [
     items: [
       { path: '/orders', ar: 'طلبات المتجر', fr: 'Commandes', icon: ShoppingCart, perm: 'orders.manage', element: <OrdersPage /> },
       { path: '/requests', ar: 'طلبات الخدمات', fr: 'Demandes de services', icon: ClipboardList, perm: 'requests.manage', element: <RequestsPage /> },
+      { path: '/broadcasts', ar: 'قائمة البث', fr: 'Diffusion', icon: Megaphone, perm: 'broadcast.manage', element: <BroadcastsPage /> },
       { path: '/website', ar: 'محرر الموقع', fr: 'Éditeur du site', icon: Globe, perm: 'website.edit', element: <WebsitePage /> },
     ],
   },

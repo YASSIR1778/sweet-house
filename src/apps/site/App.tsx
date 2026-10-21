@@ -6,6 +6,7 @@ import { ProductPage, ShopPage } from './pages/Shop'
 import { CheckoutPage } from './pages/Checkout'
 import { ServiceRequestPage, ServicesPage } from './pages/Services'
 import { AbroadPage } from './pages/Abroad'
+import { AlertsPage, MyDocumentsPage, UnsubscribePage } from './pages/Customer'
 import { TrackPage } from './pages/Track'
 import { ContactPage, LegalPage, NotFoundPage } from './pages/Info'
 
@@ -22,6 +23,9 @@ const router = createBrowserRouter(
         { path: 'services', element: <ServicesPage /> },
         { path: 'services/:id', element: <ServiceRequestPage /> },
         { path: 'abroad', element: <AbroadPage /> },
+        { path: 'my', element: <MyDocumentsPage /> },
+        { path: 'alerts', element: <AlertsPage /> },
+        { path: 'unsubscribe', element: <UnsubscribePage /> },
         { path: 'track', element: <TrackPage /> },
         { path: 'track/:code', element: <TrackPage /> },
         { path: 'contact', element: <ContactPage /> },

@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   try {
     const caller = callerClient(req)
-    const perms = await Promise.all(['requests.manage', 'orders.manage', 'debts.remind'].map((p) => caller.rpc('has_perm', { p })))
+    const perms = await Promise.all(['requests.manage', 'orders.manage', 'debts.remind', 'broadcast.manage'].map((p) => caller.rpc('has_perm', { p })))
     if (!perms.some((r) => r.data === true)) return fail('forbidden', 403)
 
     const token = Deno.env.get('WHATSAPP_TOKEN')

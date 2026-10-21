@@ -9,6 +9,7 @@ import { errorMessage } from '@/shared/lib/errors'
 import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/primitives'
 import { Dialog, Tooltip } from '@/shared/ui/overlay'
+import { PushToggle } from '@/shared/ui/push-toggle'
 
 type Mine = { open: { id: string; check_in: string } | null; today_minutes: number }
 
@@ -16,7 +17,7 @@ const hm = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0
 
 /** 38 · Clock in / out for the employee signed in with their PIN. */
 export function AttendanceButton({ deviceId }: { deviceId: string }) {
-  const { sb, me } = useAuth()
+  const { sb, me, can } = useAuth()
   const { t, lang } = useLang()
   const qc = useQueryClient()
   const [open, setOpen] = useState(false)
@@ -76,6 +77,7 @@ export function AttendanceButton({ deviceId }: { deviceId: string }) {
             {inside ? <LogOut /> : <LogIn />}
             {inside ? t('تسجيل الخروج', 'Pointer la sortie') : t('تسجيل الحضور', 'Pointer l’entrée')}
           </Button>
+          {(can('requests.manage') || can('orders.manage')) && <PushToggle sb={sb} app="pos" className="mt-2" />}
         </div>
       </Dialog>
     </>
