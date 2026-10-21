@@ -1,17 +1,18 @@
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'motion/react'
-import { ExternalLink, Lock, LogOut, Menu, MonitorPlay, ShieldCheck, X } from 'lucide-react'
+import { ExternalLink, Lock, LogOut, Menu, MonitorPlay, Search, ShieldCheck, X } from 'lucide-react'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
 import { cn } from '@/shared/lib/utils'
-import { Avatar, Badge, Button } from '@/shared/ui/primitives'
+import { Avatar, Badge, Button, Spinner } from '@/shared/ui/primitives'
 import { LangToggle, Logo, ThemeToggle } from '@/shared/ui/brand'
 import { Dropdown, DropdownContent, DropdownItem, DropdownSeparator, DropdownTrigger } from '@/shared/ui/overlay'
 import { EmptyState } from '@/shared/ui/data'
 import { NAV } from './nav'
 import { NotificationsBell } from './Notifications'
+import { CommandPalette } from './CommandPalette'
 import { SecurityDialog } from './Mfa'
 import { useOnlinePending } from '@/shared/lib/online'
 
@@ -83,7 +84,8 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 export function Layout() {
-  const { me, can, signOut } = useAuth()
+  const { me, can, signOut, sb } = useAuth()
+  const qc = useQueryClient()
   const { t } = useLang()
   const loc = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -91,6 +93,12 @@ export function Layout() {
 
   const current = NAV.flatMap((g) => g.items).find((i) => loc.pathname.startsWith(i.path))
   const allowed = !current?.perm || can(current.perm)
+
+  // Opening a page = its notifications are seen
+  useEffect(() => {
+    if (!current) return
+    sb.rpc('notifications_read_link', { p_link: current.path }).then(() => qc.invalidateQueries({ queryKey: ['notifications'] }))
+  }, [current, sb, qc])
 
   useEffect(() => {
     if (current) document.title = `${t(current.ar, current.fr)} — Sweet House`
@@ -129,6 +137,7 @@ export function Layout() {
       </AnimatePresence>
 
       <SecurityDialog open={security} onClose={() => setSecurity(false)} />
+      <CommandPalette />
       <div className="lg:ps-64">
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-surface/80 px-4 backdrop-blur-lg sm:px-6">
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)}>
@@ -142,6 +151,14 @@ export function Layout() {
               </span>
             )}
           </div>
+          <button onClick={() => window.dispatchEvent(new Event('open-palette'))} className="hidden items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm text-muted hover:bg-surface-2 sm:flex" title="Ctrl+K">
+            <Search className="size-4" />
+            {t('بحث', 'Rechercher')}
+            <kbd className="rounded bg-surface-2 px-1.5 text-[10px]" dir="ltr">Ctrl K</kbd>
+          </button>
+          <Button variant="ghost" size="icon" className="sm:hidden" onClick={() => window.dispatchEvent(new Event('open-palette'))}>
+            <Search />
+          </Button>
           <NotificationsBell />
           <LangToggle />
           <ThemeToggle />
@@ -178,7 +195,9 @@ export function Layout() {
               transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             >
               {allowed ? (
-                <Outlet />
+                <Suspense fallback={<div className="flex justify-center py-24"><Spinner /></div>}>
+                  <Outlet />
+                </Suspense>
               ) : (
                 <EmptyState icon={<Lock />} title={t('ليست لديك صلاحية', 'Accès refusé')} description={t('اطلب من المالك منحك الصلاحية لهذا القسم', 'Demandez au propriétaire de vous donner accès')} />
               )}

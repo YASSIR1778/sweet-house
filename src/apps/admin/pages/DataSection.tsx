@@ -9,6 +9,7 @@ import { errorMessage } from '@/shared/lib/errors'
 import { cn } from '@/shared/lib/utils'
 import { Button, Card, CardHeader, Input, Skeleton, SwitchRow } from '@/shared/ui/primitives'
 import { useConfirm } from '@/shared/ui/overlay'
+import { ResetCard } from './ResetCard'
 
 type Usage = { buckets: { bucket: string; bytes: number; count: number }[]; total: number; limit: number; database: number; database_limit: number }
 type Cand = { id: string; path: string; name: string; size: string | null; created_at: string; number: string | null; kind: string }
@@ -177,6 +178,7 @@ export function DataSection() {
           </Card>
         </>
       )}
+      <ResetCard />
     </>
   )
 }

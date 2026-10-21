@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'motion/react'
-import { AlertCircle, ExternalLink, FolderCog, Globe, MonitorPlay, Plus, Search, Sparkles, Zap } from 'lucide-react'
+import { AlertCircle, Coins, ExternalLink, FolderCog, Globe, MonitorPlay, Plus, Search, Sparkles, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -13,6 +13,7 @@ import { EmptyState, PageHeader, Tabs } from '@/shared/ui/data'
 import { DynamicIcon } from '@/shared/ui/icon'
 import { ServiceEditor } from './ServiceEditor'
 import { ServiceCategoriesDialog } from './ServiceCategories'
+import { BulkPricesSheet } from './BulkPrices'
 
 export function ServicesPage() {
   const { sb } = useAuth()
@@ -22,6 +23,7 @@ export function ServicesPage() {
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Service | 'new' | null>(null)
   const [catsOpen, setCatsOpen] = useState(false)
+  const [bulk, setBulk] = useState(false)
 
   const services = useQuery({
     queryKey: ['services'],
@@ -77,6 +79,10 @@ export function ServicesPage() {
         description={t('خدمات المحل (نسخ، طباعة…) والخدمات الإدارية والإلكترونية', 'Services en boutique et services administratifs')}
         actions={
           <>
+            <Button variant="outline" onClick={() => setBulk(true)}>
+              <Coins />
+              {t('الأسعار دفعة واحدة', 'Prix en masse')}
+            </Button>
             <Button variant="outline" onClick={() => setCatsOpen(true)}>
               <FolderCog />
               {t('فئات الخدمات', 'Catégories')}
@@ -188,6 +194,7 @@ export function ServicesPage() {
       )}
 
       <ServiceEditor service={editing} defaultKind={kind} categories={cats.data ?? []} onClose={() => setEditing(null)} />
+      <BulkPricesSheet open={bulk} onClose={() => setBulk(false)} services={services.data ?? []} />
       <ServiceCategoriesDialog open={catsOpen} onClose={() => setCatsOpen(false)} kind={kind} />
     </>
   )

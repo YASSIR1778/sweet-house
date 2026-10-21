@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { lazy, type ReactNode } from 'react'
 import {
   Banknote,
   Barcode,
@@ -29,32 +29,32 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { DashboardPage } from './pages/Dashboard'
-import { ProductsPage } from './pages/Products'
-import { CategoriesPage } from './pages/Categories'
-import { ServicesPage } from './pages/Services'
-import { SalesPage } from './pages/Sales'
-import { CustomersPage } from './pages/Customers'
-import { EmployeesPage } from './pages/Employees'
-import { RolesPage } from './pages/Roles'
-import { SettingsPage } from './pages/Settings'
-import { DevicesPage } from './pages/Devices'
-import { ActivityPage } from './pages/Activity'
-import { TrashPage } from './pages/Trash'
-import { ShiftsPage } from './pages/Shifts'
-import { RiyadPage } from './pages/Riyad'
-import { ExpensesPage } from './pages/Expenses'
-import { PurchasesPage } from './pages/Purchases'
-import { StockPage } from './pages/Stock'
-import { PayrollPage } from './pages/Payroll'
-import { ReportsPage } from './pages/Reports'
-import { OrdersPage } from './pages/Orders'
-import { RequestsPage } from './pages/Requests'
-import { WebsitePage } from './pages/Website'
-import { InvoicesPage } from './pages/Invoices'
-import { LabelsPage } from './pages/Labels'
-import { AttendancePage } from './pages/Attendance'
-import { BroadcastsPage } from './pages/Broadcasts'
-import { HelpPage } from './pages/Help'
+const ProductsPage = lazy(() => import('./pages/Products').then((m) => ({ default: m.ProductsPage })))
+const CategoriesPage = lazy(() => import('./pages/Categories').then((m) => ({ default: m.CategoriesPage })))
+const ServicesPage = lazy(() => import('./pages/Services').then((m) => ({ default: m.ServicesPage })))
+const SalesPage = lazy(() => import('./pages/Sales').then((m) => ({ default: m.SalesPage })))
+const CustomersPage = lazy(() => import('./pages/Customers').then((m) => ({ default: m.CustomersPage })))
+const EmployeesPage = lazy(() => import('./pages/Employees').then((m) => ({ default: m.EmployeesPage })))
+const RolesPage = lazy(() => import('./pages/Roles').then((m) => ({ default: m.RolesPage })))
+const SettingsPage = lazy(() => import('./pages/Settings').then((m) => ({ default: m.SettingsPage })))
+const DevicesPage = lazy(() => import('./pages/Devices').then((m) => ({ default: m.DevicesPage })))
+const ActivityPage = lazy(() => import('./pages/Activity').then((m) => ({ default: m.ActivityPage })))
+const TrashPage = lazy(() => import('./pages/Trash').then((m) => ({ default: m.TrashPage })))
+const ShiftsPage = lazy(() => import('./pages/Shifts').then((m) => ({ default: m.ShiftsPage })))
+const RiyadPage = lazy(() => import('./pages/Riyad').then((m) => ({ default: m.RiyadPage })))
+const ExpensesPage = lazy(() => import('./pages/Expenses').then((m) => ({ default: m.ExpensesPage })))
+const PurchasesPage = lazy(() => import('./pages/Purchases').then((m) => ({ default: m.PurchasesPage })))
+const StockPage = lazy(() => import('./pages/Stock').then((m) => ({ default: m.StockPage })))
+const PayrollPage = lazy(() => import('./pages/Payroll').then((m) => ({ default: m.PayrollPage })))
+const ReportsPage = lazy(() => import('./pages/Reports').then((m) => ({ default: m.ReportsPage })))
+const OrdersPage = lazy(() => import('./pages/Orders').then((m) => ({ default: m.OrdersPage })))
+const RequestsPage = lazy(() => import('./pages/Requests').then((m) => ({ default: m.RequestsPage })))
+const WebsitePage = lazy(() => import('./pages/Website').then((m) => ({ default: m.WebsitePage })))
+const InvoicesPage = lazy(() => import('./pages/Invoices').then((m) => ({ default: m.InvoicesPage })))
+const LabelsPage = lazy(() => import('./pages/Labels').then((m) => ({ default: m.LabelsPage })))
+const AttendancePage = lazy(() => import('./pages/Attendance').then((m) => ({ default: m.AttendancePage })))
+const BroadcastsPage = lazy(() => import('./pages/Broadcasts').then((m) => ({ default: m.BroadcastsPage })))
+const HelpPage = lazy(() => import('./pages/Help').then((m) => ({ default: m.HelpPage })))
 
 export type NavItem = {
   path: string

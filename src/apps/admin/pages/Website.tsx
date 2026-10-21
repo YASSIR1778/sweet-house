@@ -274,10 +274,15 @@ export function WebsitePage() {
                 <SwitchRow label={t('الأداء في المحل', 'Paiement en boutique')} checked={p.in_store} onCheckedChange={(in_store) => setP({ ...p, in_store })} />
                 <SwitchRow label={t('التحويل البنكي', 'Virement bancaire')} checked={p.bank_transfer} onCheckedChange={(bank_transfer) => setP({ ...p, bank_transfer })} />
                 {p.bank_transfer && (
-                  <div className="grid gap-3 pt-2 sm:grid-cols-2">
-                    <Field label={t('اسم البنك', 'Banque')}><Input value={p.bank_name} onChange={(e) => setP({ ...p, bank_name: e.target.value })} /></Field>
-                    <Field label={t('صاحب الحساب', 'Titulaire')}><Input value={p.account_holder} onChange={(e) => setP({ ...p, account_holder: e.target.value })} /></Field>
-                    <Field label="RIB" className="sm:col-span-2"><Input value={p.rib} onChange={(e) => setP({ ...p, rib: e.target.value })} dir="ltr" className="num tracking-wider" /></Field>
+                  <div className="rounded-xl bg-surface-2 p-3 text-sm">
+                    {p.rib ? (
+                      <span className="num" dir="ltr">{p.bank_name} · {p.rib}</span>
+                    ) : (
+                      <span className="text-danger">{t('لم يُدخل رقم الحساب بعد!', 'RIB non renseigné !')}</span>
+                    )}
+                    <a href="#/settings?s=bank" className="ms-2 text-brand underline">
+                      {t('تعديل الحساب البنكي', 'Modifier le compte')}
+                    </a>
                   </div>
                 )}
               </div>

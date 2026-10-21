@@ -8,6 +8,7 @@ import { useLang } from '@/shared/lib/i18n'
 import { money, qty } from '@/shared/lib/money'
 import { Avatar, Card, CardHeader, Skeleton } from '@/shared/ui/primitives'
 import { TodayTasks } from '../TodayTasks'
+import { LaunchChecklist } from '../LaunchChecklist'
 import { DailyReportButton } from '../DailyReport'
 import { EmptyState, PageHeader, StatCard, Tabs } from '@/shared/ui/data'
 
@@ -112,6 +113,7 @@ export function DashboardPage() {
         }
       />
 
+      <LaunchChecklist />
       <TodayTasks />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

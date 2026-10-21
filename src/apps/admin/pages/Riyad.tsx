@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis } from 'recharts'
 import { format } from 'date-fns'
-import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, BadgePercent, Coins, PiggyBank, Plus, Scale, Wallet } from 'lucide-react'
+import { AlertTriangle, ArrowDownCircle, ArrowUpCircle, BadgePercent, BellRing, Coins, PiggyBank, Plus, Scale, Wallet } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -47,6 +47,16 @@ export function RiyadPage() {
   const [affects, setAffects] = useState(false)
   const [negative, setNegative] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [alertOpen, setAlertOpen] = useState(false)
+  const [alertVal, setAlertVal] = useState<number | null>(null)
+  const saveAlert = async () => {
+    if (alertVal === null) return
+    const { error } = await sb.from('settings').update({ value: { low_balance_alert: alertVal } }).eq('key', 'riyad')
+    if (error) return toast.error(errorMessage(error, lang))
+    toast.success(t('حُفظ حد التنبيه', 'Seuil enregistré'))
+    setAlertOpen(false)
+    qc.invalidateQueries({ queryKey: ['riyad'] })
+  }
 
   const ov = useQuery({
     queryKey: ['riyad'],
@@ -89,6 +99,10 @@ export function RiyadPage() {
         actions={
           can('riyad.manage') && (
             <>
+              <Button variant="ghost" onClick={() => (setAlertVal(o?.low_alert ?? 200000), setAlertOpen(true))} title={t('حد تنبيه الرصيد المنخفض', 'Seuil d’alerte')}>
+                <BellRing />
+                <span className="num">{money(o?.low_alert)}</span>
+              </Button>
               <Button variant="outline" onClick={() => setEntry('commission')}>
                 <BadgePercent />
                 {t('عمولة شهرية', 'Commission')}
@@ -103,6 +117,17 @@ export function RiyadPage() {
       />
 
       <RiyadCorrections />
+
+      <Dialog open={alertOpen} onOpenChange={setAlertOpen} size="sm" title={t('حد تنبيه الرصيد المنخفض', 'Seuil de solde bas')} description={t('عندما ينزل رصيد رياض تحت هذا المبلغ يصلك تنبيه ويظهر في مهام اليوم', 'Alerte quand le solde passe sous ce montant')}>
+        <div className="space-y-4">
+          <Field label={t('المبلغ', 'Montant')}>
+            <MoneyInput value={alertVal} onChange={setAlertVal} autoFocus />
+          </Field>
+          <Button className="w-full" onClick={saveAlert} disabled={alertVal === null}>
+            {t('حفظ', 'Enregistrer')}
+          </Button>
+        </div>
+      </Dialog>
 
       {empty && can('riyad.manage') && (
         <Card className="mb-5 flex flex-wrap items-center gap-4 border-brand/30 bg-brand-50/50 p-5">
