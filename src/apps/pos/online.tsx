@@ -17,6 +17,10 @@ import { EmptyState, Tabs } from '@/shared/ui/data'
 import type { DeviceInfo } from './device'
 import { AssigneeBadge, AssignmentCard, type AssigneeMini } from '@/shared/ui/assignment'
 import { HelpDesk, useHelpList } from '@/shared/ui/help-desk'
+import { CustomerFileButton } from '@/shared/ui/customer-file'
+import { Input } from '@/shared/ui/primitives'
+import { Archive, Search } from 'lucide-react'
+import type { RequestRow } from '../admin/pages/Requests'
 
 type Ord = { assignee: AssigneeMini; id: string; number: string; tracking_code: string; customer_name: string; phone: string; total: number; delivery_method: string; payment_method: string; payment_status: string; status: string; created_at: string }
 
@@ -58,8 +62,10 @@ export function OnlineSheet({ device, open, onClose }: { device: DeviceInfo; ope
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()} title={t('الطلبات الأونلاين', 'Commandes en ligne')} width="max-w-xl">
       {confirmNode}
-      <Tabs className="mb-4" value={tab} onChange={setTab} items={[...(can('requests.manage') ? [{ value: 'help', label: t('المساعدة', 'Aide'), count: (help.data ?? []).filter((h) => ['new', 'in_progress'].includes(h.status)).length }] : []), ...(can('requests.manage') ? [{ value: 'requests', label: t('الخدمات', 'Services'), count: openReqs.length }] : []), ...(can('orders.manage') ? [{ value: 'orders', label: t('المتجر', 'Boutique'), count: ords.data?.length }] : [])]} />
-      {tab === 'help' ? (
+      <Tabs className="mb-4" value={tab} onChange={setTab} items={[...(can('requests.manage') ? [{ value: 'help', label: t('المساعدة', 'Aide'), count: (help.data ?? []).filter((h) => ['new', 'in_progress'].includes(h.status)).length }] : []), ...(can('requests.manage') ? [{ value: 'requests', label: t('الخدمات', 'Services'), count: openReqs.length }] : []), ...(can('orders.manage') ? [{ value: 'orders', label: t('المتجر', 'Boutique'), count: ords.data?.length }] : []), ...(can('requests.manage') || can('requests.view_documents') ? [{ value: 'archive', label: t('الأرشيف', 'Archives') }] : [])]} />
+      {tab === 'archive' ? (
+        <ArchiveTab onOpen={setOpenReq} deviceId={device.id} />
+      ) : tab === 'help' ? (
         <HelpDesk compact />
       ) : tab === 'requests' ? (
         !openReqs.length ? (
@@ -138,5 +144,60 @@ export function OnlineSheet({ device, open, onClose }: { device: DeviceInfo; ope
       )}
       <RequestSheet id={openReq} onClose={() => (setOpenReq(null), refresh())} deviceId={device.id} />
     </Sheet>
+  )
+}
+
+/** Every request, finished ones included: search by name, phone, number, code or portal reference. */
+function ArchiveTab({ onOpen, deviceId }: { onOpen: (id: string) => void; deviceId: string }) {
+  const { sb } = useAuth()
+  const { t, pick, lang } = useLang()
+  const statuses = useRequestStatuses(sb)
+  const [q, setQ] = useState('')
+  const [term, setTerm] = useState('')
+  const res = useQuery({
+    queryKey: ['requests-search', term],
+    enabled: term.trim().length >= 2,
+    queryFn: async () => (await sb.rpc('requests_search', { p_q: term, p_limit: 60 })).data as RequestRow[],
+  })
+  const st = (k: string) => statuses.data?.find((s) => s.key === k)
+  const digits = q.replace(/\D/g, '')
+  return (
+    <div className="space-y-3">
+      <form onSubmit={(e) => (e.preventDefault(), setTerm(q))} className="flex gap-2">
+        <Input icon={<Search />} value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('اسم، هاتف، رقم الطلب، رقم التتبّع أو مرجع البوابة', 'Nom, téléphone, n°, code ou réf. portail')} autoFocus />
+        <Button type="submit">{t('بحث', 'Chercher')}</Button>
+      </form>
+      {digits.length >= 9 && <CustomerFileButton phone={q} deviceId={deviceId} label={t('فتح الملف الكامل لهذا الرقم', 'Ouvrir le dossier complet')} />}
+      {!term ? (
+        <EmptyState icon={<Archive />} title={t('ابحث عن طلب قديم أو زبون', 'Rechercher une ancienne demande')} description={t('كل الطلبات تبقى هنا بعد إنجازها، مع وثائقها وسجلها.', 'Toutes les demandes restent ici après traitement.')} />
+      ) : res.isLoading ? null : !res.data?.length ? (
+        <EmptyState icon={<Archive />} title={t('لا نتائج', 'Aucun résultat')} />
+      ) : (
+        <div className="space-y-2">
+          {res.data.map((r) => {
+            const s = st(r.status)
+            return (
+              <button key={r.id} onClick={() => onOpen(r.id)} className="block w-full text-start">
+                <Card className="flex flex-wrap items-center gap-2 p-3 transition-all hover:border-brand/40">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium">{pick(r, 'service_name')}</div>
+                    <div className="num text-xs text-muted">
+                      {r.customer_name} · {r.number} · {formatDistanceToNow(new Date(r.created_at), { addSuffix: true, locale: lang === 'ar' ? arLocale : frLocale })}
+                    </div>
+                  </div>
+                  {r.deliverables_count > 0 && (
+                    <Badge tone="success">
+                      <FileCheck2 />
+                      {r.deliverables_count}
+                    </Badge>
+                  )}
+                  {s && <Badge style={{ background: `${s.color}1a`, color: s.color }}>{pick(s, 'name')}</Badge>}
+                </Card>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
   )
 }

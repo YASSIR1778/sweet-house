@@ -14,7 +14,7 @@ import { Sheet } from './overlay'
 import { MoneyInput } from './pickers'
 
 type Svc = { id: string; name_ar: string; name_fr: string; price: number; fields: ServiceField[]; required_documents: { name_ar: string; name_fr: string; required: boolean }[] }
-export type StaffRequestPrefill = { service_id?: string | null; name?: string | null; phone?: string | null; help_id?: string | null; question?: string | null }
+export type StaffRequestPrefill = { service_id?: string | null; name?: string | null; phone?: string | null; help_id?: string | null; question?: string | null; from_request?: string | null }
 
 /**
  * 3 · "We fill it for you": the employee creates the request while talking to
@@ -46,6 +46,18 @@ export function StaffRequestSheet({ open, onClose, prefill }: { open: boolean; o
     setConsent(false)
     setDone(null)
   }, [open, prefill])
+
+  // "New identical request": copy the answers of the old request
+  useEffect(() => {
+    if (!open || !prefill?.from_request || !services.data) return
+    sb.rpc('request_detail', { p_id: prefill.from_request }).then(({ data }) => {
+      const old = data as { fields?: Record<string, string>; email?: string | null } | null
+      const svc = services.data!.find((x) => x.id === prefill.service_id)
+      if (!old || !svc) return
+      setVals(Object.fromEntries(svc.fields.map((fl) => [fl.key, old.fields?.[fl.label_ar] ?? old.fields?.[fl.key] ?? '']).filter(([, v]) => v)))
+      if (old.email) setF((x) => ({ ...x, email: old.email ?? '' }))
+    })
+  }, [open, prefill, services.data, sb])
 
   const s = services.data?.find((x) => x.id === svc)
   useEffect(() => setPrice(s?.price ?? null), [s])

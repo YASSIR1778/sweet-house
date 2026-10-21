@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, formatDistanceToNowStrict } from 'date-fns'
 import { ar as arLocale, fr as frLocale } from 'date-fns/locale'
-import { AlarmClock, Banknote, Sparkles, Building2, CheckCheck, ShoppingCart, Copy, Download, ExternalLink, FileCheck2, FileText, Globe2, Mail, MessageCircle, Package, Phone, Store, Trash, Upload } from 'lucide-react'
+import { AlarmClock, Banknote, Printer, Repeat, Sparkles, Building2, CheckCheck, ShoppingCart, Copy, Download, ExternalLink, FileCheck2, FileText, Globe2, Mail, MessageCircle, Package, Phone, Store, Trash, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -16,6 +16,8 @@ import { Sheet, useConfirm } from './overlay'
 import { MoneyInput } from './pickers'
 import { IdCardResult, IdCardScanButton, WritingButton } from './ai-tools'
 import { AssignmentCard } from './assignment'
+import { CustomerFileButton, openStaffDoc } from './customer-file'
+import { StaffRequestSheet } from './staff-request'
 import { BlockerBar, CopyPanel, ReferenceCard, TemplatesMenu, WorkflowCard, type WorkflowGuide, type WorkflowRequest } from './workflow'
 import { readIdCard, type IdCard } from '@/shared/lib/ai'
 
@@ -51,6 +53,8 @@ type Detail = {
   due_at: string | null
   done_at: string | null
   abroad: boolean
+  keep_files: boolean
+  service_id: string | null
   country: string | null
   delivery_method: 'email' | 'post' | 'person' | 'store' | null
   delivery_address: string | null
@@ -111,6 +115,7 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
   const [price, setPrice] = useState<number | null>(null)
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [repeat, setRepeat] = useState(false)
   const [idRead, setIdRead] = useState<IdCard | null>(null)
   const [reading, setReading] = useState<string | null>(null)
 
@@ -248,6 +253,7 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
               </div>
             </div>
             <StatusBadge s={status} />
+            <CustomerFileButton phone={r.phone} customerId={r.customer_id} deviceId={deviceId} label={t('ملفه', 'Dossier')} variant="ghost" />
             <Button asChild variant="outline" size="sm">
               <a href={`tel:+${r.phone}`}>
                 <Phone />
@@ -263,6 +269,9 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
           </Card>
 
           <DueBanner due={r.due_at} done={r.done_at} />
+
+          {(status?.is_final || status?.allow_download) && <ArchiveCard r={r} deliverables={deliverables} onRepeat={() => setRepeat(true)} onChange={refresh} />}
+          <StaffRequestSheet open={repeat} onClose={() => setRepeat(false)} prefill={{ service_id: r.service_id, name: r.customer_name, phone: r.phone, from_request: r.id }} />
 
           {can('requests.manage') && <AssignmentCard entity="request" id={r.id} />}
 
@@ -364,7 +373,7 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {uploads.map((f) => (
                   <div key={f.id} className="group overflow-hidden rounded-xl border border-border bg-surface">
-                    <a href={urls.data?.[f.id]} target="_blank" rel="noreferrer" className="block aspect-[4/3] bg-surface-2">
+                    <a href={urls.data?.[f.id]} onClick={() => sb.rpc('log_doc_access', { p_file: f.id, p_action: 'view' }).then(() => {})} target="_blank" rel="noreferrer" className="block aspect-[4/3] bg-surface-2">
                       {isImage(f) && urls.data?.[f.id] ? <img src={urls.data[f.id]} alt="" className="size-full object-cover" /> : <FileText className="m-auto h-full size-10 text-subtle" />}
                     </a>
                     <div className="flex items-center gap-1 p-2">
@@ -380,7 +389,7 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
                           {reading === f.id ? <Spinner className="size-3.5" /> : <Sparkles className="size-3.5" />}
                         </button>
                       )}
-                      <a href={urls.data?.[f.id]} download={f.name} target="_blank" rel="noreferrer" className="rounded p-1 text-subtle hover:text-brand">
+                      <a href={urls.data?.[f.id]} download={f.name} onClick={() => sb.rpc('log_doc_access', { p_file: f.id, p_action: 'download' }).then(() => {})} target="_blank" rel="noreferrer" className="rounded p-1 text-subtle hover:text-brand">
                         <Download className="size-3.5" />
                       </a>
                     </div>
@@ -450,7 +459,7 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
                   return (
                     <div key={f.id} className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5 text-sm">
                       <FileCheck2 className="size-4 text-success" />
-                      <a href={urls.data?.[f.id]} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate hover:text-brand">
+                      <a href={urls.data?.[f.id]} onClick={() => sb.rpc('log_doc_access', { p_file: f.id, p_action: 'view' }).then(() => {})} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate hover:text-brand">
                         {f.name}
                       </a>
                       {m?.downloaded_at ? (
@@ -547,5 +556,60 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
         </div>
       )}
     </Sheet>
+  )
+}
+
+/** Finished request: print / resend / repeat / keep the documents. */
+function ArchiveCard({ r, deliverables, onRepeat, onChange }: { r: Detail; deliverables: FileRow[]; onRepeat: () => void; onChange: () => void }) {
+  const { sb, can } = useAuth()
+  const { t, pick, lang } = useLang()
+  const retention = useQuery({ queryKey: ['retention-cfg'], staleTime: 10 * 60_000, queryFn: async () => (await sb.from('settings').select('value').eq('key', 'retention').maybeSingle()).data?.value as { enabled?: boolean; customer_docs_months?: number } | undefined })
+  const link = `${siteTrackUrl(r.tracking_code)}?p=${encodeURIComponent(r.phone)}`
+  const resend = () =>
+    sendWhatsApp(sb, r.phone, t(`مرحباً ${r.customer_name} 👋\nيمكنكم تحميل وثيقتكم «${r.service_name_ar}» (${r.number}) من هنا:\n${link}\n— مكتبة سويت هاوس`, `Bonjour ${r.customer_name} 👋\nVotre document « ${r.service_name_fr} » (${r.number}) est disponible ici :\n${link}`), lang)
+  const keep = async (v: boolean) => {
+    const { error } = await sb.rpc('request_keep_files', { p_id: r.id, p_keep: v })
+    if (error) return toast.error(errorMessage(error, lang))
+    toast.success(v ? t('ستبقى وثائق هذا الطلب ولن تُحذف تلقائياً', 'Documents conservés') : t('سيُطبّق عليها الحذف التلقائي', 'Suppression automatique réactivée'))
+    onChange()
+  }
+  const months = retention.data?.customer_docs_months ?? 6
+  return (
+    <Card className="space-y-3 border-success/30 bg-success/5 p-4">
+      <div className="flex items-center gap-2 text-sm font-semibold text-success">
+        <CheckCheck className="size-4" />
+        {t('طلب منجز — في الأرشيف', 'Demande terminée — archivée')}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {can('requests.view_documents') &&
+          deliverables.slice(0, 3).map((f) => (
+            <Button key={f.id} size="sm" variant="outline" onClick={() => openStaffDoc(sb, f, 'print', lang)}>
+              <Printer />
+              {deliverables.length > 1 ? f.name.slice(0, 18) : t('طباعة الوثيقة', 'Imprimer le document')}
+            </Button>
+          ))}
+        {deliverables.length > 0 && (
+          <Button size="sm" variant="success" onClick={resend}>
+            <MessageCircle />
+            {t('إعادة إرسال رابط التحميل', 'Renvoyer le lien')}
+          </Button>
+        )}
+        {can('requests.manage') && (
+          <Button size="sm" variant="outline" onClick={onRepeat}>
+            <Repeat />
+            {t('طلب جديد مماثل', 'Nouvelle demande identique')}
+          </Button>
+        )}
+      </div>
+      {retention.data?.enabled !== false && (
+        <label className="flex items-start gap-2 text-xs text-muted">
+          <input type="checkbox" className="mt-0.5" checked={r.keep_files} onChange={(e) => keep(e.target.checked)} disabled={!can('requests.manage')} />
+          <span>
+            {t(`احتفظ بوثائق الزبون الشخصية لهذا الطلب (وإلا تُحذف تلقائياً بعد ${months} أشهر من الإنجاز). الوثيقة الجاهزة تبقى دائماً.`, `Conserver les documents personnels (sinon supprimés ${months} mois après la fin). Le document final est toujours conservé.`)}
+          </span>
+        </label>
+      )}
+      <span className="hidden">{pick(r, 'service_name')}</span>
+    </Card>
   )
 }

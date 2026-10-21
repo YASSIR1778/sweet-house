@@ -12,6 +12,7 @@ import type { Customer } from '@/shared/lib/types'
 import { cn, fillTemplate, whatsappLink } from '@/shared/lib/utils'
 import { Badge, Button, Card, Field, Input, Spinner, SwitchRow } from '@/shared/ui/primitives'
 import { Dialog, Sheet } from '@/shared/ui/overlay'
+import { CustomerFileButton } from '@/shared/ui/customer-file'
 import { EmptyState } from '@/shared/ui/data'
 import { MoneyInput } from '@/shared/ui/pickers'
 import { PrintArea } from '@/shared/ui/receipt'
@@ -90,6 +91,10 @@ export function CustomerStatement({ customer, onClose }: { customer: Customer | 
             <Spinner />
           </div>
         ) : (
+          <>
+          <div className="mb-3 flex justify-end">
+            <CustomerFileButton customerId={customer?.id} label={t('الملف الكامل (الطلبات والوثائق)', 'Dossier complet')} />
+          </div>
           <div className="space-y-5">
             <div className={cn('rounded-2xl p-6 text-center', s.balance > 0 ? 'bg-danger/10' : 'bg-success/10')}>
               <div className="text-sm text-muted">{s.balance > 0 ? t('الدين المتبقي', 'Reste dû') : t('لا يوجد دين', 'Aucune dette')}</div>
@@ -148,6 +153,7 @@ export function CustomerStatement({ customer, onClose }: { customer: Customer | 
               </Card>
             )}
           </div>
+          </>
         )}
       </Sheet>
 

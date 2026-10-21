@@ -11,6 +11,7 @@ import { DataTable, EmptyState, PageHeader, Tabs, type Column } from '@/shared/u
 import { RequestSheet, StatusBadge } from '@/shared/ui/request-sheet'
 import { AssigneeBadge, type AssigneeMini } from '@/shared/ui/assignment'
 import { StaffRequestSheet } from '@/shared/ui/staff-request'
+import { CustomerFileButton } from '@/shared/ui/customer-file'
 import { Button } from '@/shared/ui/primitives'
 import { ClipboardPlus } from 'lucide-react'
 
@@ -141,10 +142,13 @@ export function RequestsPage() {
         title={t('طلبات الخدمات', 'Demandes de services')}
         description={t('الطلبات الواردة من الموقع: التفاصيل، الوثائق، الحالة، الأداء، والتسليم', 'Demandes du site : détails, documents, statut, paiement')}
         actions={
-          <Button onClick={() => setCreating(true)}>
-            <ClipboardPlus />
-            {t('طلب جديد لزبون', 'Nouvelle demande client')}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <CustomerFileButton label={t('ملف زبون / الأرشيف', 'Dossier client')} />
+            <Button onClick={() => setCreating(true)}>
+              <ClipboardPlus />
+              {t('طلب جديد لزبون', 'Nouvelle demande client')}
+            </Button>
+          </div>
         }
       />
       <StaffRequestSheet open={creating} onClose={() => setCreating(false)} />
