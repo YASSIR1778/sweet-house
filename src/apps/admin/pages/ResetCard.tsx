@@ -34,10 +34,13 @@ export function ResetCard() {
   const [opts, setOpts] = useState({ expenses: false, purchases: false, payroll: false })
   const [word, setWord] = useState('')
   const [busy, setBusy] = useState(false)
+  const [unlock, setUnlock] = useState(false)
   const pv = useQuery({ queryKey: ['reset-preview'], enabled: !!me?.is_owner, queryFn: async () => (await sb.rpc('reset_preview')).data as Preview })
   const golive = useQuery({ queryKey: ['go-live'], enabled: !!me?.is_owner, queryFn: async () => (await sb.from('settings').select('value').eq('key', 'go_live').maybeSingle()).data?.value as { at: string } | undefined })
   if (!me?.is_owner || !pv.data) return null
   const p = pv.data
+  // after go-live, everything counted here is REAL: keep the wipe out of reach
+  const live = !!golive.data?.at
 
   const run = async () => {
     setBusy(true)
@@ -71,6 +74,14 @@ export function ResetCard() {
             {t('بدأ العمل الحقيقي يوم', 'Démarré le')} <span className="num">{format(new Date(golive.data.at), 'dd/MM/yyyy HH:mm')}</span>
           </div>
         )}
+        {live && !unlock ? (
+          <div className="space-y-3 rounded-xl border border-danger/30 bg-danger/5 p-4 text-sm">
+            <p className="font-semibold text-danger">{t('⚠️ النظام يعمل الآن بالبيانات الحقيقية. هذا الزر يحذف المبيعات والورديات والطلبات الحقيقية أيضاً.', '⚠️ Le système est en production : ce bouton effacerait aussi les vraies opérations.')}</p>
+            <p className="text-muted">{t('لا تستعمله إلا إذا أردت فعلاً مسح كل شيء والبدء من الصفر.', 'À n’utiliser que pour tout effacer et repartir de zéro.')}</p>
+            <Button size="sm" variant="outline" onClick={() => setUnlock(true)}>{t('أفهم الخطر، أظهر الخيار', 'Je comprends, afficher')}</Button>
+          </div>
+        ) : (
+        <>
         <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
           {ROWS.map(([k, ar, fr]) => (
             <div key={k} className="rounded-lg bg-surface-2 px-3 py-2">
@@ -104,6 +115,8 @@ export function ResetCard() {
             {t('ابدأ العمل الحقيقي', 'Démarrer')}
           </Button>
         </div>
+        </>
+        )}
       </div>
     </Card>
   )
