@@ -9,7 +9,7 @@ import { useLang } from '@/shared/lib/i18n'
 import { errorMessage } from '@/shared/lib/errors'
 import { money, qty } from '@/shared/lib/money'
 import { openStaffFile, ORDER_STATUSES, PAYMENT_STATUS, siteTrackUrl } from '@/shared/lib/online'
-import { fillTemplate, whatsappLink } from '@/shared/lib/utils'
+import { fillTemplate, past, whatsappLink } from '@/shared/lib/utils'
 import { Badge, Button, Card, Field, Input, Spinner, Textarea } from '@/shared/ui/primitives'
 import { sendWhatsApp } from '@/shared/lib/whatsapp'
 import { Sheet, useConfirm } from '@/shared/ui/overlay'
@@ -70,6 +70,7 @@ export function OrdersPage() {
       if (tab === 'mine' && o.assignee?.id !== me?.id) return false
       if (tab === 'free' && (o.assignee || ['delivered', 'cancelled'].includes(o.status))) return false
       if (tab === 'proof' && o.payment_status !== 'proof_uploaded') return false
+      if (tab === 'cod' && !(o.payment_method === 'cod' && o.status === 'delivered' && o.payment_status !== 'paid')) return false
       return !s || o.number.toLowerCase().includes(s) || o.customer_name.toLowerCase().includes(s) || o.phone.includes(s)
     })
   }, [list.data, tab, q])
@@ -83,7 +84,7 @@ export function OrdersPage() {
     { key: 'p', header: t('الأداء', 'Paiement'), cell: (o) => <div className="flex flex-col items-start gap-1"><Badge tone={PAYMENT_STATUS[o.payment_status].tone}>{t(PAYMENT_STATUS[o.payment_status].ar, PAYMENT_STATUS[o.payment_status].fr)}</Badge><span className="text-[11px] text-muted">{t(...PM[o.payment_method])}</span></div> },
     { key: 's', header: t('الحالة', 'Statut'), cell: (o) => <OStatus s={o.status} /> },
     { key: 'as', header: t('المسؤول', 'Responsable'), cell: (o) => (['delivered', 'cancelled'].includes(o.status) && !o.assignee ? <span className="text-subtle">—</span> : <AssigneeBadge a={o.assignee} />) },
-    { key: 'a', header: t('منذ', 'Reçue'), sortValue: (o) => o.created_at, cell: (o) => <span className="text-xs text-muted">{formatDistanceToNow(new Date(o.created_at), { addSuffix: true, locale: lang === 'ar' ? arLocale : frLocale })}</span> },
+    { key: 'a', header: t('منذ', 'Reçue'), sortValue: (o) => o.created_at, cell: (o) => <span className="text-xs text-muted">{formatDistanceToNow(past(o.created_at), { addSuffix: true, locale: lang === 'ar' ? arLocale : frLocale })}</span> },
   ]
 
   return (
@@ -96,6 +97,7 @@ export function OrdersPage() {
           { value: 'free', label: t('بدون مسؤول', 'Sans responsable'), count: count((o) => !o.assignee && !['delivered', 'cancelled'].includes(o.status)) },
           { value: 'new', label: t('جديدة', 'Nouvelles'), count: count((o) => o.status === 'new') },
           { value: 'proof', label: t('تحويلات للتأكيد', 'Virements'), count: count((o) => o.payment_status === 'proof_uploaded') },
+          { value: 'cod', label: t('مبالغ عند الموزع', 'À encaisser (livreur)'), count: count((o) => o.payment_method === 'cod' && o.status === 'delivered' && o.payment_status !== 'paid') },
           { value: 'all', label: t('الكل', 'Toutes') },
         ]} />
         <div className="min-w-56 flex-1">
@@ -217,7 +219,7 @@ function OrderSheet({ id, onClose }: { id: string | null; onClose: () => void })
             {o.files.filter((f) => f.kind === 'payment_proof').map((f) => (
               <Button key={f.id} variant="outline" size="sm" onClick={() => openStaffFile(sb, f.path)}><Eye />{t('عرض وصل التحويل', 'Voir le justificatif')}</Button>
             ))}
-            {o.payment_status !== 'paid' && can('payments.confirm_transfer') && (
+            {o.payment_status !== 'paid' && can('payments.confirm_transfer') && (o.payment_method !== 'cod' || ['shipped', 'delivered'].includes(o.status)) && (
               <div className="flex gap-2">
                 <Button size="sm" variant="success" onClick={() => confirmPay('transfer')}>{o.payment_method === 'cod' ? t('تأكيد استلام المبلغ من شركة التوصيل', 'Encaissement livreur confirmé') : t('تأكيد التحويل', 'Confirmer le virement')}</Button>
                 <Button size="sm" variant="outline" onClick={() => confirmPay('card')}>{t('بطاقة', 'Carte')}</Button>

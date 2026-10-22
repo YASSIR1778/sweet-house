@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
+import { past } from '@/shared/lib/utils'
 import { ar as arLocale, fr as frLocale } from 'date-fns/locale'
 import { AlarmClock, CheckCheck, ClipboardList, Globe2, Paperclip, Search, Sparkles } from 'lucide-react'
 import { useAuth } from '@/shared/lib/auth'
@@ -132,7 +133,7 @@ export function RequestsPage() {
     },
     { key: 'as', header: t('المسؤول', 'Responsable'), cell: (r) => (st(r.status)?.is_final && !r.assignee ? <span className="text-subtle">—</span> : <AssigneeBadge a={r.assignee} />) },
     { key: 'p', header: t('الأداء', 'Paiement'), cell: (r) => <Badge tone={PAYMENT_STATUS[r.payment_status].tone}>{t(PAYMENT_STATUS[r.payment_status].ar, PAYMENT_STATUS[r.payment_status].fr)}</Badge> },
-    { key: 'd', header: t('منذ', 'Reçue'), sortValue: (r) => r.created_at, cell: (r) => <span className="text-xs text-muted">{formatDistanceToNow(new Date(r.created_at), { addSuffix: true, locale: lang === 'ar' ? arLocale : frLocale })}</span> },
+    { key: 'd', header: t('منذ', 'Reçue'), sortValue: (r) => r.created_at, cell: (r) => <span className="text-xs text-muted">{formatDistanceToNow(past(r.created_at), { addSuffix: true, locale: lang === 'ar' ? arLocale : frLocale })}</span> },
   ]
 
   return (

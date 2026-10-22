@@ -17,7 +17,7 @@ import { useSeo } from '../Layout'
 import { ACCEPT, MAX_FILE, uploadPublicFile } from '../upload'
 import { Row } from './Checkout'
 import { HelpBar, ServiceFaq, type HelpStep } from '../help'
-import { storage } from '@/shared/lib/utils'
+import { matchesSearch, storage } from '@/shared/lib/utils'
 
 export function ServicesPage() {
   const { t, pick } = useLang()
@@ -27,8 +27,7 @@ export function ServicesPage() {
   useSeo(t('الخدمات الإدارية', 'Services administratifs'))
 
   const groups = useMemo(() => {
-    const s = q.trim().toLowerCase()
-    const list = (data.data?.services ?? []).filter((x) => x.system_key !== 'custom_request' && x.system_key !== 'school_list').filter((x) => !s || x.name_ar.includes(s) || x.name_fr.toLowerCase().includes(s) || (x.description_ar ?? '').includes(s))
+    const list = (data.data?.services ?? []).filter((x) => x.system_key !== 'custom_request' && x.system_key !== 'school_list').filter((x) => matchesSearch(q, x.name_ar, x.name_fr, x.description_ar, x.description_fr))
     return (data.data?.categories ?? []).filter((c) => !cat || c.id === cat).map((c) => ({ c, items: list.filter((x) => x.category_id === c.id) })).filter((g) => g.items.length)
   }, [data.data, q, cat])
 

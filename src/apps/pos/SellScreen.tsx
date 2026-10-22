@@ -31,7 +31,7 @@ import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
 import { errorMessage } from '@/shared/lib/errors'
 import { money, parseMoney, qty as fmtQty } from '@/shared/lib/money'
-import { cn, storage, uuid, whatsappLink } from '@/shared/lib/utils'
+import { cn, matchesSearch, storage, uuid, whatsappLink } from '@/shared/lib/utils'
 import type { Sale } from '@/shared/lib/types'
 import { useReceiptConfig } from '@/shared/lib/receipt-config'
 import { Avatar, Badge, Button, Input, Kbd, Spinner } from '@/shared/ui/primitives'
@@ -197,7 +197,7 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
     const c = catalog.data
     if (!c) return { products: [], services: [] }
     const q = search.trim().toLowerCase()
-    const matches = (o: { name_ar: string; name_fr: string }) => o.name_ar.toLowerCase().includes(q) || o.name_fr.toLowerCase().includes(q)
+    const matches = (o: { name_ar: string; name_fr: string }) => matchesSearch(q, o.name_ar, o.name_fr)
     const counter = c.services.filter((s) => s.kind === 'counter')
     if (q)
       return {

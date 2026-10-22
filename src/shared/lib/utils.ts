@@ -46,6 +46,34 @@ export function storage<T>(key: string, fallback: T) {
   }
 }
 
+/** Search text the way people type it: no diacritics, أ/إ/آ → ا, ة → ه, ى → ي, and the article «ال» ignored. */
+export function normalizeSearch(s: string) {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ًͯ-ٰٟـ]/g, '')
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
+    .split(/[\s,،.()«»\-–/]+/)
+    .filter(Boolean)
+    .map((w) => (w.length > 3 && w.startsWith('ال') ? w.slice(2) : w))
+}
+
+/** True when every word of the query appears somewhere in the texts. */
+export function matchesSearch(q: string, ...texts: (string | null | undefined)[]) {
+  const words = normalizeSearch(q)
+  if (!words.length) return true
+  const hay = normalizeSearch(texts.filter(Boolean).join(' ')).join(' ')
+  return words.every((w) => hay.includes(w))
+}
+
+/** A server timestamp as a Date that is never in the future (device clocks drift). */
+export function past(d: string | Date) {
+  const t = new Date(d)
+  return t.getTime() > Date.now() ? new Date() : t
+}
+
 export function normalizePhone(p: string) {
   let d = p.replace(/[^\d+]/g, '')
   if (d.startsWith('+')) d = d.slice(1)

@@ -5,7 +5,7 @@ import { ChevronLeft, Minus, Package, Plus, Search, ShoppingBag, SlidersHorizont
 import { toast } from 'sonner'
 import { useLang } from '@/shared/lib/i18n'
 import { money } from '@/shared/lib/money'
-import { cn } from '@/shared/lib/utils'
+import { cn, matchesSearch } from '@/shared/lib/utils'
 import { Badge, Button, Input, Skeleton } from '@/shared/ui/primitives'
 import { EmptyState } from '@/shared/ui/data'
 import { DynamicIcon } from '@/shared/ui/icon'
@@ -26,7 +26,7 @@ export function ShopPage() {
 
   const list = useMemo(() => {
     const s = q.trim().toLowerCase()
-    let xs = (shop.data?.products ?? []).filter((p) => (!cat || p.category_id === cat) && (!onlyStock || inStock(p)) && (!s || p.name_ar.toLowerCase().includes(s) || p.name_fr.toLowerCase().includes(s) || (p.brand ?? '').toLowerCase().includes(s)))
+    let xs = (shop.data?.products ?? []).filter((p) => (!cat || p.category_id === cat) && (!onlyStock || inStock(p)) && (!s || matchesSearch(s, p.name_ar, p.name_fr, p.brand)))
     const price = (p: (typeof xs)[number]) => Math.min(...p.product_variants.map((v) => v.price))
     if (sort === 'price_asc') xs = [...xs].sort((a, b) => price(a) - price(b))
     if (sort === 'price_desc') xs = [...xs].sort((a, b) => price(b) - price(a))

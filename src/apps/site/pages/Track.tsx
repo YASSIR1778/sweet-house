@@ -14,6 +14,8 @@ import { useSeo } from '../Layout'
 import { ACCEPT, downloadPublicFile, uploadPublicFile } from '../upload'
 import { Row } from './Checkout'
 
+const CITY_AR: Record<string, string> = { 'Tétouan': 'تطوان', Martil: 'مرتيل', "M'diq": 'المضيق', Fnideq: 'الفنيدق', Tanger: 'طنجة', Casablanca: 'الدار البيضاء', Rabat: 'الرباط' }
+
 type Status = { key: string; name_ar: string; name_fr: string; color: string; sort: number; is_final: boolean; is_cancel: boolean; allow_download: boolean }
 type RequestTrack = {
   kind: 'request'
@@ -155,6 +157,7 @@ function RequestView({ d, phone, reload }: { d: RequestTrack; phone: string; rel
         {!cancelled && (
           <ol className="mt-8 space-y-0">
             {d.statuses.map((s, i) => {
+              if (i < current && !at(s.key)) return null
               const doneStep = i <= current
               return (
                 <li key={s.key} className="relative flex gap-4 pb-6 last:pb-0">
@@ -204,7 +207,7 @@ function RequestView({ d, phone, reload }: { d: RequestTrack; phone: string; rel
 }
 
 function OrderView({ d, phone, reload }: { d: OrderTrack; phone: string; reload: () => void }) {
-  const { t, pick } = useLang()
+  const { t, pick, lang } = useLang()
   const steps = ORDER_STEPS.filter(([k]) => d.delivery_method === 'delivery' || k !== 'shipped').map((s) => (s[0] === 'delivered' && d.delivery_method === 'pickup' ? ['delivered', 'تم الاستلام من المحل', 'Retirée'] : s))
   const order = ['new', 'confirmed', 'preparing', 'shipped', 'ready', 'delivered']
   const cur = order.indexOf(d.status)
@@ -216,7 +219,7 @@ function OrderView({ d, phone, reload }: { d: OrderTrack; phone: string; reload:
             <div className="text-sm text-muted">{t('الطلب', 'Commande')}</div>
             <div className="num text-xl font-bold">{d.number}</div>
           </div>
-          {d.status === 'cancelled' ? <Badge tone="danger">{t('ملغى', 'Annulée')}</Badge> : <Badge tone="brand">{d.delivery_method === 'delivery' ? <Truck /> : <Package />}{d.delivery_method === 'delivery' ? d.city : t('استلام من المحل', 'Retrait')}</Badge>}
+          {d.status === 'cancelled' ? <Badge tone="danger">{t('ملغى', 'Annulée')}</Badge> : <Badge tone="brand">{d.delivery_method === 'delivery' ? <Truck /> : <Package />}{d.delivery_method === 'delivery' ? (lang === 'ar' ? (CITY_AR[d.city ?? ''] ?? d.city) : d.city) : t('استلام من المحل', 'Retrait')}</Badge>}
         </div>
         {d.status !== 'cancelled' && (
           <div className="mt-8 flex items-start" dir="ltr">

@@ -112,7 +112,7 @@ export function ProductLanding({ focus = false }: { focus?: boolean }) {
     attributeOnline(r.tracking_code)
     pixel('Purchase', { value: r.total, content_id: p.id, content_name: p.name_ar })
     setDone(r)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    requestAnimationFrame(() => window.scrollTo({ top: 0 }))
   }
 
   if (done)

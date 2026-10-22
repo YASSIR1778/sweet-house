@@ -481,7 +481,7 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
                 })}
               </div>
             )}
-            {status?.allow_download && deliverables.length > 0 && r.payment_status !== 'paid' && r.price > 0 && (
+            {status?.allow_download && deliverables.length > 0 && r.payment_status !== 'paid' && (
               <div className="rounded-lg bg-warning/10 p-2 text-xs text-warning">{t('الزبون لن يستطيع التحميل حتى تأكيد الأداء.', 'Téléchargement possible après paiement.')}</div>
             )}
           </Card>

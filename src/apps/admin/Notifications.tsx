@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router'
 import * as Popover from '@radix-ui/react-popover'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
-import { cn } from '@/shared/lib/utils'
+import { cn, past } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/primitives'
 import { PushToggle } from '@/shared/ui/push-toggle'
 
@@ -67,7 +67,7 @@ export function NotificationsBell() {
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium">{pick(n, 'title')}</div>
                     {n.body && <div className="num line-clamp-4 text-xs whitespace-pre-line text-muted">{n.body}</div>}
-                    <div className="mt-0.5 text-[11px] text-subtle">{formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: lang === 'ar' ? arLocale : frLocale })}</div>
+                    <div className="mt-0.5 text-[11px] text-subtle">{formatDistanceToNow(past(n.created_at), { addSuffix: true, locale: lang === 'ar' ? arLocale : frLocale })}</div>
                   </div>
                   {!n.read_at && <span className="mt-2 size-2 shrink-0 rounded-full bg-brand" />}
                 </button>

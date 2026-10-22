@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
 import { errorMessage } from '@/shared/lib/errors'
-import { cn, whatsappLink } from '@/shared/lib/utils'
+import { cn, past, whatsappLink } from '@/shared/lib/utils'
 import { Badge, Button, Card } from './primitives'
 import { EmptyState, Tabs } from './data'
 import { AssigneeBadge, AssignmentCard, type AssigneeMini } from './assignment'
@@ -64,7 +64,7 @@ export function HelpDesk({ compact }: { compact?: boolean }) {
   )
   const count = (fn: (h: HelpRow) => boolean) => (list.data ?? []).filter(fn).length
   const refresh = () => (qc.invalidateQueries({ queryKey: ['help'] }), qc.invalidateQueries({ queryKey: ['help-counts'] }))
-  const ago = (d: string) => formatDistanceToNow(new Date(d), { addSuffix: true, locale: lang === 'fr' ? frLocale : arLocale })
+  const ago = (d: string) => formatDistanceToNow(past(d), { addSuffix: true, locale: lang === 'fr' ? frLocale : arLocale })
 
   const contacted = async (h: HelpRow) => {
     const { error } = await sb.rpc('help_contacted', { p_id: h.id })

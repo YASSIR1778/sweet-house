@@ -241,13 +241,13 @@ export function Tabs({
   className?: string
 }) {
   return (
-    <div className={cn('inline-flex gap-1 rounded-xl border border-border bg-surface p-1', className)}>
+    <div className={cn('inline-flex max-w-full gap-1 overflow-x-auto rounded-xl border border-border bg-surface p-1 [scrollbar-width:none]', className)}>
       {items.map((it) => (
         <button
           key={it.value}
           onClick={() => onChange(it.value)}
           className={cn(
-            'relative rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors',
+            'relative shrink-0 whitespace-nowrap rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors',
             value === it.value ? 'text-white' : 'text-muted hover:text-text',
           )}
         >

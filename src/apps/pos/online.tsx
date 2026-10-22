@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
+import { past } from '@/shared/lib/utils'
 import { ar as arLocale, fr as frLocale } from 'date-fns/locale'
 import { AlarmClock, Banknote, CheckCheck, Globe2, ClipboardList, FileCheck2, Paperclip, ShoppingCart } from 'lucide-react'
 import { toast } from 'sonner'
@@ -57,7 +58,7 @@ export function OnlineSheet({ device, open, onClose }: { device: DeviceInfo; ope
     toast.success(t('تم الاستلام ✅', 'Encaissé ✅'))
     refresh()
   }
-  const ago = (d: string) => formatDistanceToNow(new Date(d), { addSuffix: true, locale: lang === 'ar' ? arLocale : frLocale })
+  const ago = (d: string) => formatDistanceToNow(past(d), { addSuffix: true, locale: lang === 'ar' ? arLocale : frLocale })
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()} title={t('الطلبات الأونلاين', 'Commandes en ligne')} width="max-w-xl">
@@ -182,7 +183,7 @@ function ArchiveTab({ onOpen, deviceId }: { onOpen: (id: string) => void; device
                   <div className="min-w-0 flex-1">
                     <div className="font-medium">{pick(r, 'service_name')}</div>
                     <div className="num text-xs text-muted">
-                      {r.customer_name} · {r.number} · {formatDistanceToNow(new Date(r.created_at), { addSuffix: true, locale: lang === 'ar' ? arLocale : frLocale })}
+                      {r.customer_name} · {r.number} · {formatDistanceToNow(past(r.created_at), { addSuffix: true, locale: lang === 'ar' ? arLocale : frLocale })}
                     </div>
                   </div>
                   {r.deliverables_count > 0 && (

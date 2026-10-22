@@ -277,10 +277,10 @@ export function ReferenceCard({ r, guide }: { r: WorkflowRequest; guide: Workflo
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label={t('رقم الطلب / الوصل في البوابة', 'N° de demande / reçu')}>
-          <Input value={ref} onChange={(e) => setRef(e.target.value)} dir="ltr" className="num" disabled={!can('requests.manage')} />
+          <Input value={ref} onChange={(e) => setRef(e.target.value)} onBlur={() => dirty && save()} dir="ltr" className="num" disabled={!can('requests.manage')} />
         </Field>
         <Field label={t('القن السري / رمز التتبّع (إن وُجد)', 'Code secret / suivi (si existe)')}>
-          <Input value={code} onChange={(e) => setCode(e.target.value)} dir="ltr" className="num" disabled={!can('requests.manage')} />
+          <Input value={code} onChange={(e) => setCode(e.target.value)} onBlur={() => dirty && save()} dir="ltr" className="num" disabled={!can('requests.manage')} />
         </Field>
       </div>
       <div className="flex flex-wrap items-center gap-2">

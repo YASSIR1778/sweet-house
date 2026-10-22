@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { motion } from 'motion/react'
 import { Building2, FileCheck2, Globe2, Mail, MessageCircle, Search, Upload } from 'lucide-react'
 import { useLang } from '@/shared/lib/i18n'
-import { whatsappLink } from '@/shared/lib/utils'
+import { matchesSearch, whatsappLink } from '@/shared/lib/utils'
 import { Button, Skeleton } from '@/shared/ui/primitives'
 import { EmptyState } from '@/shared/ui/data'
 import { useAdminServices, useSite } from '../data'
@@ -20,8 +20,7 @@ export function AbroadPage() {
   const ab = site.data?.abroad
 
   const groups = useMemo(() => {
-    const s = q.trim().toLowerCase()
-    const list = (data.data?.services ?? []).filter((x) => x.abroad && x.system_key !== 'custom_request').filter((x) => !s || x.name_ar.includes(s) || x.name_fr.toLowerCase().includes(s))
+    const list = (data.data?.services ?? []).filter((x) => x.abroad && x.system_key !== 'custom_request').filter((x) => matchesSearch(q, x.name_ar, x.name_fr))
     return (data.data?.categories ?? []).map((c) => ({ c, items: list.filter((x) => x.category_id === c.id) })).filter((g) => g.items.length)
   }, [data.data, q])
   const custom = data.data?.services.find((x) => x.system_key === 'custom_request' && x.abroad)

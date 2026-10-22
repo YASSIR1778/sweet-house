@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
 import { errorMessage } from '@/shared/lib/errors'
-import { cn } from '@/shared/lib/utils'
+import { cn, past } from '@/shared/lib/utils'
 import { Avatar, Badge, Button, Card, Input } from '@/shared/ui/primitives'
 import { useConfirm } from '@/shared/ui/overlay'
 import { EmptyState, PageHeader } from '@/shared/ui/data'
@@ -49,7 +49,7 @@ export function DevicesPage() {
   const refresh = () => (qc.invalidateQueries({ queryKey: ['devices'] }), qc.invalidateQueries({ queryKey: ['online-pending'] }))
   const pending = (devices.data ?? []).filter((d) => d.status === 'pending')
   const approved = (devices.data ?? []).filter((d) => d.status === 'approved')
-  const ago = (d: string) => formatDistanceToNow(new Date(d), { addSuffix: true, locale: lang === 'ar' ? arLocale : frLocale })
+  const ago = (d: string) => formatDistanceToNow(past(d), { addSuffix: true, locale: lang === 'ar' ? arLocale : frLocale })
 
   const decide = async (d: Device, ok: boolean) => {
     const { error } = await sb.rpc('approve_device', { p_id: d.id, p_name: names[d.id] ?? d.name, p_approve: ok })
