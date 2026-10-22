@@ -32,6 +32,19 @@ function NotConfigured() {
 }
 
 export function mount(app: ReactNode) {
+  // After a new deploy, a page left open asks for code files that no longer
+  // exist («Failed to fetch dynamically imported module»): reload once to get the new version.
+  window.addEventListener('vite:preloadError', (e) => {
+    try {
+      const last = Number(sessionStorage.getItem('sh-reloaded-at') ?? 0)
+      if (Date.now() - last < 30_000) return
+      sessionStorage.setItem('sh-reloaded-at', String(Date.now()))
+    } catch {
+      /* storage unavailable */
+    }
+    e.preventDefault()
+    location.reload()
+  })
   if (import.meta.env.PROD && 'serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, { scope: import.meta.env.BASE_URL }).catch(() => {}))
   }
