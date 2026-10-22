@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import type { Me } from './types'
 
@@ -18,13 +18,18 @@ export function AuthProvider({ sb, children }: { sb: SupabaseClient; children: R
   const [session, setSession] = useState<Session | null>(null)
   const [me, setMe] = useState<Me | null>(null)
   const [loading, setLoading] = useState(true)
+  // whose profile is loaded: Supabase re-sends SIGNED_IN each time the tab
+  // regains focus, and reloading then unmounted the POS (the cart was lost)
+  const loadedFor = useRef<string | null>(null)
 
   const loadMe = useCallback(
     async (s: Session | null) => {
       if (!s) {
+        loadedFor.current = null
         setMe(null)
         return
       }
+      loadedFor.current = s.user.id
       setLoading(true)
       const cacheKey = `sh-me-${s.user.id}`
       const { data, error } = await sb.rpc('me')
@@ -58,6 +63,7 @@ export function AuthProvider({ sb, children }: { sb: SupabaseClient; children: R
     })
     const { data: sub } = sb.auth.onAuthStateChange((event, s) => {
       setSession(s)
+      if (event === 'SIGNED_IN' && s && s.user.id === loadedFor.current) return
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
         if (s) setLoading(true)
         // Defer: calling Supabase inside the callback can deadlock the auth lock.

@@ -1,4 +1,4 @@
-import { useReducer } from 'react'
+import { useEffect, useReducer } from 'react'
 import type { PosPack, PosProduct, PosService, PosVariant } from './catalog'
 import { servicePrice } from './catalog'
 
@@ -120,8 +120,27 @@ function reducer(s: CartState, a: Action): CartState {
   }
 }
 
+// The cart in progress survives a page reload (crash, accidental refresh).
+const CART_KEY = 'sh-pos-cart'
+
 export function useCart() {
-  return useReducer(reducer, emptyCart)
+  const r = useReducer(reducer, emptyCart, (init) => {
+    try {
+      const saved = sessionStorage.getItem(CART_KEY)
+      return saved ? { ...init, ...(JSON.parse(saved) as CartState) } : init
+    } catch {
+      return init
+    }
+  })
+  useEffect(() => {
+    try {
+      if (r[0].lines.length) sessionStorage.setItem(CART_KEY, JSON.stringify(r[0]))
+      else sessionStorage.removeItem(CART_KEY)
+    } catch {
+      /* storage unavailable */
+    }
+  }, [r])
+  return r
 }
 
 export function lineTotal(l: CartLine) {
