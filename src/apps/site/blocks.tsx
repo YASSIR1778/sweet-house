@@ -152,7 +152,7 @@ function SchoolBlock() {
 function ServicesBlock({ b }: { b: Block }) {
   const { t } = useLang()
   const data = useAdminServices()
-  const all = (data.data?.services ?? []).filter((x) => x.system_key !== 'custom_request' && x.is_online !== false)
+  const all = (data.data?.services ?? []).filter((x) => !['custom_request', 'school_list'].includes(x.system_key ?? '') && x.is_online !== false)
   let list = all
   if (b.source === 'category') list = all.filter((s) => s.category_id === b.category_id)
   if (b.source === 'manual') list = (b.ids ?? []).map((id) => all.find((s) => s.id === id)).filter(Boolean) as typeof all

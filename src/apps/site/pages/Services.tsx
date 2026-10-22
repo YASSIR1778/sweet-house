@@ -28,7 +28,7 @@ export function ServicesPage() {
 
   const groups = useMemo(() => {
     const s = q.trim().toLowerCase()
-    const list = (data.data?.services ?? []).filter((x) => x.system_key !== 'custom_request').filter((x) => !s || x.name_ar.includes(s) || x.name_fr.toLowerCase().includes(s) || (x.description_ar ?? '').includes(s))
+    const list = (data.data?.services ?? []).filter((x) => x.system_key !== 'custom_request' && x.system_key !== 'school_list').filter((x) => !s || x.name_ar.includes(s) || x.name_fr.toLowerCase().includes(s) || (x.description_ar ?? '').includes(s))
     return (data.data?.categories ?? []).filter((c) => !cat || c.id === cat).map((c) => ({ c, items: list.filter((x) => x.category_id === c.id) })).filter((g) => g.items.length)
   }, [data.data, q, cat])
 
