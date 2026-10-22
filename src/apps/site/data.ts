@@ -31,6 +31,7 @@ export type StoreSite = {
   seo: { description_ar: string; description_fr: string }
   blocks?: Block[]
   menu?: MenuLink[]
+  socials?: Record<string, string>
 }
 
 export type SiteData = { storeSite: StoreSite | null; store: StoreSettings; website: WebsiteSettings; delivery: DeliverySettings; payments: PaymentSettings; legal: { cndp?: string; company_name?: string; ice?: string }; abroad: AbroadSettings | null; help: { enabled?: boolean; alert_minutes?: number } | null; tracking: { meta_pixel_id?: string; tiktok_pixel_id?: string } | null }

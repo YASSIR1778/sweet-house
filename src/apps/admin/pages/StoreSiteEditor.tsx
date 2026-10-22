@@ -11,12 +11,12 @@ import { Button, Card, CardHeader, Field, Input, Skeleton, SwitchRow, Textarea }
 import { IconPicker } from '@/shared/ui/pickers'
 import type { StoreSite } from '@/apps/site/data'
 import { blocksOf } from '@/shared/lib/blocks'
-import { BlocksEditor, MenuEditor } from './BlocksEditor'
+import { BlocksEditor, MenuEditor, SocialsEditor } from './BlocksEditor'
 
 const TABS = [
   { id: 'blocks', ar: 'أقسام الصفحة الرئيسية', fr: 'Sections', icon: Rows3 },
   { id: 'home', ar: 'الواجهة والوعد', fr: 'Bannière et promesse', icon: LayoutTemplate },
-  { id: 'menu', ar: 'قائمة الموقع', fr: 'Menu', icon: Menu },
+  { id: 'menu', ar: 'القائمة والحسابات', fr: 'Menu et réseaux', icon: Menu },
   { id: 'trust', ar: 'الضمانات', fr: 'Garanties', icon: ShieldCheck },
   { id: 'faq', ar: 'الأسئلة الشائعة', fr: 'FAQ', icon: ListChecks },
   { id: 'returns', ar: 'الإرجاع والاستبدال', fr: 'Retours', icon: RotateCcw },
@@ -94,7 +94,12 @@ export function StoreSiteEditor() {
         </nav>
         <div className="space-y-5">
           {tab === 'blocks' && <BlocksEditor brand="store" blocks={w.blocks ?? []} onChange={(blocks) => setW({ ...w, blocks })} />}
-          {tab === 'menu' && <MenuEditor menu={w.menu ?? []} onChange={(menu) => setW({ ...w, menu })} />}
+          {tab === 'menu' && (
+            <>
+              <MenuEditor menu={w.menu ?? []} onChange={(menu) => setW({ ...w, menu })} />
+              <SocialsEditor value={w.socials ?? {}} onChange={(socials) => setW({ ...w, socials })} />
+            </>
+          )}
           {tab === 'home' && (
             <>
               <Card>

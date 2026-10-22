@@ -85,6 +85,7 @@ export function SiteLayout() {
   }, [])
 
   const store = site.data?.store
+  const socials: Record<string, string> = (BRAND === 'store' ? site.data?.storeSite?.socials : (site.data?.website as { socials?: Record<string, string> } | undefined)?.socials) ?? store?.socials ?? {}
   const saved = (BRAND === 'store' ? site.data?.storeSite?.menu : (site.data?.website as { menu?: MenuLink[] } | undefined)?.menu) ?? []
   const LINKS = saved.length ? saved.map((m) => ({ to: m.to, ar: m.label_ar, fr: m.label_fr || m.label_ar, end: m.to === '/' })) : DEFAULT_LINKS
   const ann = BRAND === 'store' ? site.data?.storeSite?.announcement : site.data?.website.announcement
@@ -175,14 +176,24 @@ export function SiteLayout() {
               </span>
             </a>
             <div className="mt-5 flex gap-2">
-              {store?.socials?.facebook && (
-                <a href={store.socials.facebook} target="_blank" rel="noreferrer" className="flex size-9 items-center justify-center rounded-lg bg-white/10 hover:bg-brand">
+              {socials.facebook && (
+                <a href={socials.facebook} target="_blank" rel="noreferrer" aria-label="Facebook" className="flex size-9 items-center justify-center rounded-lg bg-white/10 hover:bg-brand">
                   <svg viewBox="0 0 24 24" className="size-4" fill="currentColor"><path d="M14 9V7c0-1 .5-1.5 1.5-1.5H17V2h-3c-3 0-4 2-4 4.5V9H8v3.5h2V22h4v-9.5h2.6L17 9h-3Z" /></svg>
                 </a>
               )}
-              {store?.socials?.instagram && (
-                <a href={store.socials.instagram} target="_blank" rel="noreferrer" className="flex size-9 items-center justify-center rounded-lg bg-white/10 hover:bg-brand">
+              {socials.instagram && (
+                <a href={socials.instagram} target="_blank" rel="noreferrer" aria-label="Instagram" className="flex size-9 items-center justify-center rounded-lg bg-white/10 hover:bg-brand">
                   <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" /></svg>
+                </a>
+              )}
+              {socials.tiktok && (
+                <a href={socials.tiktok} target="_blank" rel="noreferrer" aria-label="TikTok" className="flex size-9 items-center justify-center rounded-lg bg-white/10 hover:bg-brand">
+                  <svg viewBox="0 0 24 24" className="size-4" fill="currentColor"><path d="M16.6 5.8A4.3 4.3 0 0 1 15.5 3h-3.2v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.6a5.9 5.9 0 1 0 5 5.8V9.3a7.4 7.4 0 0 0 4.3 1.4V7.5a4.3 4.3 0 0 1-3.2-1.7Z" /></svg>
+                </a>
+              )}
+              {socials.youtube && (
+                <a href={socials.youtube} target="_blank" rel="noreferrer" aria-label="YouTube" className="flex size-9 items-center justify-center rounded-lg bg-white/10 hover:bg-brand">
+                  <svg viewBox="0 0 24 24" className="size-4" fill="currentColor"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12a31 31 0 0 0 .5 4.8 3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-4.8 31 31 0 0 0-.5-4.8ZM9.7 15V9l5.8 3-5.8 3Z" /></svg>
                 </a>
               )}
               <a href={whatsappLink(wa, '')} target="_blank" rel="noreferrer" className="flex size-9 items-center justify-center rounded-lg bg-white/10 hover:bg-[#25D366]">

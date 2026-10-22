@@ -15,7 +15,7 @@ import { resetWhatsAppMode } from '@/shared/lib/whatsapp'
 import { SITES } from '@/shared/lib/brand'
 import { StoreSiteEditor } from './StoreSiteEditor'
 import { blocksOf, type Block, type MenuLink } from '@/shared/lib/blocks'
-import { BlocksEditor, MenuEditor } from './BlocksEditor'
+import { BlocksEditor, MenuEditor, SocialsEditor } from './BlocksEditor'
 
 const SERVICES_MENU: MenuLink[] = [
   { label_ar: 'الرئيسية', label_fr: 'Accueil', to: '/' },
@@ -37,6 +37,7 @@ type W = {
   legal: { privacy_ar: string; privacy_fr: string; terms_ar: string; terms_fr: string }
   blocks?: Block[]
   menu?: MenuLink[]
+  socials?: Record<string, string>
 }
 type D = { enabled: boolean; cod: boolean; default_price: number; free_above: number | null; zones: { city: string; city_ar: string; price: number }[] }
 type P = { cod: boolean; in_store: boolean; bank_transfer: boolean; bank_name: string; rib: string; account_holder: string }
@@ -47,7 +48,7 @@ type Site = 'services' | 'store' | 'shared'
 const TABS = [
   { id: 'blocks', site: 'services', ar: 'أقسام الصفحة الرئيسية', fr: 'Sections', icon: Rows3 },
   { id: 'home', site: 'services', ar: 'الواجهة والمزايا', fr: 'Bannière et atouts', icon: LayoutTemplate },
-  { id: 'menu', site: 'services', ar: 'قائمة الموقع', fr: 'Menu', icon: Menu },
+  { id: 'menu', site: 'services', ar: 'القائمة والحسابات', fr: 'Menu et réseaux', icon: Menu },
   { id: 'faq', site: 'services', ar: 'الأسئلة الشائعة', fr: 'FAQ', icon: ListChecks },
   { id: 'abroad', site: 'services', ar: 'مغاربة العالم', fr: 'Marocains du monde', icon: Globe2 },
   { id: 'statuses', site: 'services', ar: 'مراحل الطلبات', fr: 'Étapes des demandes', icon: ListChecks },
@@ -193,7 +194,12 @@ export function WebsitePage() {
         </nav>
         <div className="space-y-5">
           {tab === 'blocks' && <BlocksEditor brand="services" blocks={w.blocks ?? []} onChange={(blocks) => setW({ ...w, blocks })} />}
-          {tab === 'menu' && <MenuEditor menu={w.menu ?? []} onChange={(menu) => setW({ ...w, menu })} />}
+          {tab === 'menu' && (
+            <>
+              <MenuEditor menu={w.menu ?? []} onChange={(menu) => setW({ ...w, menu })} />
+              <SocialsEditor value={w.socials ?? {}} onChange={(socials) => setW({ ...w, socials })} />
+            </>
+          )}
           {tab === 'home' && (
             <>
               <Card>

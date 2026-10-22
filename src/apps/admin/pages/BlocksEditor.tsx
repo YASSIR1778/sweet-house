@@ -231,6 +231,29 @@ export function BlocksEditor({ brand, blocks, onChange }: { brand: Brand; blocks
   )
 }
 
+/** Website editor: this site's social accounts (footer icons). */
+export function SocialsEditor({ value, onChange }: { value: Record<string, string>; onChange: (v: Record<string, string>) => void }) {
+  const { t } = useLang()
+  const rows: [string, string, string][] = [
+    ['facebook', 'Facebook', 'https://www.facebook.com/…'],
+    ['instagram', 'Instagram', 'https://www.instagram.com/…'],
+    ['tiktok', 'TikTok', 'https://www.tiktok.com/@…'],
+    ['youtube', 'YouTube', 'https://www.youtube.com/@…'],
+  ]
+  return (
+    <Card>
+      <CardHeader title={t('حسابات هذا الموقع', 'Réseaux de ce site')} description={t('تظهر كأيقونات في أسفل الموقع. اتركها فارغة لإخفائها.', 'Icônes en bas du site. Vide = masqué.')} />
+      <div className="grid gap-3 p-5 pt-0 sm:grid-cols-2">
+        {rows.map(([k, label, ph]) => (
+          <Field key={k} label={label}>
+            <Input value={value[k] ?? ''} onChange={(e) => onChange({ ...value, [k]: e.target.value.trim() })} placeholder={ph} dir="ltr" />
+          </Field>
+        ))}
+      </div>
+    </Card>
+  )
+}
+
 /** Website editor: the site's top menu. */
 export function MenuEditor({ menu, onChange }: { menu: MenuLink[]; onChange: (m: MenuLink[]) => void }) {
   const { t } = useLang()
