@@ -26,7 +26,6 @@ const TABS = [
 const STORE_MENU = [
   { label_ar: 'الرئيسية', label_fr: 'Accueil', to: '/' },
   { label_ar: 'كل المنتجات', label_fr: 'Produits', to: '/shop' },
-  { label_ar: '🎒 اللائحة المدرسية', label_fr: '🎒 Liste scolaire', to: '/school-list' },
   { label_ar: 'الأسئلة الشائعة', label_fr: 'FAQ', to: '/faq' },
   { label_ar: 'تتبّع طلبيتي', label_fr: 'Suivi', to: '/track' },
   { label_ar: 'تواصل معنا', label_fr: 'Contact', to: '/contact' },

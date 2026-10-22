@@ -9,7 +9,7 @@ const DIST = STORE ? 'dist-store' : 'dist'
 const SLUG = STORE ? 'sweet-house-store' : 'sweet-house'
 const BASE = `https://yassir1778.github.io/${SLUG}`
 const ROUTES = STORE
-  ? ['shop', 'checkout', 'school-list', 'faq', 'returns', 'track', 'contact', 'privacy', 'terms', 'unsubscribe', 'p']
+  ? ['shop', 'checkout', 'faq', 'returns', 'track', 'contact', 'privacy', 'terms', 'unsubscribe', 'p']
   : ['services', 'abroad', 'my', 'alerts', 'unsubscribe', 'track', 'contact', 'privacy', 'terms']
 
 copyFileSync(`${DIST}/index.html`, `${DIST}/404.html`)

@@ -4,7 +4,7 @@
 import type { Brand } from './brand'
 
 export type BlockType =
-  | 'products' | 'categories' | 'trust' | 'promise' | 'school'
+  | 'products' | 'categories' | 'trust' | 'promise'
   | 'services' | 'features' | 'shortcuts' | 'about' | 'custom_request'
   | 'banner' | 'text' | 'image' | 'video' | 'steps' | 'faq' | 'whatsapp' | 'cross'
 
@@ -40,7 +40,6 @@ export const BLOCK_TYPES: Record<BlockType, { ar: string; fr: string; icon: stri
   categories: { ar: 'الأقسام', fr: 'Rayons', icon: '🗂️', sites: ['store'], hint_ar: 'بطاقات أقسام المتجر' },
   trust: { ar: 'شريط الضمانات المتحرك', fr: 'Bandeau garanties', icon: '✅', sites: ['store'], hint_ar: 'التوصيل، الدفع عند الاستلام…' },
   promise: { ar: 'وعد الدفع عند الاستلام', fr: 'Promesse COD', icon: '💵', sites: ['store'], hint_ar: 'بانر برتقالي + 3 خطوات' },
-  school: { ar: 'اللائحة المدرسية', fr: 'Liste scolaire', icon: '🎒', sites: ['store'], hint_ar: 'يبرز وحده في غشت وشتنبر' },
   services: { ar: 'خدمات', fr: 'Services', icon: '📄', sites: ['services'], hint_ar: 'الأكثر طلباً، من مجال، أو تختارها بنفسك' },
   features: { ar: 'المزايا', fr: 'Atouts', icon: '⭐', sites: ['services'], hint_ar: 'بطاقات صغيرة تحت الواجهة' },
   shortcuts: { ar: 'اختصارات الزبون', fr: 'Raccourcis', icon: '🔗', sites: ['services'], hint_ar: 'وثائقي، خارج المغرب، التنبيهات' },
@@ -92,7 +91,6 @@ export const DEFAULT_BLOCKS: Record<Brand, Block[]> = {
     { id: 'p-best', type: 'products', enabled: true, source: 'featured', limit: 8, layout: 'grid', title_ar: 'اختيارات زبناءنا', title_fr: 'Les favoris de nos clients', subtitle_ar: 'الأكثر طلباً', subtitle_fr: 'Les plus demandés' },
     { id: 'p-promise', type: 'promise', enabled: true },
     { id: 'p-new', type: 'products', enabled: true, source: 'latest', limit: 8, layout: 'carousel', title_ar: 'وصل حديثاً', title_fr: 'Fraîchement arrivé', subtitle_ar: 'جديدنا', subtitle_fr: 'Nouveautés' },
-    { id: 'p-school', type: 'school', enabled: true },
     { id: 'p-cross', type: 'cross', enabled: true },
     { id: 'p-wa', type: 'whatsapp', enabled: true },
   ],
@@ -100,9 +98,9 @@ export const DEFAULT_BLOCKS: Record<Brand, Block[]> = {
 
 /** Blocks of a site, honouring the old on/off switches until the owner edits the layout. */
 export function blocksOf(brand: Brand, saved: Block[] | undefined, sections?: Record<string, boolean>): Block[] {
-  if (saved?.length) return saved
+  if (saved?.length) return saved.filter((b) => (b.type as string) !== 'school')
   const old: Record<string, string> = brand === 'store'
-    ? { 'p-cats': 'categories', 'p-best': 'best', 'p-promise': 'promise', 'p-new': 'latest', 'p-school': 'school', 'p-cross': 'cross' }
+    ? { 'p-cats': 'categories', 'p-best': 'best', 'p-promise': 'promise', 'p-new': 'latest', 'p-cross': 'cross' }
     : { 's-features': 'features', 's-services': 'services', 's-about': 'about', 's-faq': 'faq' }
   return DEFAULT_BLOCKS[brand].map((b) => ({ ...b, enabled: sections?.[old[b.id]] !== false }))
 }

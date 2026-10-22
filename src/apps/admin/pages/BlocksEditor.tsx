@@ -30,7 +30,7 @@ function BlockForm({ b, brand, set }: { b: Block; brand: Brand; set: (p: Partial
   const services = useQuery({ queryKey: ['blk-services'], enabled: b.type === 'services', queryFn: async () => ((await sb.from('services').select('id, name_ar, name_fr').eq('kind', 'admin').is('deleted_at', null).order('sort')).data ?? []) as { id: string; name_ar: string; name_fr: string }[] })
   const scats = useQuery({ queryKey: ['blk-scats'], enabled: b.type === 'services', queryFn: async () => ((await sb.from('service_categories').select('id, name_ar, name_fr').eq('kind', 'admin').is('deleted_at', null).order('sort')).data ?? []) as { id: string; name_ar: string; name_fr: string }[] })
   const pickList = b.type === 'products' ? products.data : services.data
-  const titled = !['trust', 'promise', 'school', 'features', 'shortcuts', 'cross', 'custom_request', 'image'].includes(b.type)
+  const titled = !['trust', 'promise', 'features', 'shortcuts', 'cross', 'custom_request', 'image'].includes(b.type)
 
   return (
     <div className="space-y-4">
@@ -153,7 +153,6 @@ function BlockForm({ b, brand, set }: { b: Block; brand: Brand; set: (p: Partial
           {b.type === 'about' && t('اتركه فارغاً لاستعمال نص «من نحن» في الصفحة الرئيسية.', 'Vide = texte « À propos ».')}
         </p>
       )}
-      {brand === 'store' && b.type === 'school' && <p className="text-xs text-muted">{t('يبرز وحده في غشت وشتنبر.', 'Mis en avant en août-septembre.')}</p>}
     </div>
   )
 }

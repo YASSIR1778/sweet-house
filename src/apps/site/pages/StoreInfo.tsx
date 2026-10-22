@@ -4,10 +4,9 @@ import { ChevronDown, MessageCircle, RotateCcw } from 'lucide-react'
 import { useLang } from '@/shared/lib/i18n'
 import { money } from '@/shared/lib/money'
 import { cn, whatsappLink } from '@/shared/lib/utils'
-import { Button, Skeleton } from '@/shared/ui/primitives'
-import { useAdminServices, useSite } from '../data'
+import { Button } from '@/shared/ui/primitives'
+import { useSite } from '../data'
 import { useSeo } from '../Layout'
-import { ServiceRequestPage } from './Services'
 
 function Faq({ items }: { items: [string, string, string, string][] }) {
   const { t } = useLang()
@@ -96,12 +95,4 @@ function WhatsAppBox() {
       </Button>
     </div>
   )
-}
-
-/** /school-list on the store: the "school list" request form. */
-export function SchoolListPage() {
-  const data = useAdminServices()
-  const s = data.data?.services.find((x) => x.system_key === 'school_list')
-  if (data.isLoading) return <div className="mx-auto max-w-4xl px-4 py-12"><Skeleton className="h-96" /></div>
-  return <ServiceRequestPage serviceId={s?.id ?? ''} />
 }

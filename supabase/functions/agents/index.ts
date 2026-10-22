@@ -371,7 +371,7 @@ Deno.serve(async (req) => {
         await admin.from('campaign_links').insert({ code, channel, path, label: post.text.slice(0, 80) })
         post.code = code
         // store paths (and instagram/tiktok home links) go to the Store site
-        const toStore = /^\/(shop|p|school-list|faq|returns|checkout)(\/|$)/.test(path) || (['instagram', 'tiktok'].includes(channel) && path === '/')
+        const toStore = /^\/(shop|p|faq|returns|checkout)(\/|$)/.test(path) || (['instagram', 'tiktok'].includes(channel) && path === '/')
         post.link = `${toStore ? STORE_SITE : SITE}${path === '/' ? '/' : path}?src=${code}`
       }
       // the planner's weeks become the plan the channel agents follow

@@ -19,7 +19,6 @@ const LINKS =
     ? [
         { to: '/', ar: 'الرئيسية', fr: 'Accueil', end: true },
         { to: '/shop', ar: 'كل المنتجات', fr: 'Produits' },
-        { to: '/school-list', ar: '🎒 اللائحة المدرسية', fr: '🎒 Liste scolaire' },
         { to: '/faq', ar: 'الأسئلة الشائعة', fr: 'FAQ' },
         { to: '/track', ar: 'تتبّع طلبيتي', fr: 'Suivi' },
         { to: '/contact', ar: 'تواصل معنا', fr: 'Contact' },

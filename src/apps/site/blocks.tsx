@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { AnimatePresence, motion } from 'motion/react'
-import { ArrowLeft, Backpack, BellRing, ChevronDown, FolderOpen, Globe2, MessageCircle, PackageCheck, Truck } from 'lucide-react'
+import { ArrowLeft, BellRing, ChevronDown, FolderOpen, Globe2, MessageCircle, PackageCheck, Truck } from 'lucide-react'
 import { useLang } from '@/shared/lib/i18n'
 import { money } from '@/shared/lib/money'
 import { cn, whatsappLink } from '@/shared/lib/utils'
@@ -127,24 +127,6 @@ function PromiseBlock() {
           </div>
         </div>
       </div>
-    </section>
-  )
-}
-
-function SchoolBlock() {
-  const { t } = useLang()
-  const m = new Date().getMonth()
-  const season = m === 7 || m === 8
-  return (
-    <section className="mx-auto max-w-6xl px-4 pt-16">
-      <Link to="/school-list" className={cn('group flex flex-wrap items-center gap-5 rounded-3xl border p-6 transition-all hover:shadow-pop', season ? 'border-brand/40 bg-brand-50' : 'border-border bg-surface')}>
-        <span className="flex size-16 items-center justify-center rounded-2xl bg-[#2563EB] text-white"><Backpack className="size-8" /></span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-xl font-extrabold">{season ? t('🎒 الدخول المدرسي: صيفط لينا اللائحة ونوجدوها ليك', '🎒 Rentrée : envoyez la liste, on la prépare') : t('🎒 اللائحة المدرسية واجدة فـ 24 ساعة', '🎒 Liste scolaire prête en 24 h')}</span>
-          <span className="block text-muted">{t('صوّر اللائحة، نجهزو كلشي ونرسلو ليك الثمن قبل.', 'Photographiez la liste, on prépare tout et on vous envoie le prix.')}</span>
-        </span>
-        <ArrowLeft className="size-5 text-brand transition-transform group-hover:-translate-x-1 ltr:rotate-180" />
-      </Link>
     </section>
   )
 }
@@ -393,7 +375,6 @@ const RENDER: Record<Block['type'], (p: { b: Block }) => React.ReactNode> = {
   categories: CategoriesBlock,
   trust: TrustBlock,
   promise: PromiseBlock,
-  school: SchoolBlock,
   services: ServicesBlock,
   features: FeaturesBlock,
   shortcuts: ShortcutsBlock,

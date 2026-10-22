@@ -50,7 +50,7 @@ export function applyBrandColors() {
 
 /** Paths that live on the other site (old links keep working). */
 export function otherSitePath(path: string): string | null {
-  const storePaths = /^\/(shop|checkout|faq|returns|school-list)(\/|$)/
+  const storePaths = /^\/(shop|checkout|faq|returns|p)(\/|$)/
   const servicePaths = /^\/(services|abroad|my|alerts)(\/|$)/
   if (BRAND === 'services' && storePaths.test(path)) return SITES.store + path
   if (BRAND === 'store' && servicePaths.test(path)) return SITES.services + path

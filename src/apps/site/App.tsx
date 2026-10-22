@@ -5,7 +5,7 @@ import { HomePage } from './pages/Home'
 import { ShopPage } from './pages/Shop'
 import { ProductLanding } from './pages/ProductLanding'
 import { StoreHome } from './pages/StoreHome'
-import { ReturnsPage, SchoolListPage, StoreFaqPage } from './pages/StoreInfo'
+import { ReturnsPage, StoreFaqPage } from './pages/StoreInfo'
 import { BRAND, applyBrandColors, otherSitePath } from '@/shared/lib/brand'
 import { CheckoutPage } from './pages/Checkout'
 import { ServiceRequestPage, ServicesPage } from './pages/Services'
@@ -39,7 +39,6 @@ const pages =
         { path: 'shop', element: <ShopPage /> },
         { path: 'shop/:id', element: <ProductLanding /> },
         { path: 'checkout', element: <CheckoutPage /> },
-        { path: 'school-list', element: <SchoolListPage /> },
         { path: 'faq', element: <StoreFaqPage /> },
         { path: 'returns', element: <ReturnsPage /> },
         ...common,
