@@ -564,7 +564,7 @@ function ArchiveCard({ r, deliverables, onRepeat, onChange }: { r: Detail; deliv
   const { sb, can } = useAuth()
   const { t, pick, lang } = useLang()
   const retention = useQuery({ queryKey: ['retention-cfg'], staleTime: 10 * 60_000, queryFn: async () => (await sb.from('settings').select('value').eq('key', 'retention').maybeSingle()).data?.value as { enabled?: boolean; customer_docs_months?: number } | undefined })
-  const link = `${siteTrackUrl(r.tracking_code)}?p=${encodeURIComponent(r.phone)}`
+  const link = siteTrackUrl(r.tracking_code)
   const resend = () =>
     sendWhatsApp(sb, r.phone, t(`مرحباً ${r.customer_name} 👋\nيمكنكم تحميل وثيقتكم «${r.service_name_ar}» (${r.number}) من هنا:\n${link}\n— مكتبة سويت هاوس`, `Bonjour ${r.customer_name} 👋\nVotre document « ${r.service_name_fr} » (${r.number}) est disponible ici :\n${link}`), lang)
   const keep = async (v: boolean) => {

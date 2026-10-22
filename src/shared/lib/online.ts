@@ -29,6 +29,24 @@ export function useRequestStatuses(sb: SupabaseClient) {
 }
 
 /** Public tracking link (the website lives at the repo root). */
+/** The phone a customer tracked or ordered with on this device (kept out of shared links). */
+export const trackPhone = {
+  get: () => {
+    try {
+      return localStorage.getItem('sh-track-phone') ?? ''
+    } catch {
+      return ''
+    }
+  },
+  set: (p: string) => {
+    try {
+      if (p.trim()) localStorage.setItem('sh-track-phone', p.trim())
+    } catch {
+      /* storage unavailable */
+    }
+  },
+}
+
 export function siteTrackUrl(code: string) {
   const base = import.meta.env.BASE_URL
   return `${location.origin}${base}track/${code}`

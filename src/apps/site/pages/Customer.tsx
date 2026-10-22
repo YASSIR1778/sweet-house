@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 import { useLang } from '@/shared/lib/i18n'
 import { errorMessage } from '@/shared/lib/errors'
 import { money } from '@/shared/lib/money'
-import { ORDER_STATUSES } from '@/shared/lib/online'
+import { ORDER_STATUSES, trackPhone } from '@/shared/lib/online'
 import { cn, storage } from '@/shared/lib/utils'
 import { Badge, Button, Card, Checkbox, Field, Input, Spinner } from '@/shared/ui/primitives'
 import { EmptyState } from '@/shared/ui/data'
@@ -55,7 +55,7 @@ export function MyDocumentsPage() {
   }, [])
 
   const logout = () => (remember.set(null), setData(null), setCode(''), setPhone(''))
-  const link = (tc: string) => `/track/${tc}?p=${encodeURIComponent(phone)}`
+  const link = (tc: string) => (trackPhone.set(phone), `/track/${tc}`)
 
   if (!data)
     return (

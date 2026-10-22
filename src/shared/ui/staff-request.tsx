@@ -74,7 +74,7 @@ export function StaffRequestSheet({ open, onClose, prefill }: { open: boolean; o
     for (const k of [['requests'], ['pos-requests'], ['help'], ['help-counts']]) qc.invalidateQueries({ queryKey: k })
   }
 
-  const link = done ? `${siteTrackUrl(done.tracking_code)}?p=${encodeURIComponent(done.phone)}` : ''
+  const link = done ? siteTrackUrl(done.tracking_code) : ''
   const docs = (s?.required_documents ?? []).map((d) => `• ${d.name_ar}`).join('\n')
   const waText = done
     ? `مرحباً ${f.name} 👋\nسجّلنا لكم طلب «${s?.name_ar}» رقم ${done.number}.\n${docs ? `المرجو رفع هذه الوثائق (صور واضحة بالهاتف):\n${docs}\n` : ''}ارفعوها وتابعوا طلبكم من هنا:\n${link}\n— مكتبة سويت هاوس`

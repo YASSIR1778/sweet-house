@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { BadgeCheck, Check, ChevronDown, CircleCheckBig, MessageCircle, Minus, Package, PackageSearch, Plus, RotateCcw, ShieldCheck, ShoppingBag, Star, Truck, Wallet } from 'lucide-react'
 import { toast } from 'sonner'
 import { useLang } from '@/shared/lib/i18n'
+import { trackPhone } from '@/shared/lib/online'
 import { errorMessage } from '@/shared/lib/errors'
 import { money } from '@/shared/lib/money'
 import { cn, whatsappLink } from '@/shared/lib/utils'
@@ -68,6 +69,14 @@ export function ProductLanding({ focus = false }: { focus?: boolean }) {
   const zones = site.data?.delivery?.zones ?? []
   const zone = zones.find((z) => z.city === f.city || z.city_ar === f.city)
   const freeAbove = site.data?.delivery?.free_above
+  const [formSeen, setFormSeen] = useState(false)
+  useEffect(() => {
+    const el = formRef.current
+    if (!el) return
+    const io = new IntersectionObserver(([e]) => setFormSeen(e.isIntersecting), { threshold: 0.15 })
+    io.observe(el)
+    return () => io.disconnect()
+  })
   const fee = L.free_delivery || (freeAbove && subtotal >= freeAbove) ? 0 : (zone?.price ?? site.data?.delivery?.default_price ?? 0)
   const images = p ? ([...p.images, ...p.product_variants.map((x) => x.image_url).filter(Boolean)] as string[]) : []
   const available = p && v ? inStock(p, v) : false
@@ -129,7 +138,7 @@ export function ProductLanding({ focus = false }: { focus?: boolean }) {
         </div>
         <div className="mt-6 grid gap-2">
           <Button asChild size="lg">
-            <Link to={`/track/${done.tracking_code}?p=${encodeURIComponent(f.phone)}`}>
+            <Link to={`/track/${done.tracking_code}`} onClick={() => trackPhone.set(f.phone)}>
               <PackageSearch />
               {t('تتبّع طلبيتك', 'Suivre ma commande')}
             </Link>
@@ -456,11 +465,11 @@ export function ProductLanding({ focus = false }: { focus?: boolean }) {
       )}
 
       {/* sticky buy bar (mobile) */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 p-3 backdrop-blur-xl md:hidden">
+      <div className={cn('fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 p-3 backdrop-blur-xl transition-transform duration-300 md:hidden', (formSeen || done) && 'translate-y-full')}>
         <div className="flex items-center gap-3">
           <div className="leading-tight">
-            <div className="num text-xl font-black text-brand">{money(chosen ? chosen.price : v.price)}</div>
-            <div className="text-[11px] text-muted">{t('الدفع عند الاستلام', 'Paiement à la livraison')}</div>
+            <div className="num text-xl font-black text-brand">{money(f.city || fee === 0 ? subtotal + fee : chosen ? chosen.price : v.price)}</div>
+            <div className="text-[11px] text-muted">{f.city || fee === 0 ? t('المجموع مع التوصيل · الدفع عند الاستلام', 'Total livré · paiement à la livraison') : t('الدفع عند الاستلام', 'Paiement à la livraison')}</div>
           </div>
           <Button size="lg" className="flex-1 text-base" onClick={scrollToForm} disabled={!available}>
             {t('اطلب الآن', 'Commander')}

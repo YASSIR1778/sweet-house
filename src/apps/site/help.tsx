@@ -26,8 +26,20 @@ export function HelpBar({ service, step }: { service: Service; step: HelpStep })
   const [callback, setCallback] = useState(false)
   const [guide, setGuide] = useState(false)
   const [hidden, setHidden] = useState(false)
+  const [mini, setMini] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640)
   const help = (site.data as unknown as { help?: { enabled?: boolean } } | undefined)?.help
   if (help?.enabled === false || hidden) return null
+  if (mini)
+    return (
+      <>
+        <button onClick={() => setMini(false)} className="fixed start-4 bottom-4 z-30 flex items-center gap-2 rounded-full border border-border bg-surface/95 px-4 py-2.5 text-sm font-semibold shadow-pop backdrop-blur">
+          <HelpCircle className="size-5 text-brand" />
+          {t('محتاج مساعدة؟', 'Besoin d’aide ?')}
+        </button>
+        <GuideChat open={guide} onClose={() => setGuide(false)} service={service} onWhatsApp={() => {}} onCallback={() => (setGuide(false), setCallback(true))} />
+        <CallbackDialog open={callback} onClose={() => setCallback(false)} service={service} step={step} serviceName={pick(service, 'name')} />
+      </>
+    )
 
   const st = openStatus(site.data?.store.hours)
   const open = !!st?.open
@@ -53,7 +65,7 @@ export function HelpBar({ service, step }: { service: Service; step: HelpStep })
             <div className="min-w-0 leading-tight">
               <div className="text-sm font-semibold">{t('لم تفهم شيئاً؟ نساعدك على الطلب', 'Besoin d’aide ? On vous guide')}</div>
               <div className="truncate text-xs text-muted">
-                {open ? t('🟢 متصلون الآن — نرد في دقائق', '🟢 En ligne — réponse en quelques minutes') : t('خارج أوقات العمل — اترك رقمك ونتصل بك', 'Hors horaires — laissez votre numéro')}
+                {open ? t('🟢 المحل مفتوح الآن — نجاوبك بسرعة', '🟢 Boutique ouverte — réponse rapide') : t('خارج أوقات العمل — اترك رقمك ونتصل بك', 'Hors horaires — laissez votre numéro')}
               </div>
             </div>
           </div>
@@ -70,7 +82,7 @@ export function HelpBar({ service, step }: { service: Service; step: HelpStep })
               <PhoneCall />
               {t('اتصلوا بي', 'Rappelez-moi')}
             </Button>
-            <button onClick={() => setHidden(true)} className="px-1 text-subtle hover:text-text" aria-label="close">
+            <button onClick={() => (window.innerWidth < 640 ? setMini(true) : setHidden(true))} className="px-1 text-subtle hover:text-text" aria-label="close">
               <X className="size-4" />
             </button>
           </div>

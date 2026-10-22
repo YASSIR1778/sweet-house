@@ -259,7 +259,7 @@ export function SiteLayout() {
       </footer>
 
       {!/\/services\/[^/]+/.test(loc.pathname) && (
-      <a href={whatsappLink(wa, t('مرحباً سويت هاوس 👋', 'Bonjour Sweet House 👋'))} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="fixed end-5 bottom-5 z-30 flex size-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-xl shadow-[#25D366]/30 transition-transform hover:scale-110">
+      <a href={whatsappLink(wa, t('مرحباً سويت هاوس 👋', 'Bonjour Sweet House 👋'))} target="_blank" rel="noreferrer" aria-label="WhatsApp" className={cn('fixed end-5 z-30 flex size-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-xl shadow-[#25D366]/30 transition-transform hover:scale-110', /\/(shop|p)\/[^/]+/.test(loc.pathname) ? 'bottom-24 md:bottom-5' : 'bottom-5')}>
         <span className="absolute inset-0 animate-ping rounded-full bg-[#25D366] opacity-30" />
         <MessageCircle className="relative size-7" />
       </a>

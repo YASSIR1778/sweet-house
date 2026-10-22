@@ -4,6 +4,7 @@ import { motion } from 'motion/react'
 import { Banknote, Building2, CheckCircle2, Copy, MessageCircle, Minus, Package, Plus, ShoppingBag, Store, Trash, Truck } from 'lucide-react'
 import { toast } from 'sonner'
 import { useLang } from '@/shared/lib/i18n'
+import { trackPhone } from '@/shared/lib/online'
 import { errorMessage } from '@/shared/lib/errors'
 import { money } from '@/shared/lib/money'
 import { cn, fillTemplate, whatsappLink } from '@/shared/lib/utils'
@@ -266,7 +267,7 @@ function OrderDone({ done }: { done: Done }) {
       </Card>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         <Button asChild size="lg">
-          <Link to={`/track/${done.tracking_code}?p=${encodeURIComponent(done.phone)}`}>{t('تتبّع الطلب', 'Suivre')}</Link>
+          <Link to={`/track/${done.tracking_code}`} onClick={() => trackPhone.set(done.phone)}>{t('تتبّع الطلب', 'Suivre')}</Link>
         </Button>
         <Button asChild size="lg" variant="success">
           <a href={whatsappLink(wa, `${msg}\n${link}`)} target="_blank" rel="noreferrer">

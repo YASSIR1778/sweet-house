@@ -4,6 +4,7 @@ import { motion } from 'motion/react'
 import { CheckCircle2, ChevronLeft, Clock, ExternalLink, FileCheck2, FileText, Globe2, Lock, Mail, MessageCircle, Package, Paperclip, Search, ShieldCheck, Store, Building2, Upload, UserRound, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useLang } from '@/shared/lib/i18n'
+import { trackPhone } from '@/shared/lib/online'
 import { errorMessage } from '@/shared/lib/errors'
 import { money } from '@/shared/lib/money'
 import type { ServiceField } from '@/shared/lib/types'
@@ -531,7 +532,7 @@ function RequestDone({ done, serviceName }: { done: Done; serviceName: string })
       )}
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         <Button asChild size="lg">
-          <Link to={`/track/${done.tracking_code}?p=${encodeURIComponent(done.phone)}`}>{t('تتبّع الطلب', 'Suivre ma demande')}</Link>
+          <Link to={`/track/${done.tracking_code}`} onClick={() => trackPhone.set(done.phone)}>{t('تتبّع الطلب', 'Suivre ma demande')}</Link>
         </Button>
         <Button asChild size="lg" variant="success">
           <a href={whatsappLink(site.data?.store.whatsapp ?? '', `${t('مرحباً، أرسلت طلب', 'Bonjour, j’ai envoyé la demande')} ${done.number} (${serviceName})\n${link}`)} target="_blank" rel="noreferrer">

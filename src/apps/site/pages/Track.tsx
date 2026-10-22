@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { Building2, Check, Download, FileCheck2, Lock, Package, PackageSearch, Paperclip, Truck, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { useLang } from '@/shared/lib/i18n'
+import { trackPhone } from '@/shared/lib/online'
 import { errorMessage } from '@/shared/lib/errors'
 import { money } from '@/shared/lib/money'
 import { cn } from '@/shared/lib/utils'
@@ -68,7 +69,8 @@ export function TrackPage() {
   const nav = useNavigate()
   const { t, lang } = useLang()
   const [code, setCode] = useState(codeParam ?? '')
-  const [phone, setPhone] = useState(params.get('p') ?? '')
+  // old links carried ?p=phone: still accepted, then removed from the address bar
+  const [phone, setPhone] = useState(params.get('p') ?? trackPhone.get())
   const [data, setData] = useState<RequestTrack | OrderTrack | null>(null)
   const [busy, setBusy] = useState(false)
   useSeo(t('تتبّع الطلب', 'Suivi'))
@@ -83,7 +85,8 @@ export function TrackPage() {
       return toast.error(error.message.includes('not_found') ? t('لم نجد طلباً بهذا الرقم وهذا الهاتف', 'Aucune demande avec ce code et ce téléphone') : errorMessage(error, lang))
     }
     setData(res as RequestTrack | OrderTrack)
-    if (codeParam !== c.trim().toUpperCase()) nav(`/track/${c.trim().toUpperCase()}`, { replace: true })
+    trackPhone.set(p)
+    if (codeParam !== c.trim().toUpperCase() || params.has('p')) nav(`/track/${c.trim().toUpperCase()}`, { replace: true })
   }
 
   useEffect(() => {
