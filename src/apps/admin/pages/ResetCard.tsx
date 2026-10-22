@@ -24,6 +24,9 @@ const ROWS: [string, string, string][] = [
 ]
 
 /** "Start for real": wipe test transactions once, keep products, services, employees and settings. */
+// «ابدأ» however it is typed: إبدأ، ابدا، ابدء…
+const isStartWord = (w: string) => w.trim().replace(/[ً-ْ]/g, '').replace(/[أإآء]/g, 'ا') === 'ابدا'
+
 export function ResetCard() {
   const { sb, me } = useAuth()
   const { t, lang } = useLang()
@@ -43,7 +46,7 @@ export function ResetCard() {
         const { error } = await sb.storage.from('customer-docs').remove(p.files.slice(i, i + 100))
         if (error) throw error
       }
-      const { error } = await sb.rpc('reset_test_data', { p: { confirm: word.trim(), ...opts } })
+      const { error } = await sb.rpc('reset_test_data', { p: { confirm: 'ابدأ', ...opts } })
       if (error) throw error
       toast.success(t('تم! النظام نظيف وجاهز للعمل الحقيقي 🚀', 'C’est fait ! Le système est prêt 🚀'))
       setWord('')
@@ -96,7 +99,7 @@ export function ResetCard() {
         <p className="text-xs text-muted">{t('ننصح بتحميل نسخة احتياطية قبل ذلك. لا يمكن التراجع عن هذه العملية.', 'Faites une sauvegarde avant. Action irréversible.')}</p>
         <div className="flex flex-wrap items-center gap-2">
           <Input value={word} onChange={(e) => setWord(e.target.value)} placeholder={t('اكتب «ابدأ» للتأكيد', 'Tapez « ابدأ » pour confirmer')} className="max-w-56" />
-          <Button variant="danger" onClick={run} loading={busy} disabled={word.trim() !== 'ابدأ'}>
+          <Button variant="danger" onClick={run} loading={busy} disabled={!isStartWord(word)}>
             <Rocket />
             {t('ابدأ العمل الحقيقي', 'Démarrer')}
           </Button>
