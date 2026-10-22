@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<title>Sweet House — دراسة السوق: المشاكل والثغرات</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@500;700;800&display=swap" rel="stylesheet" />
+<style>
+  @page { size: A4; margin: 15mm 13mm 17mm; }
+  @page cover { size: A4; margin: 0; }
+  html, body { width: auto; overflow: visible; }
+  * { box-sizing: border-box; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family: 'IBM Plex Sans Arabic', sans-serif; color: #0F172A; font-size: 10pt; line-height: 1.7; margin: 0; direction: rtl; text-align: right; }
+  .num, .latin { font-family: 'Inter', sans-serif; }
+  .ltr { direction: ltr; unicode-bidi: embed; font-family: 'Inter', sans-serif; font-size: 9pt; }
+  .cover { page: cover; width: 210mm; height: 296mm; display: flex; flex-direction: column; justify-content: space-between; background: #0F172A; color: #fff; margin: 0; padding: 26mm 20mm; page-break-after: always; position: relative; overflow: hidden; }
+  .cover::before { content: ''; position: absolute; width: 140mm; height: 140mm; border-radius: 50%; background: rgba(255,107,53,.35); filter: blur(30px); top: -40mm; left: -40mm; }
+  .cover::after { content: ''; position: absolute; width: 100mm; height: 100mm; border-radius: 50%; background: rgba(37,99,235,.3); filter: blur(30px); bottom: -30mm; right: -20mm; }
+  .cover > * { position: relative; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand img { width: 54px; height: 54px; }
+  .brand b { font-family: Inter; font-size: 20pt; font-weight: 800; }
+  .brand b span { color: #FF6B35; }
+  .cover h1 { font-size: 32pt; line-height: 1.35; margin: 0; font-weight: 700; }
+  .cover h1 span { color: #FF6B35; }
+  .cover p { color: rgba(255,255,255,.72); font-size: 12pt; max-width: 150mm; }
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; }
+  .stats div { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 10px 16px; }
+  .stats b { display: block; font-family: Inter; font-size: 20pt; color: #FF6B35; }
+  .stats span { font-size: 9pt; color: rgba(255,255,255,.65); }
+  .meta { font-size: 9pt; color: rgba(255,255,255,.5); }
+  h2 { font-size: 15.5pt; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; break-after: avoid; page-break-after: avoid; }
+  h2 .badge { background: #FF6B35; color: #fff; border-radius: 10px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; font-family: Inter; font-size: 12pt; flex-shrink: 0; }
+  h2.services .badge { background: #2563EB; } h2.store .badge { background: #FF6B35; } h2.immo .badge { background: #16A34A; }
+  h3 { font-size: 11.5pt; margin: 12px 0 4px; break-after: avoid; page-break-after: avoid; }
+  .section { margin-bottom: 7mm; }
+  .newpage { page-break-before: always; }
+  .lead { color: #475569; margin: 0 0 10px; break-after: avoid; }
+  table { width: 100%; border-collapse: collapse; font-size: 9pt; margin: 6px 0 10px; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+  th { background: #0F172A; color: #fff; padding: 6px 8px; text-align: right; font-weight: 600; }
+  .t-services th { background: #1E3A8A; } .t-store th { background: #9A3412; } .t-immo th { background: #14532D; }
+  td { border-bottom: 1px solid #E2E8F0; padding: 6px 8px; vertical-align: top; }
+  tr:nth-child(even) td { background: #F8FAFC; }
+  .box { border-radius: 12px; padding: 10px 14px; background: #FFF3EE; border: 1px solid #FFD4C2; margin: 8px 0; page-break-inside: avoid; }
+  .box.blue { background: #EFF6FF; border-color: #BFDBFE; }
+  .box.green { background: #F0FDF4; border-color: #BBF7D0; }
+  .box.red { background: #FEF2F2; border-color: #FECACA; }
+  .box.gray { background: #F8FAFC; border-color: #E2E8F0; }
+  .box b.t { display: block; margin-bottom: 2px; }
+  .tag { display: inline-block; border-radius: 999px; padding: 0 8px; font-size: 8pt; font-weight: 600; white-space: nowrap; }
+  .keep { background: #DCFCE7; color: #166534; } .renew { background: #FEF3C7; color: #92400E; } .new { background: #DBEAFE; color: #1E40AF; }
+  .del { background: #FEE2E2; color: #991B1B; } .later { background: #F1F5F9; color: #475569; } .top { background: #0F172A; color: #fff; }
+  .legend { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; font-size: 9pt; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .brandcard { border-radius: 12px; padding: 10px 12px; color: #fff; page-break-inside: avoid; }
+  .brandcard h4 { margin: 0 0 2px; font-size: 12pt; }
+  .brandcard p { margin: 0; font-size: 9pt; opacity: .9; }
+  .bc-store { background: #EA580C; } .bc-services { background: #2563EB; } .bc-immo { background: #16A34A; }
+  pre { white-space: pre-wrap; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 8px 12px; font-family: 'IBM Plex Sans Arabic', sans-serif; font-size: 9.5pt; margin: 4px 0 10px; page-break-inside: avoid; }
+  ul, ol { margin: 4px 0 8px; padding-inline-start: 18px; }
+  li { margin: 1px 0; }
+  .todo li { list-style: none; position: relative; padding-inline-start: 4px; }
+  .todo li::before { content: ''; display: inline-block; width: 11px; height: 11px; border: 1.5px solid #94A3B8; border-radius: 3px; margin-left: 6px; vertical-align: -1px; }
+  .toc { columns: 2; font-size: 10pt; }
+  .toc div { break-inside: avoid; padding: 2px 0; }
+  .toc b { font-family: Inter; color: #FF6B35; display: inline-block; width: 22px; }
+  .footer-note { color: #94A3B8; font-size: 8.5pt; text-align: center; margin-top: 8mm; }
+</style>
+</head>
+<body>
+<section class="cover">
+  <div class="brand"><img src="../public/logo.svg" alt="" /><b>Sweet <span>House</span></b></div>
+  <div>
+    <h1>دراسة السوق:<br /><span>مشاكل الزبون والثغرات</span><br />في تطوان والمغرب</h1>
+    <p>ما يشتكي منه الناس في مراجعات Google Maps ومجموعات فيسبوك والصحافة، وما يمكن أن تقدمه Sweet House بالضبط لسدّ هذه الثغرات.</p>
+  </div>
+  <div class="stats">
+    <div><b class="num">132K</b><span>عضو في أكبر مجموعة بيع وشراء بتطوان</span></div>
+    <div><b class="num">+10</b><span>مجموعات محلية فوق 20 ألف عضو</span></div>
+    <div><b class="num">2.7★</b><span>تقييم أمانة/البريد بتطوان</span></div>
+    <div><b class="num">2.8★</b><span>تقييم CNSS تطوان (107 مراجعة)</span></div>
+    <div><b class="num">20–40%</b><span>نسبة رفض طلبيات الدفع عند الاستلام (تقديرات)</span></div>
+  </div>
+  <div class="meta">أكتوبر 2026 · بحث قراءة فقط · لم تُجمع أي معلومات شخصية: نحتفظ بالمواضيع المتكررة فقط</div>
+</section>
+
+<div class="section">
+  <h2><span class="badge">1</span>الخلاصة في صفحة واحدة</h2>
+  <p class="lead">المشكل الأكبر في السوق هو <b>الثقة</b>، وليس الثمن. الزبون في تطوان خائف من النصب وتائه بين الإدارات، ويطلب في المجموعات «شكون كيعرف شي واحد مزيان؟». من يعطيه الثقة والوضوح والجواب السريع يربحه.</p>
+  <div class="grid2">
+    <div class="box red"><b class="t">🛍️ في التجارة الإلكترونية</b>
+      <ul>
+        <li>شكايات النصب عبر الشبكات الاجتماعية هي الأكثر عند جمعيات المستهلك (FMDC 2025).</li>
+        <li>سلعة مغايرة للصورة، والبائع يختفي ولا يجيب في الهاتف.</li>
+        <li>«الثمن فالخاص» والسعر غير معلن، وحق الإرجاع غامض.</li>
+        <li>شركات التوصيل: تأخير، لا أحد يجيب، «توصيل للدار» غير حقيقي.</li>
+        <li>الدفع عند الاستلام هو الأساس، والرفض مرتفع (20–40% حسب التقديرات).</li>
+      </ul>
+    </div>
+    <div class="box blue"><b class="t">🗂️ في الخدمات الإدارية</b>
+      <ul>
+        <li>طوابير طويلة (CNSS: أكثر من 50 شخصاً قبلك)، و«السيستيم طايح».</li>
+        <li>انعدام المعلومة: «كيف نتواصل معهم؟»، «شنو الوثائق؟».</li>
+        <li>معاملة سيئة في بعض الشبابيك، والذهاب والإياب لأسابيع.</li>
+        <li>مغاربة العالم يحتاجون السجل العدلي والأبوستيل والترجمة عن بعد.</li>
+        <li><b>لا توجد في الخريطة أي وكالة خدمات إدارية متخصصة بتطوان</b>، فقط مكاتب حكومية ومحاسبون.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="box green"><b class="t">✅ الفرصة</b>
+    Sweet House عندها أصلاً معظم الأجوبة: تتبع الطلب، أسعار واضحة، مناطق التوصيل وأثمنتها، صفحة الإرجاع، واتساب، ولوائح الوثائق لكل خدمة. المطلوب الآن هو <b>إظهار الثقة</b> بقوة، وإضافة 6 أشياء صغيرة (القسم 6)، وتقديم الخدمات كحلّ لمشكل الطوابير والذهاب والإياب.
+  </div>
+</div>
+
+<div class="section">
+  <h2><span class="badge">2</span>المنهجية وحدودها</h2>
+  <ul>
+    <li><b>Google Maps:</b> قراءة المراجعات الأقل تقييماً لمحلات ومؤسسات في تطوان: مكتبات، نسخ وطباعة، هواتف وإلكترونيات، البريد/أمانة، شركات توصيل، CNSS، الأمن (البطاقة والجواز)، المحكمة، الملحقات الإدارية.</li>
+    <li><b>فيسبوك:</b> مجموعات البيع والشراء العامة بتطوان (قراءة فقط، بدون انضمام وبدون تعليق)، مع البحث داخلها بكلمات مثل: نصب، توصيل، طباعة، «شكون كيعرف»، «بغيت»، «الثمن فالخاص».</li>
+    <li><b>الويب والصحافة:</b> هسبريس، لوماتان، FNH، SNRT News، تقارير مختصين في الدفع عند الاستلام.</li>
+    <li><b>الحدود:</b> عيّنة نوعية وليست إحصاء. أرقام نسبة الرفض تقديرات من شركات تبيع حلولاً (خذها كاتجاه عام). بعض المراجعات تترجمها Google آلياً.</li>
+  </ul>
+</div>
+
+<div class="section newpage">
+  <h2 class="store"><span class="badge">3</span>ما يقوله الزبناء في تطوان (Google Maps)</h2>
+  <table class="t-store">
+    <thead><tr><th>المكان</th><th>التقييم</th><th>ما يتكرر في الشكايات</th><th>الدرس لنا</th></tr></thead>
+    <tbody>
+      <tr><td>مكتبة كبيرة وسط المدينة</td><td class="num">3.5 (70)</td><td>ممنوع تصفح الكتب، الاستقبال فظّ، مراقبة الزبون، يرفضون بيع الكتب المدرسية إلا مع الأدوات، الأسعار مرتفعة، أخطاء في الصندوق</td><td>الاستقبال واحترام الزبون ميزة تنافسية. «تصفح بحرية» و«الكتب بدون شروط» نقطة قوة في الإعلان</td></tr>
+      <tr><td>مركز نسخ</td><td class="num">3.8 (40)</td><td>إيجابي: سريع، الإرسال عبر واتساب، طباعة بطاقة الطائرة وواجبات الأطفال</td><td>«أرسل الملف بالواتساب ونطبعه لك» خدمة مطلوبة جداً</td></tr>
+      <tr><td>البريد / أمانة</td><td class="num">2.7 (43)</td><td>«توصيل للدار» غير حقيقي (اذهب للوكالة)، التتبع يكذب، لا أحد يجيب في الهاتف، السريع مثل العادي، غالٍ، استرجاع المال غامض</td><td>لا نعتمد على أمانة للتوصيل داخل تطوان. نوصل بأنفسنا ونعطي تتبعاً صادقاً</td></tr>
+      <tr><td>متجر هواتف إلكتروني</td><td class="num">3.4 (5)</td><td>سماعات معيبة، لا جواب بعد البيع، «راضٍ أو نرجع لك فلوسك» غير محترم</td><td>خدمة ما بعد البيع والإرجاع الحقيقي هي ما يبني الثقة</td></tr>
+      <tr><td>شركة توصيل (طنجة)</td><td class="num">2.2 (17)</td><td>لا دعم، أرقام الموزعين لا تعمل، 8 أيام انتظار، مغلق السبت</td><td>اختيار شريك توصيل بعناية + رقم واتساب يجيب دائماً</td></tr>
+      <tr><td>CNSS تطوان</td><td class="num">2.8 (107)</td><td>طوابير كبيرة، السيستيم متوقف، لا معلومة ولا تواصل، إجراءات معقدة، وكالة واحدة لـ 420 ألف نسمة</td><td>خدمة «نتكلفو بملفك ونمشيو بلاصتك» + شرح الوثائق مسبقاً</td></tr>
+      <tr><td>ولاية الأمن (البطاقة/الجواز)</td><td class="num">4.0 (44)</td><td>مختلط: البطاقة بسلاسة في 10 أيام مع إشعار بالبريد، لكن الاستقبال سيئ أحياناً</td><td>الناس يحتاجون من يحجز الموعد ويجهز الملف كاملاً من أول مرة</td></tr>
+      <tr><td>المحكمة الابتدائية</td><td class="num">4.5 (4)</td><td>«السجل العدلي في الشباك 7» و«كيف نتواصل معهم؟» (لا هاتف ولا بريد)</td><td>المعلومة البسيطة غير موجودة: محتوى «شنو خاصك ووين تمشي» يجلب الزوار</td></tr>
+      <tr><td>ملحقات إدارية</td><td class="num">3.5–3.7</td><td>«شهر ونص ماشي جاي»، سوء معاملة بعض الموظفين</td><td>بيع «ربح الوقت» وليس الوثيقة فقط</td></tr>
+    </tbody>
+  </table>
+  <div class="box gray"><b class="t">🔎 ثغرة واضحة في الخريطة</b>
+    عند البحث عن «خدمات إدارية تطوان» لا تظهر أي وكالة متخصصة، فقط ملحقات ومحاسبون. أول من يضع بطاقة Google Business باسم «Sweet House Services – خدمات إدارية» بصور ومراجعات سيأخذ هذا البحث وحده.
+  </div>
+</div>
+
+<div class="section">
+  <h2><span class="badge">4</span>مجموعات فيسبوك في تطوان</h2>
+  <table>
+    <thead><tr><th>المجموعة (عامة)</th><th>الأعضاء</th><th>النشاط</th></tr></thead>
+    <tbody>
+      <tr><td>بيع وشراء في تطوان</td><td class="num">132K</td><td>+90 منشور/يوم</td></tr>
+      <tr><td>بيع وشراء طنجة تطوان والنواحي (المضيق، الفنيدق، مرتيل)</td><td class="num">87K</td><td>+90/يوم</td></tr>
+      <tr><td>بيع وشراء طنجة تطوان</td><td class="num">77K</td><td>+90/يوم</td></tr>
+      <tr><td>بيع وشراء في تطوان (أخرى)</td><td class="num">69K</td><td>+90/يوم</td></tr>
+      <tr><td>بيع وشراء في (تطوان، مرتيل، المضيق، الفنيدق)</td><td class="num">66K</td><td>+90/يوم</td></tr>
+      <tr><td>بيع وشراء طنجة تطوان 🛍️</td><td class="num">53K</td><td>80/يوم</td></tr>
+      <tr><td>برينسيسات تطوان الأصلي (نساء)</td><td class="num">48K</td><td>+90/يوم</td></tr>
+      <tr><td>بيع وشراء في طنجة تطوان مرتيل</td><td class="num">47K</td><td>+90/يوم</td></tr>
+      <tr><td>البيع والشراء بالجملة تطوان</td><td class="num">27K</td><td>+90/يوم</td></tr>
+      <tr><td>بيع و شراء جديد و مستعمل طنجة تطوان فقط</td><td class="num">24K</td><td>60/يوم</td></tr>
+      <tr><td>تطوانيات (نساء)</td><td class="num">19K</td><td>+80/يوم</td></tr>
+    </tbody>
+  </table>
+  <h3>ما لاحظناه في المنشورات</h3>
+  <ul>
+    <li><b>«شكون كيعرف…؟»</b> هو أكثر نوع متكرر: معلم ثلاجة يجي للدار، إصلاح فرن، طبيب مزيان، فندق رخيص. الناس <b>يبحثون عن شخص موثوق</b> ولا يجدونه.</li>
+    <li><b>«الثمن فالخاص»</b> و«نصيفطلو فالخاص»: السعر مخفي، وهذا يقتل الثقة ويضيع الوقت.</li>
+    <li>بائعون كثيرون بلا اسم ولا عنوان: «سلعة جديدة، توصيل لجميع المدن» مع رقم هاتف فقط.</li>
+    <li>العقار يحتل جزءاً كبيراً من المنشورات (كراء وبيع)، وهو مؤشر لمشروع العقار لاحقاً.</li>
+    <li>الطباعة والتصميم: إعلانات طباعة على الأكواس والملابس وتصاميم بالأسماء، وكلها «تواصل فالواتساب».</li>
+    <li>مجموعات النساء (برينسيسات، تطوانيات) نشيطة جداً، وهي مناسبة للمنزل والمطبخ والأطفال والعناية.</li>
+  </ul>
+  <div class="box"><b class="t">⚠️ تنبيه</b> نشرت إذاعة تطوان قبل أسابيع عن صفحات ومجموعات محلية متهمة بالابتزاز. ننشر في المجموعات الكبيرة المعروفة فقط، وبإسم الصفحة الرسمية، ولا ندفع لأي «أدمين» مقابل الحماية.</div>
+</div>
+
+<div class="section newpage">
+  <h2><span class="badge">5</span>الصورة على مستوى المغرب</h2>
+  <ul>
+    <li><b>النصب عبر الشبكات الاجتماعية</b> يتصدر شكايات شبابيك المستهلك التابعة لـ FMDC في 2025، ورئيسها يقول إن أغلب الشكايات تخص هذا. وتقول الحكومة إن أكثر من 2400 شكاية سُجلت في 2023، حوالي الخُمس منها في التجارة الإلكترونية: منتوج غير مطابق، حق التراجع، الاسترجاع.</li>
+    <li><b>عروض «صادمة» مزيفة</b> على إنستغرام وتيك توك (المرصد المغربي لحماية المستهلك، أكتوبر 2025)، ومنتجات مقلدة مع الدفع عند الاستلام.</li>
+    <li><b>البائع لا يمكن تتبعه:</b> لا هوية، ويقطع الخط بعد المشكل. والوزارة وجدت مواقع لا تعلن الأسعار بالدرهم ولا حق التراجع ولا معلومات البائع.</li>
+    <li><b>الدفع عند الاستلام</b> هو الأساس (54% حسب DHL/Statista، و70–80% حسب فاعلين، و83.8% يفضّلونه حسب استطلاع منقول). والرفض والإرجاع بين 20 و40% حسب التقديرات، ويقلّ كثيراً مع مكالمة أو رسالة تأكيد قبل الإرسال.</li>
+    <li><b>العنوان غير دقيق</b> سبب رئيسي للتأخير والفشل في التوصيل.</li>
+    <li><b>القانون 31.08:</b> حق التراجع 7 أيام في البيع عن بعد. إظهاره بوضوح يطمئن الزبون، ونحن نحترمه أصلاً.</li>
+    <li><b>الإدارة الرقمية</b> تتقدم (idarati، watiqa، chikaya، passeport.ma) لكن الفجوة الرقمية كبيرة، والناس لا يعرفون المساطر ولا الوثائق المطلوبة. مغاربة إسبانيا رحبوا بالسجل العدلي في القنصليات، لكن الأبوستيل والترجمة ما زالت معقدة.</li>
+  </ul>
+</div>
+
+<div class="section">
+  <h2><span class="badge">6</span>من المشكل إلى الحل: ماذا نفعل</h2>
+  <div class="legend"><span class="tag keep">موجود</span><span class="tag renew">موجود: نبرزه أكثر</span><span class="tag new">جديد: يحتاج موافقتك</span></div>
+  <table>
+    <thead><tr><th>مشكل الزبون</th><th>ما نقدمه</th><th>الحالة</th></tr></thead>
+    <tbody>
+      <tr><td>خائف من النصب، البائع مجهول</td><td>كتلة «شكون حنا»: محل حقيقي بالعنوان والصور والخريطة، هاتف وواتساب يجيب، السجل التجاري/ICE، مراجعات Google</td><td><span class="tag renew">نبرزه</span> + <span class="tag new">كتلة الثقة</span></td></tr>
+      <tr><td>«الثمن فالخاص»</td><td>الثمن ظاهر دائماً + ثمن التوصيل حسب المدينة قبل الطلب + المجموع النهائي</td><td><span class="tag keep">موجود</span> (مناطق التوصيل)، نبرزه في الإعلانات: «الثمن واضح، بلا فالخاص»</td></tr>
+      <tr><td>السلعة مغايرة للصورة</td><td>صور حقيقية من المحل + «افتح الكولي قبل ما تخلص» + إرجاع 7 أيام</td><td><span class="tag renew">نبرزه</span> (صفحة الإرجاع موجودة)</td></tr>
+      <tr><td>لا أحد يجيب بعد البيع</td><td>تتبع الطلب برقم + واتساب + وكيل المتابعة الذكي</td><td><span class="tag keep">موجود</span></td></tr>
+      <tr><td>التوصيل بطيء أو «اذهب للوكالة»</td><td>توصيل نفس اليوم في تطوان/مرتيل/المضيق/الفنيدق بموزع خاص، وشريك موثوق لباقي المدن</td><td><span class="tag new">قرار تشغيلي</span></td></tr>
+      <tr><td>العنوان غير دقيق</td><td>حقل «علامة قريبة» + زر «أرسل موقعك بالواتساب» في صفحة الطلب</td><td><span class="tag new">جديد</span></td></tr>
+      <tr><td>رفض الطلب عند الباب</td><td>رسالة واتساب تلقائية لتأكيد الطلب قبل الإرسال (زر «أؤكد») + سجل داخلي للأرقام التي رفضت سابقاً</td><td><span class="tag new">جديد</span></td></tr>
+      <tr><td>«شكون كيعرف…؟»</td><td>نجيب في المجموعات بنصيحة مفيدة باسم الصفحة (وليس إعلاناً فقط)، ووكيل فيسبوك يقترح الأجوبة</td><td><span class="tag renew">خطة محتوى</span></td></tr>
+      <tr><td>طوابير CNSS والإدارات</td><td>«نتكلفو بملفك»: نجهز الملف كاملاً من أول مرة، ونتابعه، ونبلغك بالواتساب</td><td><span class="tag keep">موجود</span> (+40 خدمة وتتبع)</td></tr>
+      <tr><td>لا يعرف الوثائق المطلوبة</td><td>صفحة لكل خدمة بلائحة الوثائق والثمن والمدة، ومحتوى «شنو خاصك باش…»</td><td><span class="tag keep">موجود</span>، نحوّله إلى منشورات وفيديوهات</td></tr>
+      <tr><td>مغاربة العالم</td><td>صفحة «من الخارج» + أداء بالتحويل + إرسال الوثائق</td><td><span class="tag keep">موجود</span>، نستهدفهم في الصيف وقبل العطل</td></tr>
+      <tr><td>طباعة سريعة عن بعد</td><td>«أرسل الملف بالواتساب واستلمه جاهزاً»</td><td><span class="tag new">صفحة «اطلب طباعة»</span> (اختيارية)</td></tr>
+      <tr><td>لا وكالة خدمات في الخريطة</td><td>بطاقة Google Business لـ Sweet House Services + جمع المراجعات</td><td><span class="tag new">ينتظر رقمك وعنوانك</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="section">
+  <h2><span class="badge">7</span>رسائل تسويقية مبنية على هذه المشاكل</h2>
+  <pre>🛍️ المتجر
+• «الثمن واضح، بلا "فالخاص" 😉»
+• «حلّ الكولي، شوف السلعة، عاد خلّص 💵»
+• «ماعجبكش؟ رجعو فـ 7 أيام»
+• «محل حقيقي فتطوان، دوز تشوفنا 📍»
+• «توصيل نفس النهار فتطوان، مرتيل، المضيق والفنيدق 🚚»</pre>
+  <pre>🗂️ الخدمات
+• «بلا صف وبلا "سير وجي": حنا نتكلفو بملفك»
+• «شنو خاصك باش تدير … ؟ (اللائحة كاملة فالموقع)»
+• «تبّع ملفك من تيليفونك، ونعلموك فالواتساب»
+• «فالخارج؟ وراقك من المغرب حتى لعندك 🌍»</pre>
+</div>
+
+<div class="section">
+  <h2><span class="badge">8</span>المصادر</h2>
+  <ul class="ltr" style="direction:ltr;text-align:left">
+    <li>Le Matin — E-commerce : le consommateur marocain face aux dérives du marché digital</li>
+    <li>SNRT News — E-commerce au Maroc : une croissance rapide face à une protection juridique encore limitée</li>
+    <li>Bladi.net — Arnaques en ligne : le Maroc serre la vis</li>
+    <li>Hespress EN — Moroccan watchdog warns of 'fake shocking deals'; Moroccan authorities crack down on e-commerce violations</li>
+    <li>Hespress AR — مغاربة يتعرّضون للنصب عبر مواقع البيع والشراء؛ حقوق المستهلك تحذر من التجارة الرقمية غير المهيكلة</li>
+    <li>Morocco World News — Black Friday 2025 in Morocco (COD 54%, DHL/Statista)</li>
+    <li>eGrow blog — COD return rates Morocco 2026 (vendor estimates)</li>
+    <li>Starflood — L'adressage incomplet : un obstacle du e-commerce au Maroc</li>
+    <li>Radio Tétouan — شبهات ابتزاز تهز فضاءات فيسبوكية بتطوان</li>
+    <li>Hespress — مغاربة إسبانيا يثمنون تبسيط استخراج السجل العدلي</li>
+    <li>passeport.ma — FAQ (6–12 days)</li>
+    <li>Google Maps reviews (Tétouan), Facebook public groups (Tétouan) — read only, October 2026</li>
+  </ul>
+  <p class="footer-note">Sweet House · دراسة داخلية · أكتوبر 2026</p>
+</div>
+
+</body>
+</html>
