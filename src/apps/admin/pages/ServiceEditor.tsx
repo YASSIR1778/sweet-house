@@ -29,6 +29,7 @@ const blank = (kind: 'counter' | 'admin'): Form => ({
   description_fr: '',
   pricing_mode: 'fixed',
   price: 0,
+  unit_cost: 0,
   unit_ar: kind === 'counter' ? 'صفحة' : '',
   unit_fr: kind === 'counter' ? 'page' : '',
   tax_rate: 20,
@@ -115,6 +116,10 @@ export function ServiceEditor({
     setBusy(true)
     const { guide, ...svc } = f
     const { data: sid, error } = await sb.rpc('save_service', { p: svc })
+    if (!error && sid) {
+      const c = await sb.from('services').update({ unit_cost: Math.max(0, f.unit_cost ?? 0) }).eq('id', sid)
+      if (c.error) toast.error(errorMessage(c.error, lang))
+    }
     if (!error && f.kind === 'admin') {
       const r = await sb.rpc('save_service_guide', { p_service: sid, p: { ...guide, steps: guide.steps.filter((s) => s.title.trim()) } })
       if (r.error) (setBusy(false), toast.error(errorMessage(r.error, lang)))
@@ -249,6 +254,16 @@ export function ServiceEditor({
               </Field>
             </div>
           )}
+          <div className="grid items-end gap-3 sm:grid-cols-3">
+            <Field label={t(`التكلفة لكل ${f.unit_ar || 'وحدة'}`, `Coût par ${f.unit_fr || 'unité'}`)} hint={f.kind === 'counter' ? t('ورق + حبر… مثلاً 0,25 للصفحة', 'Papier + encre… ex. 0,25 / page') : t('الرسوم الرسمية التي تدفعها (تمبر، بوابة…)', 'Frais officiels payés (timbre, portail…)')}>
+              <MoneyInput value={f.unit_cost ?? 0} onChange={(v) => set('unit_cost', v ?? 0)} />
+            </Field>
+            {f.pricing_mode !== 'open' && f.price > 0 && (
+              <div className={cn('rounded-xl px-3 py-2.5 text-sm sm:col-span-2', (f.unit_cost ?? 0) > f.price ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success')}>
+                {t('الربح', 'Marge')}: <b className="num">{money(f.price - (f.unit_cost ?? 0))}</b> / {f.unit_ar || t('وحدة', 'unité')} · <span className="num">{Math.round(((f.price - (f.unit_cost ?? 0)) / f.price) * 100)}%</span>
+              </div>
+            )}
+          </div>
           {f.pricing_mode === 'tiered' && (
             <div className="space-y-2">
               <div className="text-xs text-muted">{t('ابتداءً من الكمية ← سعر الوحدة', 'À partir de la quantité → prix unitaire')}</div>

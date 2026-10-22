@@ -96,6 +96,8 @@ export type Service = {
   description_fr: string | null
   pricing_mode: 'fixed' | 'tiered' | 'open'
   price: number
+  /** cost of one unit (paper + ink, official fees…), centimes — for profit reports */
+  unit_cost?: number
   unit_ar: string | null
   unit_fr: string | null
   tax_rate: number

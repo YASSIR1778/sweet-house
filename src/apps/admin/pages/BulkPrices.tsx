@@ -8,28 +8,31 @@ import { errorMessage } from '@/shared/lib/errors'
 import type { Service } from '@/shared/lib/types'
 import { cn } from '@/shared/lib/utils'
 import { Button, Input, Switch } from '@/shared/ui/primitives'
+import { Tabs } from '@/shared/ui/data'
+import { money } from '@/shared/lib/money'
 import { Sheet } from '@/shared/ui/overlay'
 import { MoneyInput } from '@/shared/ui/pickers'
 
-type Row = Pick<Service, 'id' | 'price' | 'duration_ar' | 'target_hours' | 'is_online'>
+type Row = Pick<Service, 'id' | 'price' | 'unit_cost' | 'duration_ar' | 'target_hours' | 'is_online'>
 
-/** Edit the prices, durations and online flag of all administrative services in one table. */
+/** Edit prices, costs, durations and the online flag of many services in one table (admin or counter services). */
 export function BulkPricesSheet({ open, onClose, services }: { open: boolean; onClose: () => void; services: Service[] }) {
   const { sb } = useAuth()
   const { t, pick, lang } = useLang()
   const qc = useQueryClient()
-  const list = useMemo(() => services.filter((s) => s.kind === 'admin' && s.pricing_mode !== 'open'), [services])
+  const [kind, setKind] = useState<'admin' | 'counter'>('admin')
+  const list = useMemo(() => services.filter((s) => s.kind === kind && s.pricing_mode !== 'open'), [services, kind])
   const [rows, setRows] = useState<Record<string, Row>>({})
   const [q, setQ] = useState('')
   const [onlyZero, setOnlyZero] = useState(false)
   const [busy, setBusy] = useState(false)
   useEffect(() => {
-    if (open) setRows(Object.fromEntries(list.map((s) => [s.id, { id: s.id, price: s.price, duration_ar: s.duration_ar, target_hours: s.target_hours, is_online: s.is_online }])))
+    if (open) setRows(Object.fromEntries(list.map((s) => [s.id, { id: s.id, price: s.price, unit_cost: s.unit_cost ?? 0, duration_ar: s.duration_ar, target_hours: s.target_hours, is_online: s.is_online }])))
   }, [open, list])
 
   const changed = list.filter((s) => {
     const r = rows[s.id]
-    return r && (r.price !== s.price || (r.duration_ar ?? '') !== (s.duration_ar ?? '') || r.target_hours !== s.target_hours || r.is_online !== s.is_online)
+    return r && (r.price !== s.price || (r.unit_cost ?? 0) !== (s.unit_cost ?? 0) || (r.duration_ar ?? '') !== (s.duration_ar ?? '') || r.target_hours !== s.target_hours || r.is_online !== s.is_online)
   })
   const shown = list.filter((s) => (!q || s.name_ar.includes(q) || s.name_fr.toLowerCase().includes(q.toLowerCase())) && (!onlyZero || (rows[s.id]?.price ?? 0) === 0))
   const set = (id: string, patch: Partial<Row>) => setRows((x) => ({ ...x, [id]: { ...x[id], ...patch } }))
@@ -38,7 +41,7 @@ export function BulkPricesSheet({ open, onClose, services }: { open: boolean; on
     setBusy(true)
     for (const s of changed) {
       const { id, ...v } = rows[s.id]
-      const { error } = await sb.from('services').update({ ...v, duration_ar: v.duration_ar || null }).eq('id', id)
+      const { error } = await sb.from('services').update(kind === 'counter' ? { price: v.price, unit_cost: v.unit_cost ?? 0 } : { ...v, duration_ar: v.duration_ar || null }).eq('id', id)
       if (error) {
         setBusy(false)
         return toast.error(`${s.name_ar}: ${errorMessage(error, lang)}`)
@@ -52,8 +55,9 @@ export function BulkPricesSheet({ open, onClose, services }: { open: boolean; on
   }
 
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && onClose()} width="max-w-4xl" title={t('تعديل الأسعار دفعة واحدة', 'Modifier les prix en masse')} description={t('الخدمات الإدارية: السعر، المدة الظاهرة للزبون، الوقت المستهدف، والظهور في الموقع', 'Services administratifs : prix, délai, objectif, en ligne')}>
+    <Sheet open={open} onOpenChange={(o) => !o && onClose()} width="max-w-4xl" title={t('تعديل الأسعار دفعة واحدة', 'Modifier les prix en masse')} description={t('السعر والتكلفة (لحساب الربح الحقيقي)، والمدة والظهور في الموقع للخدمات الإدارية', 'Prix et coût (pour la vraie marge), délai et mise en ligne')}>
       <div className="space-y-3">
+        <Tabs value={kind} onChange={(v) => setKind(v as 'admin' | 'counter')} items={[{ value: 'admin', label: t('الخدمات الإدارية', 'Services administratifs') }, { value: 'counter', label: t('خدمات الشبّاك (طباعة، نسخ…)', 'Guichet (impression, copie…)') }]} />
         <div className="flex flex-wrap items-center gap-3">
           <Input icon={<Search />} value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('بحث…', 'Rechercher…')} className="max-w-64" />
           <label className="flex items-center gap-2 text-sm">
@@ -67,9 +71,15 @@ export function BulkPricesSheet({ open, onClose, services }: { open: boolean; on
               <tr>
                 <th className="px-3 py-2 text-start">{t('الخدمة', 'Service')}</th>
                 <th className="px-2 py-2 text-start">{t('السعر', 'Prix')}</th>
-                <th className="px-2 py-2 text-start">{t('المدة (للزبون)', 'Délai affiché')}</th>
-                <th className="px-2 py-2 text-start">{t('الهدف (ساعات)', 'Objectif (h)')}</th>
-                <th className="px-2 py-2">{t('في الموقع', 'En ligne')}</th>
+                <th className="px-2 py-2 text-start">{kind === 'counter' ? t('التكلفة (ورق + حبر)', 'Coût (papier + encre)') : t('التكلفة (رسوم رسمية)', 'Coût (frais officiels)')}</th>
+                <th className="px-2 py-2 text-start">{t('الربح', 'Marge')}</th>
+                {kind === 'admin' && (
+                  <>
+                    <th className="px-2 py-2 text-start">{t('المدة (للزبون)', 'Délai affiché')}</th>
+                    <th className="px-2 py-2 text-start">{t('الهدف (ساعات)', 'Objectif (h)')}</th>
+                    <th className="px-2 py-2">{t('في الموقع', 'En ligne')}</th>
+                  </>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -82,6 +92,14 @@ export function BulkPricesSheet({ open, onClose, services }: { open: boolean; on
                     <td className="w-32 px-2 py-1.5">
                       <MoneyInput value={r.price} onChange={(v) => set(s.id, { price: v ?? 0 })} />
                     </td>
+                    <td className="w-32 px-2 py-1.5">
+                      <MoneyInput value={r.unit_cost ?? 0} onChange={(v) => set(s.id, { unit_cost: v ?? 0 })} />
+                    </td>
+                    <td className={cn('num px-2 py-1.5 text-xs whitespace-nowrap', (r.unit_cost ?? 0) > r.price ? 'text-danger' : 'text-success')}>
+                      {r.price > 0 ? `${money(r.price - (r.unit_cost ?? 0))} · ${Math.round(((r.price - (r.unit_cost ?? 0)) / r.price) * 100)}%` : '—'}
+                    </td>
+                    {kind === 'admin' && (
+                    <>
                     <td className="w-40 px-2 py-1.5">
                       <Input value={r.duration_ar ?? ''} onChange={(e) => set(s.id, { duration_ar: e.target.value })} placeholder={t('مثلاً: 24 ساعة', 'ex. 24 h')} />
                     </td>
@@ -91,6 +109,8 @@ export function BulkPricesSheet({ open, onClose, services }: { open: boolean; on
                     <td className="px-2 py-1.5 text-center">
                       <Switch checked={r.is_online} onCheckedChange={(is_online) => set(s.id, { is_online })} />
                     </td>
+                    </>
+                    )}
                   </tr>
                 )
               })}
