@@ -532,7 +532,7 @@ function RequestDone({ done, serviceName }: { done: Done; serviceName: string })
       )}
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         <Button asChild size="lg">
-          <Link to={`/track/${done.tracking_code}`} onClick={() => trackPhone.set(done.phone)}>{t('تتبّع الطلب', 'Suivre ma demande')}</Link>
+          <Link to={`/track/${done.tracking_code}`} onClick={() => trackPhone.set(done.tracking_code, done.phone)}>{t('تتبّع الطلب', 'Suivre ma demande')}</Link>
         </Button>
         <Button asChild size="lg" variant="success">
           <a href={whatsappLink(site.data?.store.whatsapp ?? '', `${t('مرحباً، أرسلت طلب', 'Bonjour, j’ai envoyé la demande')} ${done.number} (${serviceName})\n${link}`)} target="_blank" rel="noreferrer">

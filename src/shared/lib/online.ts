@@ -31,16 +31,21 @@ export function useRequestStatuses(sb: SupabaseClient) {
 /** Public tracking link (the website lives at the repo root). */
 /** The phone a customer tracked or ordered with on this device (kept out of shared links). */
 export const trackPhone = {
-  get: () => {
+  // per tracking code: a shared phone/shop device must not show the previous customer's number
+  get: (code: string) => {
     try {
-      return localStorage.getItem('sh-track-phone') ?? ''
+      return (JSON.parse(localStorage.getItem('sh-track-phones') ?? '{}') as Record<string, string>)[code.toUpperCase()] ?? ''
     } catch {
       return ''
     }
   },
-  set: (p: string) => {
+  set: (code: string, phone: string) => {
     try {
-      if (p.trim()) localStorage.setItem('sh-track-phone', p.trim())
+      if (!code || !phone.trim()) return
+      const all = JSON.parse(localStorage.getItem('sh-track-phones') ?? '{}') as Record<string, string>
+      all[code.toUpperCase()] = phone.trim()
+      localStorage.setItem('sh-track-phones', JSON.stringify(Object.fromEntries(Object.entries(all).slice(-20))))
+      localStorage.removeItem('sh-track-phone')
     } catch {
       /* storage unavailable */
     }

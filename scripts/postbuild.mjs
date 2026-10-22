@@ -31,17 +31,25 @@ async function pages() {
   try {
     const r = await fetch(`${api}/rest/v1/${q}`, { headers: { apikey: key, Authorization: `Bearer ${key}` } })
     if (!r.ok) return []
-    return (await r.json()).map((x) => url(`${STORE ? 'shop' : 'services'}/${x.id}`, String(x.updated_at ?? today).slice(0, 10)))
+    return (await r.json()).map((x) => ({ path: `${STORE ? 'shop' : 'services'}/${x.id}`, lastmod: String(x.updated_at ?? today).slice(0, 10) }))
   } catch {
     return []
   }
 }
 
 const dynamic = await pages()
+// A real file for each product / service page: links from ads, WhatsApp and Google
+// answer 200 instead of GitHub's 404 fallback (the store also gets the /p/<id> ad page).
+for (const d of dynamic) {
+  for (const path of STORE ? [d.path, d.path.replace(/^shop\//, 'p/')] : [d.path]) {
+    mkdirSync(`${DIST}/${path}`, { recursive: true })
+    copyFileSync(`${DIST}/index.html`, `${DIST}/${path}/index.html`)
+  }
+}
 writeFileSync(
   `${DIST}/sitemap.xml`,
   `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-    [...['', ...ROUTES.filter((r) => !['checkout', 'p', 'unsubscribe'].includes(r))].map((r) => url(r ? r + '/' : '')), ...dynamic].join('\n') +
+    [...['', ...ROUTES.filter((r) => !['checkout', 'p', 'unsubscribe'].includes(r))].map((r) => url(r ? r + '/' : '')), ...dynamic.map((d) => url(d.path, d.lastmod))].join('\n') +
     `\n</urlset>\n`,
 )
 writeFileSync(`${DIST}/robots.txt`, `User-agent: *\nAllow: /${SLUG}/\nDisallow: /${SLUG}/admin/\nDisallow: /${SLUG}/pos/\nDisallow: /${SLUG}/p/\nSitemap: ${BASE}/sitemap.xml\n`)

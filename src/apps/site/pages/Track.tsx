@@ -70,7 +70,7 @@ export function TrackPage() {
   const { t, lang } = useLang()
   const [code, setCode] = useState(codeParam ?? '')
   // old links carried ?p=phone: still accepted, then removed from the address bar
-  const [phone, setPhone] = useState(params.get('p') ?? trackPhone.get())
+  const [phone, setPhone] = useState(params.get('p') ?? trackPhone.get(codeParam ?? ''))
   const [data, setData] = useState<RequestTrack | OrderTrack | null>(null)
   const [busy, setBusy] = useState(false)
   useSeo(t('تتبّع الطلب', 'Suivi'))
@@ -85,8 +85,11 @@ export function TrackPage() {
       return toast.error(error.message.includes('not_found') ? t('لم نجد طلباً بهذا الرقم وهذا الهاتف', 'Aucune demande avec ce code et ce téléphone') : errorMessage(error, lang))
     }
     setData(res as RequestTrack | OrderTrack)
-    trackPhone.set(p)
-    if (codeParam !== c.trim().toUpperCase() || params.has('p')) nav(`/track/${c.trim().toUpperCase()}`, { replace: true })
+    // the customer may have typed the order number (CMD-…/SH-…): continue with the real tracking code
+    const real = ((res as { tracking_code?: string }).tracking_code ?? c.trim()).toUpperCase()
+    setCode(real)
+    trackPhone.set(real, p)
+    if (codeParam !== real || params.has('p')) nav(`/track/${real}`, { replace: true })
   }
 
   useEffect(() => {
@@ -105,8 +108,8 @@ export function TrackPage() {
       </div>
       <Card className="mt-8 p-4">
         <form onSubmit={(e) => (e.preventDefault(), load())} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-          <Input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder={t('رقم التتبّع', 'Code de suivi')} dir="ltr" className="num h-12 tracking-widest" />
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t('رقم الهاتف', 'Téléphone')} dir="ltr" inputMode="tel" className="h-12" />
+          <Input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder={t('رقم التتبّع أو رقم الطلبية', 'Code de suivi ou n° de commande')} dir="ltr" className="num h-12 tracking-widest" />
+          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t('رقم الهاتف', 'Téléphone')} dir="ltr" inputMode="tel" maxLength={16} className="h-12" />
           <Button type="submit" size="lg" loading={busy}>
             {t('تتبّع', 'Suivre')}
           </Button>

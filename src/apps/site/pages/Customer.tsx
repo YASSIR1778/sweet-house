@@ -55,7 +55,7 @@ export function MyDocumentsPage() {
   }, [])
 
   const logout = () => (remember.set(null), setData(null), setCode(''), setPhone(''))
-  const link = (tc: string) => (trackPhone.set(phone), `/track/${tc}`)
+  const link = (tc: string) => (trackPhone.set(tc, phone), `/track/${tc}`)
 
   if (!data)
     return (

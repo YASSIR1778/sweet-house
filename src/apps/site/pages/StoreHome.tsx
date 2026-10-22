@@ -39,7 +39,7 @@ export function StoreHome() {
         <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.35, 0.55, 0.35] }} transition={{ duration: 9, repeat: Infinity }} className="absolute -end-40 -top-40 size-[40rem] rounded-full bg-brand/45 blur-3xl" />
         <motion.div animate={{ scale: [1.1, 1, 1.1] }} transition={{ duration: 12, repeat: Infinity }} className="absolute -bottom-56 -start-32 size-[32rem] rounded-full bg-[#F59E0B]/20 blur-3xl" />
         <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 md:grid-cols-[1.15fr_1fr] md:py-24">
-          <div>
+          <div className="min-w-0">
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-sm backdrop-blur">
               <Sparkles className="size-4 text-brand" />
               {t(ME.name_ar, ME.name_fr)} · {t('تطوان', 'Tétouan')}
@@ -60,7 +60,7 @@ export function StoreHome() {
               className="mt-8 flex max-w-lg gap-2 rounded-2xl border border-white/15 bg-white/10 p-2 backdrop-blur"
             >
               <Search className="ms-2 size-5 self-center text-white/50" />
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('على شنو كتقلب؟', 'Que cherchez-vous ?')} className="min-w-0 flex-1 bg-transparent text-base placeholder:text-white/40 focus:outline-none" />
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('على شنو كتقلب؟', 'Que cherchez-vous ?')} className="w-0 min-w-0 flex-1 bg-transparent text-base placeholder:text-white/40 focus:outline-none" />
               <Button type="submit" size="lg">{t('قلّب', 'Chercher')}</Button>
             </motion.form>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/70">

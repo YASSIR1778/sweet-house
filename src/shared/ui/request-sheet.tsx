@@ -161,6 +161,8 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
 
   const setStatus = async (key: string) => {
     if (!r) return
+    const target = statuses.data?.find((x) => x.key === key)
+    if (target?.is_cancel && !(await confirm({ title: t('إلغاء هذا الطلب؟', 'Annuler cette demande ?'), description: `${r.number} · ${r.customer_name}`, confirmLabel: t('نعم، ألغِ الطلب', 'Oui, annuler'), danger: true }))) return
     const { error } = await sb.rpc('set_request_status', { p_id: r.id, p_status: key, p_note: note || null })
     if (error) return toast.error(errorMessage(error, lang))
     setNote('')
@@ -270,7 +272,7 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
 
           <DueBanner due={r.due_at} done={r.done_at} />
 
-          {(status?.is_final || status?.allow_download) && <ArchiveCard r={r} deliverables={deliverables} onRepeat={() => setRepeat(true)} onChange={refresh} />}
+          {(status?.is_final || status?.allow_download) && <ArchiveCard r={r} cancelled={!!status?.is_cancel} deliverables={deliverables} onRepeat={() => setRepeat(true)} onChange={refresh} />}
           <StaffRequestSheet open={repeat} onClose={() => setRepeat(false)} prefill={{ service_id: r.service_id, name: r.customer_name, phone: r.phone, from_request: r.id }} />
 
           {can('requests.manage') && <AssignmentCard entity="request" id={r.id} />}
@@ -560,7 +562,7 @@ export function RequestSheet({ id, onClose, deviceId }: { id: string | null; onC
 }
 
 /** Finished request: print / resend / repeat / keep the documents. */
-function ArchiveCard({ r, deliverables, onRepeat, onChange }: { r: Detail; deliverables: FileRow[]; onRepeat: () => void; onChange: () => void }) {
+function ArchiveCard({ r, cancelled, deliverables, onRepeat, onChange }: { r: Detail; cancelled?: boolean; deliverables: FileRow[]; onRepeat: () => void; onChange: () => void }) {
   const { sb, can } = useAuth()
   const { t, pick, lang } = useLang()
   const retention = useQuery({ queryKey: ['retention-cfg'], staleTime: 10 * 60_000, queryFn: async () => (await sb.from('settings').select('value').eq('key', 'retention').maybeSingle()).data?.value as { enabled?: boolean; customer_docs_months?: number } | undefined })
@@ -575,10 +577,10 @@ function ArchiveCard({ r, deliverables, onRepeat, onChange }: { r: Detail; deliv
   }
   const months = retention.data?.customer_docs_months ?? 6
   return (
-    <Card className="space-y-3 border-success/30 bg-success/5 p-4">
-      <div className="flex items-center gap-2 text-sm font-semibold text-success">
+    <Card className={cn('space-y-3 p-4', cancelled ? 'border-border bg-surface-2' : 'border-success/30 bg-success/5')}>
+      <div className={cn('flex items-center gap-2 text-sm font-semibold', cancelled ? 'text-muted' : 'text-success')}>
         <CheckCheck className="size-4" />
-        {t('طلب منجز — في الأرشيف', 'Demande terminée — archivée')}
+        {cancelled ? t('طلب ملغى — في الأرشيف', 'Demande annulée — archivée') : t('طلب منجز — في الأرشيف', 'Demande terminée — archivée')}
       </div>
       <div className="flex flex-wrap gap-2">
         {can('requests.view_documents') &&

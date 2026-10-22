@@ -134,11 +134,17 @@ export function ProductLanding({ focus = false }: { focus?: boolean }) {
         <p className="mt-3 text-muted">{t('غادي نتواصلو معاك فواتساب ولا بالتيليفون باش نأكدو الطلبية قبل ما نصيفطوها.', 'Nous vous contactons sur WhatsApp pour confirmer avant l’envoi.')}</p>
         <div className="mt-6 rounded-2xl border border-border bg-surface p-5 text-start">
           <div className="flex justify-between text-sm"><span className="text-muted">{t('رقم الطلبية', 'Commande')}</span><b className="num">{done.number}</b></div>
+          <div className="mt-2 flex items-center justify-between gap-2 text-sm">
+            <span className="text-muted">{t('رقم التتبّع (احتفظ به)', 'Code de suivi (à garder)')}</span>
+            <button type="button" onClick={() => (navigator.clipboard?.writeText(done.tracking_code), toast.success(t('تم النسخ', 'Copié')))} className="num rounded-lg bg-surface-2 px-2.5 py-1 font-bold tracking-widest">
+              {done.tracking_code} 📋
+            </button>
+          </div>
           <div className="mt-2 flex justify-between text-sm"><span className="text-muted">{t('المجموع عند الاستلام', 'À payer à la livraison')}</span><b className="num text-brand">{money(done.total)}</b></div>
         </div>
         <div className="mt-6 grid gap-2">
           <Button asChild size="lg">
-            <Link to={`/track/${done.tracking_code}`} onClick={() => trackPhone.set(f.phone)}>
+            <Link to={`/track/${done.tracking_code}`} onClick={() => trackPhone.set(done.tracking_code, f.phone)}>
               <PackageSearch />
               {t('تتبّع طلبيتك', 'Suivre ma commande')}
             </Link>

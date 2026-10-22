@@ -28,7 +28,7 @@ export function HomePage() {
         <motion.div animate={{ scale: [1, 1.15, 1], opacity: [0.35, 0.5, 0.35] }} transition={{ duration: 10, repeat: Infinity }} className="absolute -end-40 -top-40 size-[38rem] rounded-full bg-brand/40 blur-3xl" />
         <div className="absolute -bottom-48 -start-24 size-[30rem] rounded-full bg-[#2563EB]/25 blur-3xl" />
         <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 py-20 md:grid-cols-[1.25fr_1fr] md:py-28">
-          <div>
+          <div className="min-w-0">
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-sm backdrop-blur">
               <Sparkles className="size-4 text-brand" />
               {t(ME.name_ar, ME.name_fr)} · {t('تطوان', 'Tétouan')}

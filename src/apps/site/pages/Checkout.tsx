@@ -267,7 +267,7 @@ function OrderDone({ done }: { done: Done }) {
       </Card>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         <Button asChild size="lg">
-          <Link to={`/track/${done.tracking_code}`} onClick={() => trackPhone.set(done.phone)}>{t('تتبّع الطلب', 'Suivre')}</Link>
+          <Link to={`/track/${done.tracking_code}`} onClick={() => trackPhone.set(done.tracking_code, done.phone)}>{t('تتبّع الطلب', 'Suivre')}</Link>
         </Button>
         <Button asChild size="lg" variant="success">
           <a href={whatsappLink(wa, `${msg}\n${link}`)} target="_blank" rel="noreferrer">

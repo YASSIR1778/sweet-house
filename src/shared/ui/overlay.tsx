@@ -143,7 +143,7 @@ export function useConfirm() {
           </div>
           <div className="mt-6 flex justify-end gap-2">
             <Button variant="outline" onClick={() => close(false)}>
-              {t('إلغاء', 'Annuler')}
+              {t('رجوع', 'Retour')}
             </Button>
             <Button variant={state?.danger ? 'danger' : 'primary'} onClick={() => close(true)}>
               {state?.confirmLabel ?? t('تأكيد', 'Confirmer')}

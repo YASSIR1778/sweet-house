@@ -138,7 +138,7 @@ function OrderSheet({ id, onClose }: { id: string | null; onClose: () => void })
 
   const setStatus = async (s: string) => {
     if (!o) return
-    if (s === 'cancelled' && !(await confirm({ title: t('إلغاء الطلب؟', 'Annuler la commande ?'), description: t('سيُرجَع المخزون إن كان قد خُصم', 'Le stock sera restitué'), danger: true }))) return
+    if (s === 'cancelled' && !(await confirm({ title: t('إلغاء الطلب؟', 'Annuler la commande ?'), description: t('سيُرجَع المخزون إن كان قد خُصم', 'Le stock sera restitué'), confirmLabel: t('نعم، ألغِ الطلب', 'Oui, annuler'), danger: true }))) return
     const { error } = await sb.rpc('set_order_status', { p_id: o.id, p_status: s, p_note: note || null })
     if (error) return toast.error(errorMessage(error, lang))
     setNote('')

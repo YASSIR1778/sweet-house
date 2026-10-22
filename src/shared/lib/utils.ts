@@ -87,5 +87,6 @@ export function whatsappLink(phone: string, text: string) {
 }
 
 export function fillTemplate(tpl: string, vars: Record<string, string | number | null | undefined>) {
-  return tpl.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''))
+  // templates typed in the settings keep "\n" as two characters: make them real line breaks
+  return tpl.replace(/\\n/g, '\n').replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''))
 }
