@@ -308,7 +308,7 @@ export function ProductLanding({ focus = false }: { focus?: boolean }) {
                 </select>
               ) : null}
               {(zones.length === 0 || otherCity) && <Input value={f.city} onChange={(e) => setF({ ...f, city: e.target.value })} placeholder={t('المدينة', 'Ville')} className="h-12 text-base" />}
-              <Input value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} placeholder={t('العنوان (الحي، الزنقة، الرقم)', 'Adresse')} autoComplete="street-address" className="h-12 text-base" />
+              <Input value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} placeholder={t('العنوان: الحي، الزنقة + علامة قريبة', 'Adresse + un repère proche')} autoComplete="street-address" className="h-12 text-base" />
               <input value={f.website} onChange={(e) => setF({ ...f, website: e.target.value })} tabIndex={-1} autoComplete="off" className="hidden" aria-hidden />
               <div className="space-y-1 rounded-2xl bg-surface-2 p-3 text-sm">
                 <div className="flex justify-between"><span className="text-muted">{t('المنتج', 'Produit')} × <span className="num">{units}</span></span><span className="num">{money(subtotal)}</span></div>

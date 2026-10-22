@@ -155,7 +155,7 @@ export function CheckoutPage() {
                   </datalist>
                 </Field>
                 <Field label={t('العنوان الكامل', 'Adresse complète')} required>
-                  <Input value={form.address} onChange={set('address')} required autoComplete="street-address" />
+                  <Input value={form.address} onChange={set('address')} required autoComplete="street-address" placeholder={t('الحي، الزنقة، الرقم + علامة قريبة (مسجد، مدرسة…)', 'Quartier, rue, n° + un repère proche')} />
                 </Field>
               </div>
             )}

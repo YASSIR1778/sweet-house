@@ -119,6 +119,13 @@ function OrderSheet({ id, onClose }: { id: string | null; onClose: () => void })
   const tpl = useQuery({ queryKey: ['settings', 'whatsapp'], queryFn: async () => (await sb.from('settings').select('value').eq('key', 'whatsapp').single()).data?.value as { templates?: Record<string, string> } })
   const store = useQuery({ queryKey: ['settings', 'store'], queryFn: async () => (await sb.from('settings').select('value').eq('key', 'store').single()).data?.value as { name_ar: string; phone: string } })
   const o = d.data
+  const past = useQuery({
+    queryKey: ['order-phone', o?.phone],
+    enabled: !!o?.phone,
+    queryFn: async () => (await sb.from('online_orders').select('id, status').eq('phone', o!.phone)).data as { id: string; status: string }[],
+  })
+  const before = (past.data ?? []).filter((x) => x.id !== o?.id)
+  const cancelledBefore = before.filter((x) => x.status === 'cancelled').length
   const refresh = () => (qc.invalidateQueries({ queryKey: ['order', id] }), qc.invalidateQueries({ queryKey: ['orders'] }), qc.invalidateQueries({ queryKey: ['online-pending'] }), qc.invalidateQueries({ queryKey: ['products'] }))
 
   const wa = (key: string) => {
@@ -168,6 +175,13 @@ function OrderSheet({ id, onClose }: { id: string | null; onClose: () => void })
               <Button asChild variant="outline" size="sm"><a href={`tel:+${o.phone}`}><Phone /></a></Button>
               <Button asChild variant="success" size="sm"><a href={whatsappLink(o.phone, wa(o.status))} target="_blank" rel="noreferrer"><MessageCircle />WhatsApp</a></Button>
             </div>
+            {before.length > 0 && (
+              <div className={`rounded-lg p-2 text-xs ${cancelledBefore ? 'bg-danger/10 text-danger' : 'bg-success/10 text-success'}`}>
+                {cancelledBefore
+                  ? t(`⚠️ هذا الرقم ألغى ${cancelledBefore} من ${before.length} طلبيات سابقة. أكّد بالهاتف قبل الإرسال.`, `⚠️ Ce numéro a annulé ${cancelledBefore} commande(s) sur ${before.length}. Confirmez par téléphone avant l’envoi.`)
+                  : t(`✅ زبون سابق: ${before.length} طلبيات بدون إلغاء`, `✅ Client fidèle : ${before.length} commande(s) sans annulation`)}
+              </div>
+            )}
             {o.delivery_method === 'delivery' ? (
               <div className="flex items-start gap-2 rounded-lg bg-surface-2 p-3 text-sm">
                 <MapPin className="mt-0.5 size-4 text-brand" />
