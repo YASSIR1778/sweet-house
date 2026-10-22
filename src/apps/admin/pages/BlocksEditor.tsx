@@ -50,7 +50,7 @@ function BlockForm({ b, brand, set }: { b: Block; brand: Brand; set: (p: Partial
       )}
       {b.type === 'banner' && (
         <Field label={t('اللون', 'Couleur')}>
-          <ColorPicker value={b.color ?? '#FF6B35'} onChange={(color) => set({ color })} />
+          <ColorPicker value={b.color ?? (brand === 'store' ? '#FF6B35' : '#2563EB')} onChange={(color) => set({ color })} />
         </Field>
       )}
       {b.type === 'video' && (

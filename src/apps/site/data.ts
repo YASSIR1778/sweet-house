@@ -115,8 +115,11 @@ export function useShop() {
       ])
       if (p.error) throw p.error
       const products = ((p.data ?? []) as ShopProduct[]).map((x) => ({ ...x, product_variants: [...x.product_variants].sort((a, b) => a.sort - b.sort) })).filter((x) => x.product_variants.length)
-      const used = new Set(products.map((x) => x.category_id))
-      return { products, categories: ((c.data ?? []) as ShopCategory[]).filter((x) => used.has(x.id)) }
+      const visible = new Set(((c.data ?? []) as ShopCategory[]).map((x) => x.id))
+      // a hidden category (dashboard → categories) hides its products on the store too
+      const shown = products.filter((x) => !x.category_id || visible.has(x.category_id))
+      const used = new Set(shown.map((x) => x.category_id))
+      return { products: shown, categories: ((c.data ?? []) as ShopCategory[]).filter((x) => used.has(x.id)) }
     },
   })
 }

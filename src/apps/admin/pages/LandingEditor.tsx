@@ -12,7 +12,7 @@ import { Sheet } from '@/shared/ui/overlay'
 import { MoneyInput } from '@/shared/ui/pickers'
 import type { Landing } from '@/apps/site/data'
 
-type Row = { id: string; name_ar: string; name_fr: string; description_ar: string | null; images: string[]; landing: Landing; product_variants: { price: number }[] }
+type Row = { id: string; name_ar: string; name_fr: string; description_ar: string | null; images: string[]; is_online: boolean; landing: Landing; product_variants: { price: number }[] }
 
 function List<T>({ items, onChange, blank, render, addLabel }: { items: T[]; onChange: (v: T[]) => void; blank: T; render: (it: T, set: (p: Partial<T>) => void) => React.ReactNode; addLabel: string }) {
   return (
@@ -41,7 +41,7 @@ export function LandingEditor({ productId, onClose }: { productId: string | null
   const q = useQuery({
     queryKey: ['landing', productId],
     enabled: !!productId,
-    queryFn: async () => (await sb.from('products').select('id, name_ar, name_fr, description_ar, images, landing, product_variants(price)').eq('id', productId!).single()).data as Row,
+    queryFn: async () => (await sb.from('products').select('id, name_ar, name_fr, description_ar, images, is_online, landing, product_variants(price)').eq('id', productId!).single()).data as Row,
   })
   const [L, setL] = useState<Landing>({})
   const [busy, setBusy] = useState<'save' | 'ai' | null>(null)
@@ -87,6 +87,11 @@ export function LandingEditor({ productId, onClose }: { productId: string | null
     <Sheet open={!!productId} onOpenChange={(o) => !o && onClose()} width="max-w-2xl" title={t('صفحة الهبوط (للإعلانات)', 'Page de destination (pub)')} description={p?.name_ar}>
       {p && (
         <div className="space-y-6">
+          {!p.is_online && (
+            <div className="rounded-xl bg-danger/10 p-3 text-sm text-danger">
+              {t('⚠️ هذا المنتج مخفي من المتجر: صفحة الهبوط لن تفتح للزوار. فعّل «يظهر في متجر الموقع» في المنتج.', '⚠️ Produit masqué : la page ne s’ouvrira pas. Activez « Visible sur la boutique ».')}
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={ai} loading={busy === 'ai'}>
               <Sparkles />

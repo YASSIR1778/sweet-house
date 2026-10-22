@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
 import { errorMessage } from '@/shared/lib/errors'
-import { Button, Card, CardHeader, Field, Input, SwitchRow } from '@/shared/ui/primitives'
+import { Button, Card, CardHeader, Field, Input } from '@/shared/ui/primitives'
 
 type Bank = { bank_name: string; account_holder: string; rib: string; bank_transfer: boolean; in_store: boolean; cod: boolean }
 
@@ -27,7 +27,7 @@ export function BankSection() {
   const save = async () => {
     if (b.bank_transfer && !ribOk) return toast.error(t('الـ RIB المغربي يتكوّن من 24 رقماً', 'Le RIB marocain contient 24 chiffres'))
     setBusy(true)
-    const { error } = await sb.rpc('save_bank_account', { p: { ...b, rib: digits.replace(/(\d{3})(\d{3})(\d{16})(\d{2})/, '$1 $2 $3 $4') } })
+    const { error } = await sb.rpc('save_bank_account', { p: { bank_name: b.bank_name, account_holder: b.account_holder, rib: digits.replace(/(\d{3})(\d{3})(\d{16})(\d{2})/, '$1 $2 $3 $4') } })
     setBusy(false)
     if (error) return toast.error(errorMessage(error, lang))
     toast.success(t('حُفظ الحساب البنكي — يظهر الآن في الموقع والفواتير ✅', 'Compte enregistré — visible sur le site et les factures ✅'))
@@ -50,11 +50,9 @@ export function BankSection() {
             <Input value={b.rib} onChange={(e) => setB({ ...b, rib: e.target.value })} dir="ltr" className="num tracking-wider" placeholder="000 000 0000000000000000 00" inputMode="numeric" />
           </Field>
         </div>
-        <div className="grid gap-2 sm:grid-cols-3">
-          <SwitchRow label={t('التحويل البنكي', 'Virement')} checked={b.bank_transfer} onCheckedChange={(bank_transfer) => setB({ ...b, bank_transfer })} />
-          <SwitchRow label={t('الأداء في المحل', 'En boutique')} checked={b.in_store} onCheckedChange={(in_store) => setB({ ...b, in_store })} />
-          <SwitchRow label={t('الأداء عند الاستلام', 'À la livraison')} checked={b.cod} onCheckedChange={(cod) => setB({ ...b, cod })} />
-        </div>
+        <p className="rounded-xl bg-surface-2 p-3 text-xs text-muted">
+          {t('طرق الأداء (التحويل، في المحل، عند الاستلام) تُفعَّل من محرر الموقع ← ⚙️ مشترك ← الأداء الأونلاين.', 'Les moyens de paiement se règlent dans Éditeur du site → Commun → Paiements.')}
+        </p>
         <Button onClick={save} loading={busy}>
           <Save />
           {t('حفظ', 'Enregistrer')}

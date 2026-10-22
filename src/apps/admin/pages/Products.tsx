@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Copy, Eye, FileSpreadsheet, Megaphone, MoreVertical, Package, Pencil, Plus, Search, SlidersHorizontal, Star, Trash } from 'lucide-react'
+import { Copy, ExternalLink, Eye, FileSpreadsheet, Megaphone, MoreVertical, Package, Pencil, Plus, Search, SlidersHorizontal, Star, Trash } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -15,6 +15,7 @@ import { ProductEditor } from './ProductEditor'
 import { StockDialog } from './StockDialog'
 import { ImportProductsDialog } from './ImportProducts'
 import { LandingEditor } from './LandingEditor'
+import { SITES } from '@/shared/lib/brand'
 
 export type ProductRow = Product & {
   categories: Pick<Category, 'id' | 'name_ar' | 'name_fr' | 'color'> | null
@@ -165,7 +166,7 @@ export function ProductsPage() {
       header: t('الموقع', 'Site'),
       cell: (p) => (
         <button onClick={(e) => (e.stopPropagation(), toggleOnline(p))}>
-          {p.is_online ? <Badge tone="success">{t('ظاهر', 'Visible')}</Badge> : <Badge>{t('مخفي', 'Masqué')}</Badge>}
+          {p.is_online ? <Badge tone="success">{t('🛍️ في المتجر', '🛍️ En ligne')}</Badge> : <Badge>{t('نقطة البيع فقط', 'Caisse seulement')}</Badge>}
         </button>
       ),
     },
@@ -197,6 +198,11 @@ export function ProductsPage() {
               {can('stock.adjust') && p.track_stock && (
                 <DropdownItem icon={<SlidersHorizontal />} onSelect={() => setStockFor(p)}>
                   {t('تعديل المخزون', 'Ajuster le stock')}
+                </DropdownItem>
+              )}
+              {p.is_online && (
+                <DropdownItem icon={<ExternalLink />} onSelect={() => window.open(`${SITES.store}/shop/${p.id}`, '_blank')}>
+                  {t('فتح في المتجر', 'Voir sur la boutique')}
                 </DropdownItem>
               )}
               <DropdownItem icon={<Megaphone />} onSelect={() => setLanding(p.id)}>

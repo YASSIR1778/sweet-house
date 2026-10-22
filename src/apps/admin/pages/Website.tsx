@@ -113,7 +113,11 @@ export function WebsitePage() {
       }
       if (['blocks', 'menu', 'home', 'faq', 'legal'].includes(tab)) await up('website', w)
       if (tab === 'delivery') await up('delivery', d)
-      if (tab === 'payments') await up('online_payments', p)
+      if (tab === 'payments' && p) {
+        // only the methods live here; the bank details are edited in Settings → bank account
+        const cur = (await sb.from('settings').select('value').eq('key', 'online_payments').single()).data?.value ?? {}
+        await up('online_payments', { ...cur, cod: p.cod, in_store: p.in_store, bank_transfer: p.bank_transfer })
+      }
       if (tab === 'abroad' && ab) await up('abroad', ab)
       if (tab === 'whatsapp') (await up('whatsapp', wa), resetWhatsAppMode())
       if (tab === 'statuses')

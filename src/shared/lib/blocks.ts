@@ -62,7 +62,7 @@ export function newBlock(type: BlockType): Block {
   const b: Block = { id: uid(), type, enabled: true }
   if (type === 'products') Object.assign(b, { source: 'featured', limit: 8, layout: 'grid', title_ar: 'منتجات مختارة', title_fr: 'Notre sélection' })
   if (type === 'services') Object.assign(b, { source: 'featured', limit: 6, title_ar: 'الخدمات الأكثر طلباً', title_fr: 'Services les plus demandés' })
-  if (type === 'banner') Object.assign(b, { title_ar: 'عنوان البانر', text_ar: '', button_ar: 'اكتشف', link: '/', color: '#FF6B35' })
+  if (type === 'banner') Object.assign(b, { title_ar: 'عنوان البانر', text_ar: '', button_ar: 'اكتشف', link: '/' })
   if (type === 'text') Object.assign(b, { title_ar: 'عنوان', text_ar: '' })
   if (type === 'steps') Object.assign(b, { items: [{ title_ar: 'اطلب' }, { title_ar: 'نأكد معك' }, { title_ar: 'توصلك' }] })
   return b

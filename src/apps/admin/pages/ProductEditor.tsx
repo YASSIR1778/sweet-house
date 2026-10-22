@@ -45,7 +45,7 @@ const blank = (): Form => ({
   tax_rate: 20,
   track_stock: true,
   low_stock_alert: 5,
-  is_online: false,
+  is_online: true,
   is_featured: false,
   variants: [blankVariant()],
 })
@@ -445,7 +445,7 @@ export function ProductEditor({ id, duplicateOf, onClose }: { id: string | 'new'
                   </Card>
                 </>
               )}
-              <SwitchRow label={t('يظهر في الموقع والمتجر', 'Visible sur le site et la boutique')} checked={form.is_online} onCheckedChange={(is_online) => setForm({ ...form, is_online })} />
+              <SwitchRow label={t('🛍️ يظهر في متجر الموقع (sweet-house-store)', '🛍️ Visible sur la boutique en ligne')} description={t('مطفأ = يُباع في نقطة البيع فقط', 'Désactivé = vendu en caisse uniquement')} checked={form.is_online} onCheckedChange={(is_online) => setForm({ ...form, is_online })} />
               <SwitchRow label={t('منتج مميز', 'Produit vedette')} description={t('يظهر في الصفحة الرئيسية للموقع', 'Affiché en page d’accueil')} checked={form.is_featured} onCheckedChange={(is_featured) => setForm({ ...form, is_featured })} />
               {!form.images.length && (
                 <div className="flex items-center gap-2 text-xs text-warning">

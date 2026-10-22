@@ -19,11 +19,30 @@ for (const r of ROUTES) {
 }
 
 const today = new Date().toISOString().slice(0, 10)
+const url = (path, lastmod = today) => `  <url><loc>${BASE}/${path}</loc><lastmod>${lastmod}</lastmod></url>`
+
+// Every visible product (store) / service (services) page, so Google finds them.
+// Uses the public API values of the build environment; skipped when absent.
+async function pages() {
+  const api = process.env.VITE_SUPABASE_URL
+  const key = process.env.VITE_SUPABASE_ANON_KEY
+  if (!api || !key) return []
+  const q = STORE ? 'products?select=id,updated_at&is_online=eq.true&deleted_at=is.null' : "services?select=id,updated_at&kind=eq.admin&is_online=eq.true&is_active=eq.true&deleted_at=is.null"
+  try {
+    const r = await fetch(`${api}/rest/v1/${q}`, { headers: { apikey: key, Authorization: `Bearer ${key}` } })
+    if (!r.ok) return []
+    return (await r.json()).map((x) => url(`${STORE ? 'shop' : 'services'}/${x.id}`, String(x.updated_at ?? today).slice(0, 10)))
+  } catch {
+    return []
+  }
+}
+
+const dynamic = await pages()
 writeFileSync(
   `${DIST}/sitemap.xml`,
   `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-    ['', ...ROUTES.filter((r) => !['checkout', 'p', 'unsubscribe'].includes(r))].map((r) => `  <url><loc>${BASE}/${r ? r + '/' : ''}</loc><lastmod>${today}</lastmod></url>`).join('\n') +
+    [...['', ...ROUTES.filter((r) => !['checkout', 'p', 'unsubscribe'].includes(r))].map((r) => url(r ? r + '/' : '')), ...dynamic].join('\n') +
     `\n</urlset>\n`,
 )
 writeFileSync(`${DIST}/robots.txt`, `User-agent: *\nAllow: /${SLUG}/\nDisallow: /${SLUG}/admin/\nDisallow: /${SLUG}/pos/\nDisallow: /${SLUG}/p/\nSitemap: ${BASE}/sitemap.xml\n`)
-console.log(`postbuild (${STORE ? 'store' : 'services'}): routes, 404, sitemap, robots`)
+console.log(`postbuild (${STORE ? 'store' : 'services'}): routes, 404, sitemap (+${dynamic.length} pages), robots`)

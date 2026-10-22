@@ -219,8 +219,9 @@ function AboutBlock({ b }: { b: Block }) {
   const { t, pick } = useLang()
   const site = useSite()
   const about = site.data?.website.about
-  const title = b.title_ar ? t(b.title_ar, b.title_fr || b.title_ar) : about ? pick(about, 'title') : ''
-  const text = b.text_ar ? t(b.text_ar, b.text_fr || b.text_ar) : about ? pick(about, 'text') : ''
+  const fallback = BRAND === 'services' ? about : undefined
+  const title = b.title_ar ? t(b.title_ar, b.title_fr || b.title_ar) : fallback ? pick(fallback, 'title') : ''
+  const text = b.text_ar ? t(b.text_ar, b.text_fr || b.text_ar) : fallback ? pick(fallback, 'text') : ''
   if (!text) return null
   return (
     <section className="mx-auto max-w-3xl px-4 pt-20 text-center">
