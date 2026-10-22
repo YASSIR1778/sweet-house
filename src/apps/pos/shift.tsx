@@ -167,8 +167,8 @@ export function OpenShiftScreen({ device, status, onOpened }: { device: DeviceIn
         </h1>
         <p className="mt-1 text-white/60">
           {c?.last_employee
-            ? t(`استلام الوردية من ${c.last_employee}: تأكدي من المبالغ التالية`, `Reprise de la caisse de ${c.last_employee} : vérifiez les montants`)
-            : t('تأكدي من المبالغ التالية قبل البدء', 'Vérifiez les montants avant de commencer')}
+            ? t(`استلام الوردية من ${c.last_employee}: تأكّد من المبالغ التالية`, `Reprise de la caisse de ${c.last_employee} : vérifiez les montants`)
+            : t('تأكّد من المبالغ التالية قبل البدء', 'Vérifiez les montants avant de commencer')}
         </p>
       </div>
       {can('cash.shift') ? (
@@ -178,7 +178,7 @@ export function OpenShiftScreen({ device, status, onOpened }: { device: DeviceIn
           {cashDiff !== 0 && <ReasonPicker reasons={CASH_REASONS} reason={cashReason.reason} note={cashReason.note} onReason={(reason) => setCashReason({ ...cashReason, reason })} onNote={(note) => setCashReason({ ...cashReason, note })} />}
           {showRiyad && c && (
             <>
-              <CheckRow label={t('رصيد رياض', 'Solde Riyad')} hint={t('قارنيه بالرصيد الظاهر في المنصة الآن', 'Comparez avec la plateforme')} expected={c.riyad} value={riyad} onChange={setRiyad} confirmed={ok.riyad} onConfirm={() => setOk((o) => ({ ...o, riyad: true }))} />
+              <CheckRow label={t('رصيد رياض', 'Solde Riyad')} hint={t('قارنه بالرصيد الظاهر في المنصة الآن', 'Comparez avec la plateforme')} expected={c.riyad} value={riyad} onChange={setRiyad} confirmed={ok.riyad} onConfirm={() => setOk((o) => ({ ...o, riyad: true }))} />
               {riyadDiff !== 0 && (
                 <>
                   <ReasonPicker reasons={RIYAD_REASONS} reason={riyadReason.reason} note={riyadReason.note} onReason={(reason) => setRiyadReason({ ...riyadReason, reason })} onNote={(note) => setRiyadReason({ ...riyadReason, note })} />
@@ -195,7 +195,7 @@ export function OpenShiftScreen({ device, status, onOpened }: { device: DeviceIn
             <Store />
             {t('استلام الوردية', 'Prendre la caisse')}
           </Button>
-          {!allChecked && <p className="text-center text-xs text-muted">{t('اضغطي «صحيح» أو «تصحيح» لكل مبلغ', 'Validez ou corrigez chaque montant')}</p>}
+          {!allChecked && <p className="text-center text-xs text-muted">{t('اضغط «صحيح» أو «تصحيح» لكل مبلغ', 'Validez ou corrigez chaque montant')}</p>}
         </Card>
       ) : (
         <div className="mt-8 rounded-2xl bg-white/10 p-5 text-center text-sm">{t('ليست لديك صلاحية فتح الوردية. اطلب من المسيّر فتحها.', "Vous n'avez pas la permission d'ouvrir la caisse.")}</div>
@@ -553,7 +553,7 @@ export function CloseShiftDialog({ status, open, onClose, onClosed }: { device: 
           <Card className="space-y-4 p-4">
             <div className="flex items-center gap-2 font-semibold">
               <Banknote className="size-4 text-brand" />
-              {t('1. عُدّي كل النقود: الدرج + الخزنة معاً', '1. Comptez tout : tiroir + coffre')}
+              {t('1. عُدّ كل النقود: الدرج + الخزنة معاً', '1. Comptez tout : tiroir + coffre')}
             </div>
             {!status.blind && status.totals.expected_before_riyad !== undefined && (
               <div className="flex items-center justify-between rounded-xl bg-surface-2 px-3 py-2.5 text-sm">
@@ -561,7 +561,7 @@ export function CloseShiftDialog({ status, open, onClose, onClosed }: { device: 
                 <span className="num text-lg font-bold">{money(status.totals.expected_before_riyad + (rin ?? 0) - (rout ?? 0))}</span>
               </div>
             )}
-            <Field label={t('مجموع ما عددتِه (الدرج + الخزنة)', 'Total compté (tiroir + coffre)')} required hint={status.blind ? t('اكتبي ما عددتِه فعلاً. سيظهر المتوقع بعد التأكيد.', "Saisissez ce que vous avez compté.") : undefined}>
+            <Field label={t('مجموع ما عددته (الدرج + الخزنة)', 'Total compté (tiroir + coffre)')} required hint={status.blind ? t('اكتب ما عددته فعلاً. سيظهر المتوقع بعد التأكيد.', "Saisissez ce que vous avez compté.") : undefined}>
               <MoneyInput value={counted} onChange={setCounted} autoFocus />
             </Field>
             {counted !== null && !status.blind && status.totals.expected_before_riyad !== undefined && (() => {
@@ -617,7 +617,7 @@ export function CloseShiftDialog({ status, open, onClose, onClosed }: { device: 
                 <div className="num text-2xl font-extrabold text-brand">{money(result.drawer)}</div>
               </div>
               <div className="rounded-2xl border-2 border-navy bg-surface-2 p-4 text-center">
-                <div className="text-sm text-muted">{t('ضعي في الخزنة', 'Mettez au coffre')}</div>
+                <div className="text-sm text-muted">{t('يوضع في الخزنة', 'Mettez au coffre')}</div>
                 <div className="num text-2xl font-extrabold">{money(result.safe ?? 0)}</div>
               </div>
               {(result.drawer ?? 0) < (result.float ?? 0) && <p className="col-span-2 text-xs text-danger">{t('النقود أقل من مبلغ الدرج الثابت، أخبري المالك.', 'Moins que le fond de caisse : prévenez le propriétaire.')}</p>}

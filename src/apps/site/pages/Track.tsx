@@ -163,7 +163,7 @@ function RequestView({ d, phone, reload }: { d: RequestTrack; phone: string; rel
                 <li key={s.key} className="relative flex gap-4 pb-6 last:pb-0">
                   {i < d.statuses.length - 1 && <span className={cn('absolute start-[15px] top-8 h-[calc(100%-24px)] w-0.5', i < current ? 'bg-success' : 'bg-border')} />}
                   <motion.span initial={{ scale: 0.6 }} animate={{ scale: 1 }} transition={{ delay: i * 0.08 }} className={cn('relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border-2', doneStep ? 'border-success bg-success text-white' : 'border-border bg-surface text-subtle', i === current && 'ring-4 ring-success/20')}>
-                    {doneStep ? <Check className="size-4" /> : <span className="num text-xs">{i + 1}</span>}
+                    {doneStep ? <Check className="size-4" /> : <span className="num text-xs">{d.statuses.slice(0, i + 1).filter((x, k) => !(k < current && !at(x.key))).length}</span>}
                   </motion.span>
                   <div className="pt-1">
                     <div className={cn('font-medium', !doneStep && 'text-muted')}>{pick(s, 'name')}</div>
