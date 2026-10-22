@@ -37,7 +37,7 @@ export function ShopPage() {
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="mb-8">
         <h1 className="text-4xl font-extrabold tracking-tight">{t('المتجر', 'Boutique')}</h1>
-        <p className="mt-2 text-muted">{t('أدوات مدرسية ومكتبية بأفضل الأسعار، مع التوصيل لكل المغرب', 'Fournitures scolaires et de bureau, livraison partout au Maroc')}</p>
+        <p className="mt-2 text-muted">{t('كلشي اللي محتاج بثمن واضح، توصيل لكل المغرب والدفع عند الاستلام', 'Tout ce qu’il vous faut à prix clair, livraison partout au Maroc')}</p>
       </div>
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <div className="min-w-60 flex-1">

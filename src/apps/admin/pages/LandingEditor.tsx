@@ -152,7 +152,7 @@ export function LandingEditor({ productId, onClose }: { productId: string | null
             <SwitchRow label={t('🚚 التوصيل مجاني لهذا المنتج', 'Livraison offerte pour ce produit')} checked={!!L.free_delivery} onCheckedChange={(free_delivery) => setL({ ...L, free_delivery })} />
             <SwitchRow label={t('🔥 إظهار «باقي غير X فالمخزون» حين يقلّ', 'Afficher le stock restant')} checked={!!L.urgency} onCheckedChange={(urgency) => setL({ ...L, urgency })} />
             <Field label={t('الضمان / الاستبدال (اختياري)', 'Garantie')}>
-              <Input value={L.guarantee_ar ?? ''} onChange={(e) => setL({ ...L, guarantee_ar: e.target.value })} placeholder={t('مثلاً: استبدال خلال 3 أيام', 'ex. Échange sous 3 jours')} />
+              <Input value={L.guarantee_ar ?? ''} onChange={(e) => setL({ ...L, guarantee_ar: e.target.value })} placeholder={t('مثلاً: إرجاع أو استبدال خلال 7 أيام', 'ex. Retour ou échange sous 7 jours')} />
             </Field>
           </section>
 

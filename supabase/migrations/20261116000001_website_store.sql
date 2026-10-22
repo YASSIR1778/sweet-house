@@ -25,7 +25,7 @@ insert into public.settings (key, value, is_public) values ('website_store', jso
     jsonb_build_object('q_ar', 'كيفاش نتبّع الطلبية؟', 'q_fr', 'Suivre ma commande ?', 'a_ar', 'من صفحة «تتبّع طلبيتي» برقم التتبّع ورقم الهاتف، ولا سولنا فواتساب.', 'a_fr', 'Page « Suivi » avec le code et votre téléphone, ou sur WhatsApp.')),
   'returns', jsonb_build_array(
     jsonb_build_object('text_ar', 'شوف الطلبية قدام الموزع قبل ما تخلص. إلا كان شي مشكل، ما تقبلهاش وما كتخلص والو.', 'text_fr', 'Vérifiez devant le livreur avant de payer. En cas de problème, refusez sans rien payer.'),
-    jsonb_build_object('text_ar', 'عندك 3 أيام من الاستلام باش تطلب الاستبدال إلا كان المنتج فيه عيب أو ماشي هو اللي طلبتي.', 'text_fr', '3 jours après réception pour demander un échange si le produit est défectueux ou non conforme.'),
+    jsonb_build_object('text_ar', 'عندك 7 أيام من الاستلام باش ترجع ولا تبدّل المنتج، حتى بلا سبب (القانون 31.08).', 'text_fr', '7 jours après réception pour retourner ou échanger le produit, même sans motif (loi 31.08).'),
     jsonb_build_object('text_ar', 'المنتج خاصو يرجع فالحالة ديالو، مع الكارطونة ديالو، وما مستعملش.', 'text_fr', 'Le produit doit être retourné neuf, dans son emballage.'),
     jsonb_build_object('text_ar', 'إلا كان الغلط منّا (عيب أو منتج آخر)، الاستبدال والتوصيل علينا.', 'text_fr', 'Si l’erreur vient de nous, l’échange et la livraison sont à notre charge.'),
     jsonb_build_object('text_ar', 'إلا بدّلتي رأيك بلا عيب، التوصيل ديال الرجوع عليك.', 'text_fr', 'Si vous changez d’avis sans défaut, la livraison du retour est à votre charge.'),
