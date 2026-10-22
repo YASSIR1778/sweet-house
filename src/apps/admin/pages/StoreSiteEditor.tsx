@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ExternalLink, Image as ImageIcon, LayoutTemplate, ListChecks, Megaphone, Plus, RotateCcw, Save, Search, ShieldCheck, Trash } from 'lucide-react'
+import { ExternalLink, Image as ImageIcon, LayoutTemplate, ListChecks, Megaphone, Menu, Plus, RotateCcw, Rows3, Save, Search, ShieldCheck, Trash } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -10,14 +10,27 @@ import { cn } from '@/shared/lib/utils'
 import { Button, Card, CardHeader, Field, Input, Skeleton, SwitchRow, Textarea } from '@/shared/ui/primitives'
 import { IconPicker } from '@/shared/ui/pickers'
 import type { StoreSite } from '@/apps/site/data'
+import { blocksOf } from '@/shared/lib/blocks'
+import { BlocksEditor, MenuEditor } from './BlocksEditor'
 
 const TABS = [
-  { id: 'home', ar: 'الصفحة الرئيسية', fr: 'Accueil', icon: LayoutTemplate },
+  { id: 'blocks', ar: 'أقسام الصفحة الرئيسية', fr: 'Sections', icon: Rows3 },
+  { id: 'home', ar: 'الواجهة والوعد', fr: 'Bannière et promesse', icon: LayoutTemplate },
+  { id: 'menu', ar: 'قائمة الموقع', fr: 'Menu', icon: Menu },
   { id: 'trust', ar: 'الضمانات', fr: 'Garanties', icon: ShieldCheck },
   { id: 'faq', ar: 'الأسئلة الشائعة', fr: 'FAQ', icon: ListChecks },
   { id: 'returns', ar: 'الإرجاع والاستبدال', fr: 'Retours', icon: RotateCcw },
   { id: 'seo', ar: 'Google والإعلان', fr: 'SEO et bandeau', icon: Search },
 ] as const
+
+const STORE_MENU = [
+  { label_ar: 'الرئيسية', label_fr: 'Accueil', to: '/' },
+  { label_ar: 'كل المنتجات', label_fr: 'Produits', to: '/shop' },
+  { label_ar: '🎒 اللائحة المدرسية', label_fr: '🎒 Liste scolaire', to: '/school-list' },
+  { label_ar: 'الأسئلة الشائعة', label_fr: 'FAQ', to: '/faq' },
+  { label_ar: 'تتبّع طلبيتي', label_fr: 'Suivi', to: '/track' },
+  { label_ar: 'تواصل معنا', label_fr: 'Contact', to: '/contact' },
+]
 
 function Pair({ label, a, f, onA, onF, area }: { label: string; a: string; f: string; onA: (v: string) => void; onF: (v: string) => void; area?: boolean }) {
   const C = area ? Textarea : Input
@@ -38,12 +51,12 @@ export function StoreSiteEditor() {
   const { sb } = useAuth()
   const { t, lang } = useLang()
   const qc = useQueryClient()
-  const [tab, setTab] = useState<(typeof TABS)[number]['id']>('home')
+  const [tab, setTab] = useState<(typeof TABS)[number]['id']>('blocks')
   const [w, setW] = useState<StoreSite | null>(null)
   const [busy, setBusy] = useState(false)
   const q = useQuery({ queryKey: ['website-store'], queryFn: async () => (await sb.from('settings').select('value').eq('key', 'website_store').single()).data?.value as StoreSite })
   useEffect(() => {
-    if (q.data) setW(q.data)
+    if (q.data) setW({ ...q.data, blocks: blocksOf('store', q.data.blocks, q.data.sections), menu: q.data.menu?.length ? q.data.menu : STORE_MENU })
   }, [q.data])
   if (!w) return <Skeleton className="h-96" />
 
@@ -81,6 +94,8 @@ export function StoreSiteEditor() {
           ))}
         </nav>
         <div className="space-y-5">
+          {tab === 'blocks' && <BlocksEditor brand="store" blocks={w.blocks ?? []} onChange={(blocks) => setW({ ...w, blocks })} />}
+          {tab === 'menu' && <MenuEditor menu={w.menu ?? []} onChange={(menu) => setW({ ...w, menu })} />}
           {tab === 'home' && (
             <>
               <Card>
@@ -97,23 +112,6 @@ export function StoreSiteEditor() {
                 <div className="space-y-4 p-5">
                   <Pair label={t('العنوان', 'Titre')} a={w.promise.title_ar} f={w.promise.title_fr} onA={(title_ar) => setW({ ...w, promise: { ...w.promise, title_ar } })} onF={(title_fr) => setW({ ...w, promise: { ...w.promise, title_fr } })} />
                   <Pair label={t('النص', 'Texte')} a={w.promise.text_ar} f={w.promise.text_fr} onA={(text_ar) => setW({ ...w, promise: { ...w.promise, text_ar } })} onF={(text_fr) => setW({ ...w, promise: { ...w.promise, text_fr } })} area />
-                </div>
-              </Card>
-              <Card>
-                <CardHeader title={t('أقسام الصفحة الرئيسية', 'Sections')} />
-                <div className="grid gap-2 p-5 sm:grid-cols-2">
-                  {(
-                    [
-                      ['categories', 'الأقسام', 'Rayons'],
-                      ['best', 'الأكثر طلباً', 'Les plus demandés'],
-                      ['promise', 'وعد الدفع عند الاستلام', 'Promesse'],
-                      ['latest', 'وصل حديثاً', 'Nouveautés'],
-                      ['school', 'اللائحة المدرسية', 'Liste scolaire'],
-                      ['cross', 'بطاقة موقع الخدمات', 'Lien vers Services'],
-                    ] as const
-                  ).map(([k, a, f]) => (
-                    <SwitchRow key={k} label={t(a, f)} checked={w.sections[k] !== false} onCheckedChange={(v) => setW({ ...w, sections: { ...w.sections, [k]: v } })} />
-                  ))}
                 </div>
               </Card>
             </>

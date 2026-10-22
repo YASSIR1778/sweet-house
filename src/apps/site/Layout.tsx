@@ -12,6 +12,7 @@ import { openStatus, useSite } from './data'
 import { loadPixels } from './pixels'
 import { FocusProductPage } from './pages/ProductLanding'
 import { BRAND, BRANDS, ME, OTHER, SITES } from '@/shared/lib/brand'
+import type { MenuLink } from '@/shared/lib/blocks'
 
 const LINKS =
   BRAND === 'store'
@@ -31,6 +32,7 @@ const LINKS =
         { to: '/track', ar: 'تتبّع طلب', fr: 'Suivi' },
         { to: '/contact', ar: 'تواصل معنا', fr: 'Contact' },
       ]
+const DEFAULT_LINKS = LINKS
 const OTHER_LINK = { url: SITES[OTHER], ...BRANDS[OTHER], icon: OTHER === 'store' ? '🛍️' : '🗂️' }
 
 export function useSeo(title?: string) {
@@ -84,6 +86,8 @@ export function SiteLayout() {
   }, [])
 
   const store = site.data?.store
+  const saved = (BRAND === 'store' ? site.data?.storeSite?.menu : (site.data?.website as { menu?: MenuLink[] } | undefined)?.menu) ?? []
+  const LINKS = saved.length ? saved.map((m) => ({ to: m.to, ar: m.label_ar, fr: m.label_fr || m.label_ar, end: m.to === '/' })) : DEFAULT_LINKS
   const ann = BRAND === 'store' ? site.data?.storeSite?.announcement : site.data?.website.announcement
   const wa = store?.whatsapp || '212697740298'
 

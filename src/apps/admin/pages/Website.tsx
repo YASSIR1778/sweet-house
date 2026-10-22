@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ExternalLink, Globe, Globe2, Image as ImageIcon, LayoutTemplate, ListChecks, MessageCircle, Plus, Save, Scale, Trash, Truck, Wallet } from 'lucide-react'
+import { ExternalLink, Globe, Globe2, Image as ImageIcon, LayoutTemplate, ListChecks, Menu, MessageCircle, Plus, Rows3, Save, Scale, Trash, Truck, Wallet } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -14,6 +14,17 @@ import { ImageInput } from '@/shared/ui/media'
 import { resetWhatsAppMode } from '@/shared/lib/whatsapp'
 import { SITES } from '@/shared/lib/brand'
 import { StoreSiteEditor } from './StoreSiteEditor'
+import { blocksOf, type Block, type MenuLink } from '@/shared/lib/blocks'
+import { BlocksEditor, MenuEditor } from './BlocksEditor'
+
+const SERVICES_MENU: MenuLink[] = [
+  { label_ar: 'الرئيسية', label_fr: 'Accueil', to: '/' },
+  { label_ar: 'الخدمات الإدارية', label_fr: 'Services administratifs', to: '/services' },
+  { label_ar: '🌍 خارج المغرب', label_fr: '🌍 MRE', to: '/abroad' },
+  { label_ar: 'وثائقي', label_fr: 'Mes documents', to: '/my' },
+  { label_ar: 'تتبّع طلب', label_fr: 'Suivi', to: '/track' },
+  { label_ar: 'تواصل معنا', label_fr: 'Contact', to: '/contact' },
+]
 
 type W = {
   announcement: { enabled: boolean; text_ar: string; text_fr: string }
@@ -24,6 +35,8 @@ type W = {
   sections: Record<string, boolean>
   seo: { description_ar: string; description_fr: string }
   legal: { privacy_ar: string; privacy_fr: string; terms_ar: string; terms_fr: string }
+  blocks?: Block[]
+  menu?: MenuLink[]
 }
 type D = { enabled: boolean; cod: boolean; default_price: number; free_above: number | null; zones: { city: string; city_ar: string; price: number }[] }
 type P = { cod: boolean; in_store: boolean; bank_transfer: boolean; bank_name: string; rib: string; account_holder: string }
@@ -32,7 +45,9 @@ type WA = { mode: string; number: string; templates: Record<string, string>; tem
 
 type Site = 'services' | 'store' | 'shared'
 const TABS = [
-  { id: 'home', site: 'services', ar: 'الصفحة الرئيسية', fr: "Page d'accueil", icon: LayoutTemplate },
+  { id: 'blocks', site: 'services', ar: 'أقسام الصفحة الرئيسية', fr: 'Sections', icon: Rows3 },
+  { id: 'home', site: 'services', ar: 'الواجهة والمزايا', fr: 'Bannière et atouts', icon: LayoutTemplate },
+  { id: 'menu', site: 'services', ar: 'قائمة الموقع', fr: 'Menu', icon: Menu },
   { id: 'faq', site: 'services', ar: 'الأسئلة الشائعة', fr: 'FAQ', icon: ListChecks },
   { id: 'abroad', site: 'services', ar: 'مغاربة العالم', fr: 'Marocains du monde', icon: Globe2 },
   { id: 'statuses', site: 'services', ar: 'مراحل الطلبات', fr: 'Étapes des demandes', icon: ListChecks },
@@ -60,7 +75,7 @@ export function WebsitePage() {
   const { t, lang } = useLang()
   const qc = useQueryClient()
   const [site, setSite] = useState<Site>('services')
-  const [tab, setTab] = useState<(typeof TABS)[number]['id']>('home')
+  const [tab, setTab] = useState<(typeof TABS)[number]['id']>('blocks')
   const pickSite = (x: Site) => (setSite(x), x !== 'store' && setTab(TABS.find((y) => y.site === x)!.id))
   const [w, setW] = useState<W | null>(null)
   const [d, setD] = useState<D | null>(null)
@@ -80,7 +95,8 @@ export function WebsitePage() {
   })
   useEffect(() => {
     if (!data.data) return
-    setW(data.data.m.website as W)
+    const web = data.data.m.website as W
+    setW({ ...web, blocks: blocksOf('services', web.blocks, web.sections), menu: web.menu?.length ? web.menu : SERVICES_MENU })
     setD(data.data.m.delivery as D)
     setP(data.data.m.online_payments as P)
     setAb((data.data.m.abroad as AB) ?? { enabled: true, post_note_ar: '', post_note_fr: '', payment_note_ar: '', payment_note_fr: '' })
@@ -95,7 +111,7 @@ export function WebsitePage() {
         const { error } = await sb.from('settings').update({ value }).eq('key', key)
         if (error) throw error
       }
-      if (['home', 'faq', 'legal'].includes(tab)) await up('website', w)
+      if (['blocks', 'menu', 'home', 'faq', 'legal'].includes(tab)) await up('website', w)
       if (tab === 'delivery') await up('delivery', d)
       if (tab === 'payments') await up('online_payments', p)
       if (tab === 'abroad' && ab) await up('abroad', ab)
@@ -172,6 +188,8 @@ export function WebsitePage() {
           ))}
         </nav>
         <div className="space-y-5">
+          {tab === 'blocks' && <BlocksEditor brand="services" blocks={w.blocks ?? []} onChange={(blocks) => setW({ ...w, blocks })} />}
+          {tab === 'menu' && <MenuEditor menu={w.menu ?? []} onChange={(menu) => setW({ ...w, menu })} />}
           {tab === 'home' && (
             <>
               <Card>
@@ -214,21 +232,6 @@ export function WebsitePage() {
                 <div className="space-y-4 p-5">
                   <Pair label={t('العنوان', 'Titre')} a={w.about.title_ar} f={w.about.title_fr} onA={(title_ar) => setW({ ...w, about: { ...w.about, title_ar } })} onF={(title_fr) => setW({ ...w, about: { ...w.about, title_fr } })} />
                   <Pair label={t('النص', 'Texte')} a={w.about.text_ar} f={w.about.text_fr} onA={(text_ar) => setW({ ...w, about: { ...w.about, text_ar } })} onF={(text_fr) => setW({ ...w, about: { ...w.about, text_fr } })} area />
-                </div>
-              </Card>
-              <Card>
-                <CardHeader title={t('أقسام الصفحة الرئيسية', 'Sections')} />
-                <div className="grid gap-2 p-5 sm:grid-cols-2">
-                  {(
-                    [
-                      ['features', 'المزايا', 'Atouts'],
-                      ['services', 'الخدمات الإدارية', 'Services'],
-                      ['about', 'من نحن', 'À propos'],
-                      ['faq', 'الأسئلة الشائعة', 'FAQ'],
-                    ] as const
-                  ).map(([k, a, f]) => (
-                    <SwitchRow key={k} label={t(a, f)} checked={w.sections[k] !== false} onCheckedChange={(v) => setW({ ...w, sections: { ...w.sections, [k]: v } })} />
-                  ))}
                 </div>
               </Card>
               <Card>
