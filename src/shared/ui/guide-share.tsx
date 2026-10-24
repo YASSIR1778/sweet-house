@@ -92,7 +92,11 @@ export function SendGuideDialog({ service: s, guide: g, onClose }: { service: Gu
   const team = useQuery({
     queryKey: ['guide-team'],
     enabled: !!s,
-    queryFn: async () => (await sb.from('employees').select('id, full_name, phone, color, avatar_url').eq('is_active', true).is('deleted_at', null).order('full_name')).data as Emp[],
+    queryFn: async () => {
+      const { data, error } = await sb.rpc('guide_team')
+      if (error) throw error
+      return data as Emp[]
+    },
   })
   const others = (team.data ?? []).filter((e) => e.id !== me?.id)
   const close = () => (setPicked([]), setNote(''), onClose())
@@ -197,7 +201,7 @@ export function GuideLinksDialog({ service: s, onClose }: { service: GuideServic
           <div className="flex flex-wrap gap-2">
             {[7, 30, 90, 0].map((d) => (
               <button key={d} onClick={() => setDays(d)} className={cn('num rounded-lg border px-3 py-1.5 text-sm', days === d ? 'border-brand bg-brand-50 text-brand' : 'border-border')}>
-                {d ? t(`${d} يوماً`, `${d} jours`) : t('بدون انتهاء', 'Sans expiration')}
+                {d ? t(d <= 10 ? `${d} أيام` : `${d} يوماً`, `${d} jours`) : t('بدون انتهاء', 'Sans expiration')}
               </button>
             ))}
           </div>
