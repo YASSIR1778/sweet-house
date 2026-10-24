@@ -25,6 +25,7 @@ export function BulkPricesSheet({ open, onClose, services }: { open: boolean; on
   const [rows, setRows] = useState<Record<string, Row>>({})
   const [q, setQ] = useState('')
   const [onlyZero, setOnlyZero] = useState(false)
+  const [onlyHidden, setOnlyHidden] = useState(false)
   const [busy, setBusy] = useState(false)
   useEffect(() => {
     if (open) setRows(Object.fromEntries(list.map((s) => [s.id, { id: s.id, price: s.price, unit_cost: s.unit_cost ?? 0, duration_ar: s.duration_ar, target_hours: s.target_hours, is_online: s.is_online }])))
@@ -34,7 +35,12 @@ export function BulkPricesSheet({ open, onClose, services }: { open: boolean; on
     const r = rows[s.id]
     return r && (r.price !== s.price || (r.unit_cost ?? 0) !== (s.unit_cost ?? 0) || (r.duration_ar ?? '') !== (s.duration_ar ?? '') || r.target_hours !== s.target_hours || r.is_online !== s.is_online)
   })
-  const shown = list.filter((s) => (!q || s.name_ar.includes(q) || s.name_fr.toLowerCase().includes(q.toLowerCase())) && (!onlyZero || (rows[s.id]?.price ?? 0) === 0))
+  const shown = list.filter(
+    (s) =>
+      (!q || s.name_ar.includes(q) || s.name_fr.toLowerCase().includes(q.toLowerCase())) &&
+      (!onlyZero || (rows[s.id]?.price ?? 0) === 0) &&
+      (!onlyHidden || kind !== 'admin' || !s.is_online),
+  )
   const set = (id: string, patch: Partial<Row>) => setRows((x) => ({ ...x, [id]: { ...x[id], ...patch } }))
 
   const save = async () => {
@@ -64,6 +70,12 @@ export function BulkPricesSheet({ open, onClose, services }: { open: boolean; on
             <Switch checked={onlyZero} onCheckedChange={setOnlyZero} />
             {t('بدون سعر فقط', 'Sans prix seulement')}
           </label>
+          {kind === 'admin' && (
+            <label className="flex items-center gap-2 text-sm">
+              <Switch checked={onlyHidden} onCheckedChange={setOnlyHidden} />
+              {t('غير الظاهرة في الموقع فقط', 'Hors ligne seulement')}
+            </label>
+          )}
         </div>
         <div className="overflow-x-auto rounded-xl border border-border">
           <table className="w-full text-sm">
@@ -71,7 +83,7 @@ export function BulkPricesSheet({ open, onClose, services }: { open: boolean; on
               <tr>
                 <th className="px-3 py-2 text-start">{t('الخدمة', 'Service')}</th>
                 <th className="px-2 py-2 text-start">{t('السعر', 'Prix')}</th>
-                <th className="px-2 py-2 text-start">{kind === 'counter' ? t('التكلفة (ورق + حبر)', 'Coût (papier + encre)') : t('التكلفة (رسوم رسمية)', 'Coût (frais officiels)')}</th>
+                <th className="px-2 py-2 text-start">{kind === 'counter' ? t('التكلفة (ورق + حبر)', 'Coût (papier + encre)') : t('التكلفة (رسوم داخلة في الثمن)', 'Coût (frais inclus)')}</th>
                 <th className="px-2 py-2 text-start">{t('الربح', 'Marge')}</th>
                 {kind === 'admin' && (
                   <>

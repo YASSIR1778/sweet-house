@@ -255,7 +255,7 @@ export function ServiceEditor({
             </div>
           )}
           <div className="grid items-end gap-3 sm:grid-cols-3">
-            <Field label={t(`التكلفة لكل ${f.unit_ar || 'وحدة'}`, `Coût par ${f.unit_fr || 'unité'}`)} hint={f.kind === 'counter' ? t('ورق + حبر… مثلاً 0,25 للصفحة', 'Papier + encre… ex. 0,25 / page') : t('الرسوم الرسمية التي تدفعها (تمبر، بوابة…)', 'Frais officiels payés (timbre, portail…)')}>
+            <Field label={t(`التكلفة لكل ${f.unit_ar || 'وحدة'}`, `Coût par ${f.unit_fr || 'unité'}`)} hint={f.kind === 'counter' ? t('ورق + حبر… مثلاً 0,25 للصفحة', 'Papier + encre… ex. 0,25 / page') : t('رسوم تدفعها أنت وداخلة في الثمن فقط (إن كان الزبون يدفعها على حدة اتركها 0)', 'Frais payés par vous et inclus dans le prix (0 si le client les paie à part)')}>
               <MoneyInput value={f.unit_cost ?? 0} onChange={(v) => set('unit_cost', v ?? 0)} />
             </Field>
             {f.pricing_mode !== 'open' && f.price > 0 && (
