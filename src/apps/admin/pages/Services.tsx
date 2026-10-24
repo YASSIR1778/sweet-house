@@ -56,7 +56,7 @@ export function ServicesPage() {
     counter: services.data?.filter((s) => s.kind === 'counter').length ?? 0,
     admin: services.data?.filter((s) => s.kind === 'admin').length ?? 0,
   }
-  const unpriced = (services.data ?? []).filter((s) => s.kind === kind && s.pricing_mode !== 'open' && s.price === 0).length
+  const unpriced = (services.data ?? []).filter((s) => s.kind === kind && s.pricing_mode !== 'open' && s.price === 0 && !s.system_key).length
 
   const toggle = async (s: Service, field: 'is_active' | 'is_online' | 'pos_quick') => {
     const { error } = await sb.from('services').update({ [field]: !s[field] }).eq('id', s.id)
@@ -66,7 +66,7 @@ export function ServicesPage() {
 
   const priceLabel = (s: Service) => {
     if (s.pricing_mode === 'open') return t('مبلغ حر', 'Montant libre')
-    if (s.price === 0) return t('بدون سعر', 'Sans prix')
+    if (s.price === 0) return s.system_key ? t('حسب الطلب', 'Sur devis') : t('بدون سعر', 'Sans prix')
     const unit = s.unit_ar ? ` / ${pick(s, 'unit')}` : ''
     return money(s.price) + unit
   }
@@ -152,7 +152,7 @@ export function ServicesPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="font-medium leading-snug">{pick(s, 'name')}</div>
-                          <div className={`num mt-1 text-sm font-semibold ${s.price === 0 && s.pricing_mode !== 'open' ? 'text-warning' : 'text-brand'}`}>{priceLabel(s)}</div>
+                          <div className={`num mt-1 text-sm font-semibold ${s.price === 0 && s.pricing_mode !== 'open' && !s.system_key ? 'text-warning' : 'text-brand'}`}>{priceLabel(s)}</div>
                         </div>
                       </div>
                       <div className="mt-3 flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
