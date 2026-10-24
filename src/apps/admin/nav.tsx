@@ -2,6 +2,7 @@ import { lazy, type ReactNode } from 'react'
 import {
   Banknote,
   Barcode,
+  BookOpen,
   Bot,
   Coins,
   BarChart3,
@@ -33,6 +34,7 @@ import { DashboardPage } from './pages/Dashboard'
 const ProductsPage = lazy(() => import('./pages/Products').then((m) => ({ default: m.ProductsPage })))
 const CategoriesPage = lazy(() => import('./pages/Categories').then((m) => ({ default: m.CategoriesPage })))
 const ServicesPage = lazy(() => import('./pages/Services').then((m) => ({ default: m.ServicesPage })))
+const GuidesPage = lazy(() => import('./pages/Guides').then((m) => ({ default: m.GuidesPage })))
 const SalesPage = lazy(() => import('./pages/Sales').then((m) => ({ default: m.SalesPage })))
 const CustomersPage = lazy(() => import('./pages/Customers').then((m) => ({ default: m.CustomersPage })))
 const EmployeesPage = lazy(() => import('./pages/Employees').then((m) => ({ default: m.EmployeesPage })))
@@ -99,6 +101,8 @@ export const NAV: NavGroup[] = [
       { path: '/products', ar: 'المنتجات', fr: 'Produits', icon: Package, perm: 'products.manage', element: <ProductsPage /> },
       { path: '/categories', ar: 'الفئات', fr: 'Catégories', icon: Tags, perm: 'products.manage', element: <CategoriesPage /> },
       { path: '/services', ar: 'الخدمات', fr: 'Services', icon: Sparkles, perm: 'services.manage', element: <ServicesPage /> },
+      // every dashboard user reads the guides; editing and sharing check their own permissions
+      { path: '/guides', ar: 'أدلة الخدمات', fr: 'Guides des services', icon: BookOpen, element: <GuidesPage /> },
       { path: '/labels', ar: 'ملصقات الباركود', fr: 'Étiquettes', icon: Barcode, perm: 'labels.print', element: <LabelsPage /> },
       { path: '/stock', ar: 'المخزون والجرد', fr: 'Stock & inventaire', icon: Boxes, perm: 'stock.inventory', element: <StockPage /> },
       { path: '/purchases', ar: 'المشتريات والموردون', fr: 'Achats & fournisseurs', icon: Truck, perm: 'purchases.manage', element: <PurchasesPage /> },

@@ -12,6 +12,7 @@ import { ServiceRequestPage, ServicesPage } from './pages/Services'
 import { AbroadPage } from './pages/Abroad'
 import { AlertsPage, MyDocumentsPage, UnsubscribePage } from './pages/Customer'
 import { TrackPage } from './pages/Track'
+import { SharedGuidePage } from './pages/SharedGuide'
 import { ContactPage, LegalPage, NotFoundPage } from './pages/Info'
 import { captureCampaign } from './data'
 
@@ -50,6 +51,7 @@ const pages =
         { path: 'abroad', element: <AbroadPage /> },
         { path: 'my', element: <MyDocumentsPage /> },
         { path: 'alerts', element: <AlertsPage /> },
+        { path: 'guide/:token', element: <SharedGuidePage /> },
         ...common,
       ]
 

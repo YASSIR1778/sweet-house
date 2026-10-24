@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'motion/react'
 import {
   Banknote,
+  BookOpen,
   CheckCircle2,
   Clock,
   CreditCard,
@@ -53,6 +54,8 @@ import { useOnlinePending } from '@/shared/lib/online'
 import { AttendanceButton } from './attendance'
 import { AssistantButton } from '@/apps/admin/Assistant'
 import { WritingButton } from '@/shared/ui/ai-tools'
+import { hasGuide, useServiceGuides } from '@/shared/ui/guide'
+import { GuidesSheet, useGuideInbox } from './guides'
 
 type PosSettings = { allow_negative_stock: boolean; sound: boolean; auto_print: boolean; quick_cash: number[] }
 type Held = { id: string; at: string; label: string; state: CartState }
@@ -92,6 +95,11 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
   const [customOpen, setCustomOpen] = useState(false)
   const legal = receiptCfg.data?.legal as { tax_rates?: number[]; default_tax_rate?: number } | undefined
   const [onlineOpen, setOnlineOpen] = useState(false)
+  // «دليل الخدمات»: the list, or straight to one service's guide (from a cart line)
+  const [guides, setGuides] = useState<{ service: string | null } | null>(null)
+  const serviceGuides = useServiceGuides(sb)
+  const guideInbox = useGuideInbox(sb, me?.id)
+  const guidesUnread = (guideInbox.data ?? []).filter((n) => !n.read_at).length
   // Training mode: sales are simulated on this screen only (nothing saved, no stock, no cash).
   const [training, setTrainingState] = useState(trainingStore.get)
   const [trainingAsk, setTrainingAsk] = useState(false)
@@ -421,6 +429,12 @@ Total : ${money(totals.total)}`,
             </Button>
           </Tooltip>
         )}
+        <Tooltip content={t('دليل الخدمات', 'Guides des services')}>
+          <Button variant="ghost" size="icon" className="relative" onClick={() => setGuides({ service: null })}>
+            <BookOpen />
+            {guidesUnread > 0 && <span className="num absolute -end-0.5 -top-0.5 flex size-4.5 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white">{guidesUnread}</span>}
+          </Button>
+        </Tooltip>
         <Tooltip content={t('المبيعات الأخيرة', 'Ventes récentes')}>
           <Button variant="ghost" size="icon" onClick={notInTraining(() => setHistoryOpen(true))}>
             <Clock />
@@ -644,7 +658,14 @@ Total : ${money(totals.total)}`,
                             onChange={(discount) => dispatch({ type: 'lineDiscount', key: l.key, discount })}
                           />
                         )}
-                        <button className="ms-auto flex size-8 items-center justify-center rounded-lg text-subtle hover:bg-danger/10 hover:text-danger" onClick={() => dispatch({ type: 'remove', key: l.key })}>
+                        {l.service && hasGuide(serviceGuides.data?.guides.get(l.service.id)) && (
+                          <Tooltip content={t('دليل هذه الخدمة', 'Guide de ce service')}>
+                            <button className="ms-auto flex size-8 items-center justify-center rounded-lg text-subtle hover:bg-brand-50 hover:text-brand" onClick={() => setGuides({ service: l.service!.id })}>
+                              <BookOpen className="size-4" />
+                            </button>
+                          </Tooltip>
+                        )}
+                        <button className={cn('flex size-8 items-center justify-center rounded-lg text-subtle hover:bg-danger/10 hover:text-danger', !(l.service && hasGuide(serviceGuides.data?.guides.get(l.service.id))) && 'ms-auto')} onClick={() => dispatch({ type: 'remove', key: l.key })}>
                           <X className="size-4" />
                         </button>
                       </div>
@@ -745,6 +766,7 @@ Total : ${money(totals.total)}`,
       <HistorySheet open={historyOpen} onClose={() => setHistoryOpen(false)} onPrint={setPrintSale} device={device} />
       <ShiftSheet device={device} status={shift} open={shiftOpen} onClose={() => setShiftOpen(false)} onClosed={onShiftChange} />
       <OnlineSheet device={device} open={onlineOpen} onClose={() => setOnlineOpen(false)} />
+      <GuidesSheet open={!!guides} initial={guides?.service} onClose={() => (setGuides(null), guideInbox.refetch())} />
       <Sheet open={queueOpen} onOpenChange={setQueueOpen} title={t('مبيعات بانتظار الإرسال', 'Ventes en attente d’envoi')} width="max-w-md">
         <div className="space-y-3">
           <Button className="w-full" onClick={() => queue.sync()} loading={queue.syncing} disabled={!online}>

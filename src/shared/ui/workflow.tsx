@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
-import { AlertOctagon, BookOpen, Camera, CheckCircle2, ChevronDown, ClipboardCopy, Copy, ExternalLink, Hash, MessageSquareText, PlayCircle, Send, Undo2 } from 'lucide-react'
+import { AlertOctagon, BookOpen, Camera, CheckCircle2, ChevronDown, ClipboardCopy, Copy, ExternalLink, Hash, MessageSquareText, PlayCircle, Undo2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -10,8 +10,10 @@ import { siteTrackUrl, uploadStaffFile } from '@/shared/lib/online'
 import type { GuideStep, ServiceField } from '@/shared/lib/types'
 import { cn, fillTemplate } from '@/shared/lib/utils'
 import { sendWhatsApp } from '@/shared/lib/whatsapp'
-import { Badge, Button, Card, Field, Input, Spinner, Textarea } from './primitives'
+import { Badge, Button, Card, Field, Input, Spinner } from './primitives'
 import { Dialog } from './overlay'
+import { youtubeId } from './guide'
+import { SuggestGuideDialog } from './guide-share'
 
 export type WorkflowGuide = {
   tips_ar: string | null
@@ -58,8 +60,6 @@ const BLOCK_REPLY: Record<string, string> = {
   payment: 'مرحباً {name} 👋\nبخصوص طلبكم {number}: هناك مشكل في عملية الأداء، سنعيد المحاولة ونخبركم.\n— مكتبة سويت هاوس',
 }
 
-const youtubeId = (u: string) => u.match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/)?.[1]
-
 function useRefresh(id: string) {
   const qc = useQueryClient()
   return () => {
@@ -76,7 +76,6 @@ export function WorkflowCard({ r, guide }: { r: WorkflowRequest; guide: Workflow
   const [open, setOpen] = useState(true)
   const [video, setVideo] = useState(false)
   const [suggest, setSuggest] = useState(false)
-  const [text, setText] = useState('')
   const steps = guide.steps ?? []
   const done = steps.filter((_, i) => r.progress?.[String(i)]).length
   const pct = steps.length ? Math.round((done / steps.length) * 100) : 0
@@ -88,14 +87,6 @@ export function WorkflowCard({ r, guide }: { r: WorkflowRequest; guide: Workflow
     setBusy(null)
     if (error) return toast.error(errorMessage(error, lang))
     refresh()
-  }
-  const sendSuggestion = async () => {
-    if (!r.service?.id && !r.service_id) return
-    const { error } = await sb.rpc('suggest_guide_edit', { p_service: r.service?.id ?? r.service_id, p_text: text })
-    if (error) return toast.error(errorMessage(error, lang))
-    toast.success(t('شكراً! وصل اقتراحك للمالك 🙏', 'Merci ! Suggestion envoyée 🙏'))
-    setSuggest(false)
-    setText('')
   }
 
   if (!steps.length && !guide.tips_ar && !guide.links?.length && !guide.images?.length && !guide.video_url) return null
@@ -182,15 +173,7 @@ export function WorkflowCard({ r, guide }: { r: WorkflowRequest; guide: Workflow
           </button>
         </div>
       )}
-      <Dialog open={suggest} onOpenChange={setSuggest} size="sm" title={t('اقتراح تعديل على الدليل', 'Suggérer une correction')}>
-        <div className="space-y-3">
-          <Textarea rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder={t('مثلاً: زر «طلب جديد» أصبح في أعلى الصفحة، أو الرابط تغيّر إلى…', 'ex. le bouton a changé de place…')} autoFocus />
-          <Button className="w-full" onClick={sendSuggestion} disabled={text.trim().length < 5}>
-            <Send />
-            {t('إرسال للمالك', 'Envoyer')}
-          </Button>
-        </div>
-      </Dialog>
+      <SuggestGuideDialog serviceId={suggest ? (r.service?.id ?? r.service_id ?? null) : null} onClose={() => setSuggest(false)} />
     </Card>
   )
 }
