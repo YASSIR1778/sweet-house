@@ -93,7 +93,7 @@ export function ServiceCard({ s, color, index = 0, to }: { s: Service; color?: s
               {pick(s, 'duration')}
             </span>
           )}
-          <span className={cn('num ms-auto font-bold', s.price ? 'text-brand' : 'text-muted')}>{s.price ? money(s.price) : t('السعر عند التواصل', 'Sur devis')}</span>
+          <span className={cn('num ms-auto font-bold', s.price ? 'text-brand' : 'text-muted')}>{s.price ? money(s.price) + (s.unit_ar ? ` / ${pick(s, 'unit')}` : '') : t('السعر عند التواصل', 'Sur devis')}</span>
           <ArrowLeft className="size-4 text-subtle transition-transform group-hover:text-brand ltr:rotate-180" />
         </div>
       </Link>

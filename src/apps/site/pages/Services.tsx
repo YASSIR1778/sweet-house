@@ -27,10 +27,13 @@ export function ServicesPage() {
   const [cat, setCat] = useState<string | null>(null)
   useSeo(t('الخدمات الإدارية', 'Services administratifs'))
 
+  const listed = useMemo(() => (data.data?.services ?? []).filter((x) => x.system_key !== 'custom_request' && x.system_key !== 'school_list'), [data.data])
+  // only categories that have a service on the site (a category whose services are all hidden shows no chip)
+  const categories = useMemo(() => (data.data?.categories ?? []).filter((c) => listed.some((x) => x.category_id === c.id)), [data.data, listed])
   const groups = useMemo(() => {
-    const list = (data.data?.services ?? []).filter((x) => x.system_key !== 'custom_request' && x.system_key !== 'school_list').filter((x) => matchesSearch(q, x.name_ar, x.name_fr, x.description_ar, x.description_fr))
-    return (data.data?.categories ?? []).filter((c) => !cat || c.id === cat).map((c) => ({ c, items: list.filter((x) => x.category_id === c.id) })).filter((g) => g.items.length)
-  }, [data.data, q, cat])
+    const list = listed.filter((x) => matchesSearch(q, x.name_ar, x.name_fr, x.description_ar, x.description_fr))
+    return categories.filter((c) => !cat || c.id === cat).map((c) => ({ c, items: list.filter((x) => x.category_id === c.id) })).filter((g) => g.items.length)
+  }, [listed, categories, q, cat])
 
   return (
     <>
@@ -57,7 +60,7 @@ export function ServicesPage() {
           <button onClick={() => setCat(null)} className={cn('shrink-0 rounded-full border px-4 py-2 text-sm font-medium', !cat ? 'border-transparent bg-navy text-white' : 'border-border bg-surface text-muted')}>
             {t('الكل', 'Tout')}
           </button>
-          {data.data?.categories.map((c) => (
+          {categories.map((c) => (
             <button key={c.id} onClick={() => setCat(c.id)} className={cn('flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium', cat === c.id ? 'border-transparent text-white' : 'border-border bg-surface text-muted')} style={cat === c.id ? { background: c.color } : undefined}>
               <DynamicIcon name={c.icon} className="size-4" />
               {pick(c, 'name')}
@@ -413,7 +416,10 @@ export function ServiceRequestPage({ serviceId }: { serviceId?: string } = {}) {
           <Card className="space-y-3 p-5">
             <div className="flex items-center justify-between">
               <span className="text-muted">{t('السعر', 'Prix')}</span>
-              <span className="num text-2xl font-extrabold text-brand">{s.price ? money(s.price) : t('حسب الطلب', 'Sur devis')}</span>
+              <span className="num text-2xl font-extrabold text-brand">
+                {s.price ? money(s.price) : t('حسب الطلب', 'Sur devis')}
+                {!!s.price && s.unit_ar && <span className="text-sm font-medium text-muted"> / {pick(s, 'unit')}</span>}
+              </span>
             </div>
             {s.duration_ar && (
               <div className="flex items-center justify-between text-sm">
