@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react'
 import { cn } from '@/shared/lib/utils'
 import { COLORS, ICONS } from './icon'
+import { useLang } from '@/shared/lib/i18n'
 import { parseMoney, toInput } from '@/shared/lib/money'
 import { Input } from './primitives'
 import { useEffect, useState } from 'react'
@@ -55,27 +56,34 @@ export function MoneyInput({
   className?: string
   autoFocus?: boolean
 }) {
+  const { t } = useLang()
   const [text, setText] = useState(toInput(value))
   useEffect(() => {
     if (parseMoney(text) !== (value ?? null)) setText(toInput(value))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value])
+  // text that cannot be read counts as empty for the form: say so instead of silently disabling its button
+  const invalid = text !== '' && parseMoney(text) === null
   return (
-    <div className={cn('relative', className)}>
-      <Input
-        inputMode="decimal"
-        dir="ltr"
-        value={text}
-        autoFocus={autoFocus}
-        placeholder={placeholder ?? '0.00'}
-        onChange={(e) => {
-          const v = e.target.value.replace(/[^\d.,]/g, '')
-          setText(v)
-          onChange(parseMoney(v))
-        }}
-        className="num pe-12 text-end"
-      />
-      <span className="pointer-events-none absolute inset-y-0 end-3 flex items-center text-xs font-medium text-subtle">DH</span>
+    <div className={className}>
+      <div className="relative">
+        <Input
+          inputMode="decimal"
+          dir="ltr"
+          value={text}
+          autoFocus={autoFocus}
+          placeholder={placeholder ?? '0.00'}
+          aria-invalid={invalid || undefined}
+          onChange={(e) => {
+            const v = e.target.value.replace(/[^\d.,]/g, '')
+            setText(v)
+            onChange(parseMoney(v))
+          }}
+          className={cn('num pe-12 text-end', invalid && 'border-danger focus:border-danger')}
+        />
+        <span className="pointer-events-none absolute inset-y-0 end-3 flex items-center text-xs font-medium text-subtle">DH</span>
+      </div>
+      {invalid && <p className="mt-1 text-xs text-danger">{t('رقم غير مفهوم. اكتبه هكذا: 14816.50', 'Montant illisible. Écrivez-le ainsi : 14816.50')}</p>}
     </div>
   )
 }
