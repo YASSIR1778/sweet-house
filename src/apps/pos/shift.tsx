@@ -285,6 +285,8 @@ export function ShiftSheet({ device, status, open, onClose, onClosed }: { device
   const [action, setAction] = useState<null | 'expense' | 'owner_withdrawal' | 'owner_deposit' | 'riyad_credit' | 'debt' | 'close'>(null)
   const tot = status.totals
   const mv = (k: string) => tot.movements[k]?.amount ?? 0
+  // cash taken from customers: sales paid in cash + debts and online orders paid in cash (a credit sale stays a credit sale)
+  const cashIn = tot.sales_cash + mv('debt_payment') + mv('online_payment')
 
   const actions = [
     { id: 'riyad_credit', ar: 'رياض بالدَّين', fr: 'Riyad à crédit', icon: Wallet, perm: 'riyad.credit', color: '#16A34A' },
@@ -303,7 +305,7 @@ export function ShiftSheet({ device, status, open, onClose, onClosed }: { device
             <Stat label={t('في البداية: الدرج + الخزنة', 'Début : tiroir + coffre')} value={money(status.shift.opening_float + (status.shift.opening_safe ?? 0))} hint={`${t('الدرج', 'Tiroir')} ${money(status.shift.opening_float)} · ${t('الخزنة', 'Coffre')} ${money(status.shift.opening_safe ?? 0)}`} />
             <Stat label={t('المبيعات', 'Ventes')} value={`${money(tot.sales_total)}`} hint={`${tot.sales_count} ${t('بيع', 'ventes')}`} />
             <Stat label={t('رسوم رياض', 'Frais Riyad')} value={money(tot.riyad_fees)} />
-            <Stat label={t('نقداً', 'Espèces')} value={money(tot.sales_cash)} />
+            <Stat label={t('مبيعات نقداً', 'Ventes en espèces')} value={money(tot.sales_cash)} hint={cashIn !== tot.sales_cash ? `${t('كل النقد المحصَّل', 'Total encaissé')} ${money(cashIn)}` : undefined} />
             <Stat label={t('بطاقة', 'Carte')} value={money(tot.sales_card)} hint={tot.card_expected !== undefined && tot.card_expected !== tot.sales_card ? `${t('في جهاز الأداء', 'Au TPE')} ${money(tot.card_expected)}` : undefined} />
             {tot.opening_riyad != null && <Stat label={t('رصيد رياض في البداية', 'Solde Riyad au début')} value={money(tot.opening_riyad)} />}
             {tot.sales_credit > 0 && <Stat label={t('بالدين', 'Crédit')} value={money(tot.sales_credit)} />}

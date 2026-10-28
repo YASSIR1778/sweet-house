@@ -146,6 +146,8 @@ export function ShiftsPage() {
     )
 
   const d = detail.data
+  // cash taken from customers: cash sales + debts and online orders paid in cash
+  const cashIn = d ? d.totals.sales_cash + d.movements.filter((m) => m.type === 'debt_payment' || m.type === 'online_payment').reduce((a, m) => a + m.amount, 0) : 0
   return (
     <>
       <PageHeader
@@ -182,9 +184,10 @@ export function ShiftsPage() {
             <div className="grid gap-3 sm:grid-cols-4">
               {[
                 [t('المبيعات', 'Ventes'), d.totals.sales_total],
-                [t('نقداً', 'Espèces'), d.totals.sales_cash],
+                [t('مبيعات نقداً', 'Ventes espèces'), d.totals.sales_cash],
                 [t('بطاقة', 'Carte'), d.totals.sales_card],
                 [t('بالدين', 'Crédit'), d.totals.sales_credit],
+                ...(cashIn !== d.totals.sales_cash ? [[t('كل النقد المحصَّل (مع الديون المسدّدة)', 'Total encaissé (dettes incluses)'), cashIn]] : []),
                 [t('رسوم رياض', 'Frais Riyad'), d.totals.riyad_fees],
                 [t('رياض داخل', 'Riyad entrées'), d.riyad_in],
                 [t('رياض خارج', 'Riyad sorties'), d.riyad_out],
