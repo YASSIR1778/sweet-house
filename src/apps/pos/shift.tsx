@@ -1,7 +1,7 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'motion/react'
-import { ArrowDownCircle, ArrowUpCircle, Banknote, Camera, CheckCircle2, CircleDollarSign, HandCoins, Lock, LogOut, Printer, Receipt, Store, Wallet } from 'lucide-react'
+import { ArrowDownCircle, ArrowUpCircle, Banknote, Camera, CheckCircle2, CircleDollarSign, CreditCard, HandCoins, Lock, LogOut, Printer, Receipt, Store, Wallet } from 'lucide-react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
@@ -33,6 +33,15 @@ export type ShiftTotals = {
   opening_drawer?: number
   opening_safe?: number
   opening_riyad?: number | null
+  /** card sales + debts paid by card − card refunds: what the card terminal should show */
+  card_expected?: number
+  card_debts?: number
+  card_refunds?: number
+  /** platform balance before this shift's Riyad in / out (only for staff who see Riyad balances) */
+  riyad_base?: number
+  riyad_owner_effect?: number
+  riyad_owner_count?: number
+  opening_corrections?: { kind: 'cash' | 'riyad'; expected: number; actual: number; reason: string; note: string | null; status: string }[]
 }
 export type ShiftStatus =
   | { open: true; shift: { id: string; number: number; employee_id: string; opened_at: string; opening_float: number; opening_safe?: number; opening_riyad?: number | null }; employee_name: string; mine: boolean; blind: boolean; float?: number; totals: ShiftTotals }
@@ -71,6 +80,21 @@ const RIYAD_REASONS: [string, string, string][] = [
   ['missing_operation', 'عملية لم تُسجَّل', 'Opération non saisie'],
   ['other', 'سبب آخر', 'Autre'],
 ]
+
+// Cash movements in the closing statement, in this order (amounts are signed: + into the till, − out of it)
+const MOVEMENTS: [string, string, string][] = [
+  ['debt_payment', 'تسديد ديون نقداً', 'Dettes encaissées'],
+  ['online_payment', 'طلبات أونلاين نقداً', 'Commandes en ligne'],
+  ['owner_deposit', 'إيداع في الدرج', 'Dépôts'],
+  ['expense', 'مصاريف', 'Dépenses'],
+  ['refund', 'إرجاعات نقداً', 'Retours'],
+  ['owner_withdrawal', 'سحب المالك', 'Retraits du propriétaire'],
+  ['riyad_credit', 'رياض بالدين (لم يُدفع نقداً)', 'Riyad à crédit'],
+  ['supplier_payment', 'دفع لمورد', 'Fournisseurs'],
+  ['salary_advance', 'تسبيق راتب', 'Avance sur salaire'],
+  ['adjustment', 'تعديل', 'Ajustement'],
+]
+const reasonLabel = (k: string) => [...CASH_REASONS, ...RIYAD_REASONS].find(([key]) => key === k)
 
 /** One line: expected amount, ✅ to confirm or ✏️ to type what is really there. */
 function CheckRow({ label, hint, expected, value, onChange, confirmed, onConfirm }: { label: string; hint?: string; expected: number; value: number | null; onChange: (v: number | null) => void; confirmed: boolean; onConfirm: () => void }) {
@@ -280,7 +304,8 @@ export function ShiftSheet({ device, status, open, onClose, onClosed }: { device
             <Stat label={t('المبيعات', 'Ventes')} value={`${money(tot.sales_total)}`} hint={`${tot.sales_count} ${t('بيع', 'ventes')}`} />
             <Stat label={t('رسوم رياض', 'Frais Riyad')} value={money(tot.riyad_fees)} />
             <Stat label={t('نقداً', 'Espèces')} value={money(tot.sales_cash)} />
-            <Stat label={t('بطاقة', 'Carte')} value={money(tot.sales_card)} />
+            <Stat label={t('بطاقة', 'Carte')} value={money(tot.sales_card)} hint={tot.card_expected !== undefined && tot.card_expected !== tot.sales_card ? `${t('في جهاز الأداء', 'Au TPE')} ${money(tot.card_expected)}` : undefined} />
+            {tot.opening_riyad != null && <Stat label={t('رصيد رياض في البداية', 'Solde Riyad au début')} value={money(tot.opening_riyad)} />}
             {tot.sales_credit > 0 && <Stat label={t('بالدين', 'Crédit')} value={money(tot.sales_credit)} />}
             {mv('riyad_credit') !== 0 && <Stat label={t('رياض بالدين', 'Riyad crédit')} value={money(-mv('riyad_credit'))} />}
             {mv('debt_payment') !== 0 && <Stat label={t('تسديد ديون', 'Dettes encaissées')} value={money(mv('debt_payment'))} />}
@@ -497,7 +522,44 @@ export function DebtPaymentDialog({ device, open, onClose, initialCustomer }: { 
 }
 
 // ---------------------------------------------------------------- Close shift (blind count)
-type CloseResult = { expected: number; counted: number; difference: number; totals: ShiftTotals; riyad_expected: number; riyad_reported: number | null; drawer?: number; safe?: number; handed_over?: number; float?: number }
+type CloseResult = {
+  expected: number
+  counted: number
+  difference: number
+  totals: ShiftTotals
+  riyad_expected: number
+  riyad_reported: number | null
+  drawer?: number
+  safe?: number
+  handed_over?: number
+  float?: number
+  card_expected?: number
+  card_terminal?: number | null
+}
+
+/** One line of the closing statement: label, signed amount (or a plain total). */
+function Line({ label, hint, amount, signed, total, tone }: { label: string; hint?: string; amount: number; signed?: boolean; total?: boolean; tone?: 'muted' }) {
+  return (
+    <div className={cn('flex items-baseline justify-between gap-3 py-1 text-sm', total && 'mt-1 border-t border-border pt-2 font-bold', tone === 'muted' && 'text-muted')}>
+      <span className="min-w-0">
+        {label}
+        {hint && <span className="ms-1.5 text-xs font-normal text-subtle">{hint}</span>}
+      </span>
+      <span className={cn('num shrink-0', total ? 'text-base' : 'font-semibold')} dir="ltr">
+        {signed ? (amount < 0 ? '− ' : '+ ') : ''}
+        {money(signed ? Math.abs(amount) : amount)}
+      </span>
+    </div>
+  )
+}
+
+/** Difference between what the employee typed and what is expected, shown as she types. */
+function Gap({ value, expected }: { value: number | null; expected: number }) {
+  const { t } = useLang()
+  if (value === null) return null
+  const d = value - expected
+  return <div className={cn('text-sm font-medium', d === 0 ? 'text-success' : d > 0 ? 'text-info' : 'text-danger')}>{d === 0 ? t('✅ مضبوط', '✅ Juste') : `${d > 0 ? t('زيادة', 'Excédent') : t('نقص', 'Manque')}: ${money(Math.abs(d))}`}</div>
+}
 
 export function CloseShiftDialog({ status, open, onClose, onClosed }: { device: DeviceInfo; status: Extract<ShiftStatus, { open: true }>; open: boolean; onClose: () => void; onClosed: () => void }) {
   const { sb, can } = useAuth()
@@ -506,11 +568,23 @@ export function CloseShiftDialog({ status, open, onClose, onClosed }: { device: 
   const [rin, setRin] = useState<number | null>(null)
   const [rout, setRout] = useState<number | null>(null)
   const [rbal, setRbal] = useState<number | null>(null)
+  const [tpe, setTpe] = useState<number | null>(null)
   const [handed, setHanded] = useState<number | null>(null)
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<CloseResult | null>(null)
   const [printing, setPrinting] = useState(false)
+
+  const tot = status.totals
+  const sh = status.shift
+  const openingCash = sh.opening_float + (sh.opening_safe ?? 0)
+  const cashExpected = tot.expected_before_riyad !== undefined ? tot.expected_before_riyad + (rin ?? 0) - (rout ?? 0) : undefined
+  const riyadExpected = tot.riyad_base !== undefined ? tot.riyad_base - (rin ?? 0) + (rout ?? 0) : undefined
+  const cardExpected = tot.card_expected ?? tot.sales_card
+  const moves = MOVEMENTS.filter(([k]) => (tot.movements[k]?.amount ?? 0) !== 0)
+  const corrections = tot.opening_corrections ?? []
+  const float = status.float ?? sh.opening_float
+  const left = counted === null ? null : counted - (handed ?? 0)
 
   const submit = async () => {
     if (counted === null) return toast.error(t('أدخل المبلغ المعدود', 'Saisissez le montant compté'))
@@ -522,13 +596,14 @@ export function CloseShiftDialog({ status, open, onClose, onClosed }: { device: 
     }
     setBusy(true)
     const { data, error } = await sb.rpc('close_shift', {
-      p_shift: status.shift.id,
+      p_shift: sh.id,
       p_counted: counted,
       p_riyad_in: rin ?? 0,
       p_riyad_out: rout ?? 0,
       p_riyad_balance: rbal,
       p_handed_over: handed ?? 0,
       p_notes: notes || null,
+      p_card_terminal: tpe,
     })
     setBusy(false)
     if (error) return toast.error(errorMessage(error, lang))
@@ -541,40 +616,38 @@ export function CloseShiftDialog({ status, open, onClose, onClosed }: { device: 
     setRin(null)
     setRout(null)
     setRbal(null)
+    setTpe(null)
     setHanded(null)
     setNotes('')
     onClosed()
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && (result ? finish() : onClose())} size="md" title={result ? t('نتيجة إغلاق الوردية', 'Résultat de la clôture') : t('إغلاق الوردية', 'Clôture de caisse')} description={`#${status.shift.number} · ${status.employee_name}`}>
+    <Dialog open={open} onOpenChange={(o) => !o && (result ? finish() : onClose())} size="md" title={result ? t('نتيجة إغلاق الوردية', 'Résultat de la clôture') : t('إغلاق الوردية', 'Clôture de caisse')} description={`#${sh.number} · ${status.employee_name}`}>
       {!result ? (
         <div className="space-y-5">
-          <Card className="space-y-4 p-4">
-            <div className="flex items-center gap-2 font-semibold">
-              <Banknote className="size-4 text-brand" />
-              {t('1. عُدّ كل النقود: الدرج + الخزنة معاً', '1. Comptez tout : tiroir + coffre')}
-            </div>
-            {!status.blind && status.totals.expected_before_riyad !== undefined && (
-              <div className="flex items-center justify-between rounded-xl bg-surface-2 px-3 py-2.5 text-sm">
-                <span className="text-muted">{t('المتوقع (مع أرقام رياض أسفله)', 'Attendu (avec Riyad ci-dessous)')}</span>
-                <span className="num text-lg font-bold">{money(status.totals.expected_before_riyad + (rin ?? 0) - (rout ?? 0))}</span>
-              </div>
-            )}
-            <Field label={t('مجموع ما عددته (الدرج + الخزنة)', 'Total compté (tiroir + coffre)')} required hint={status.blind ? t('اكتب ما عددته فعلاً. سيظهر المتوقع بعد التأكيد.', "Saisissez ce que vous avez compté.") : undefined}>
-              <MoneyInput value={counted} onChange={setCounted} autoFocus />
-            </Field>
-            {counted !== null && !status.blind && status.totals.expected_before_riyad !== undefined && (() => {
-              const d = counted - (status.totals.expected_before_riyad + (rin ?? 0) - (rout ?? 0))
-              return <div className={cn('text-sm font-medium', d === 0 ? 'text-success' : d > 0 ? 'text-info' : 'text-danger')}>{d === 0 ? t('✅ مضبوط', '✅ Juste') : `${d > 0 ? t('زيادة', 'Excédent') : t('نقص', 'Manque')}: ${money(Math.abs(d))}`}</div>
-            })()}
-          </Card>
-          <Card className="space-y-4 p-4">
+          {/* 1 · Riyad first: its in / out go into the cash expected below */}
+          <Card className="space-y-3 p-4">
             <div className="flex items-center gap-2 font-semibold">
               <Wallet className="size-4 text-success" />
-              {t('2. أرقام رياض من الكشف', '2. Chiffres Riyad (relevé)')}
+              {t('1. رياض: أرقام الكشف', '1. Riyad : relevé')}
               <RiyadPhotoButton onRead={(r) => (r.total_in !== null && setRin(Math.round(r.total_in * 100)), r.total_out !== null && setRout(Math.round(r.total_out * 100)), r.balance !== null && setRbal(Math.round(r.balance * 100)))} />
             </div>
+            {tot.riyad_base !== undefined && (
+              <div className="rounded-xl bg-surface-2/60 px-3 py-1.5">
+                {tot.opening_riyad != null ? (
+                  <Line label={t('رصيد المنصة في بداية ورديتك', 'Solde au début de la caisse')} amount={tot.opening_riyad} />
+                ) : (
+                  <Line label={t('رصيد رياض المسجّل في النظام', 'Solde Riyad enregistré')} amount={tot.riyad_base} />
+                )}
+                {tot.opening_riyad != null && (tot.riyad_owner_effect ?? 0) !== 0 && (
+                  <Line label={t('عمليات المالك خلال الوردية (شحن، سحب…)', 'Opérations du propriétaire')} hint={`(${tot.riyad_owner_count})`} amount={tot.riyad_owner_effect!} signed />
+                )}
+                {(rin ?? 0) > 0 && <Line label={t('دخل الصندوق من رياض', 'Entrées Riyad')} amount={-(rin ?? 0)} signed />}
+                {(rout ?? 0) > 0 && <Line label={t('خرج من الصندوق لرياض', 'Sorties Riyad')} amount={rout ?? 0} signed />}
+                <Line label={t('= الرصيد المتوقع في المنصة الآن', '= Solde attendu sur la plateforme')} amount={riyadExpected!} total />
+              </div>
+            )}
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label={t('دخل الصندوق من رياض', 'Entrées Riyad')} hint={t('مجموع ما دفعه الزبائن نقداً', 'Total encaissé')}>
                 <MoneyInput value={rin} onChange={setRin} />
@@ -586,16 +659,102 @@ export function CloseShiftDialog({ status, open, onClose, onClosed }: { device: 
             <Field label={t('رصيد المنصة الظاهر في رياض الآن', 'Solde affiché sur Riyad')}>
               <MoneyInput value={rbal} onChange={setRbal} />
             </Field>
+            {riyadExpected !== undefined && <Gap value={rbal} expected={riyadExpected} />}
           </Card>
-          {can('cash.owner_withdrawal') && (
-            <Field label={t('المبلغ الذي سيُسلَّم للمالك / البنك الآن', 'Montant remis au propriétaire')} hint={t('يُخصم من الخزنة', 'Déduit du coffre')}>
-              <MoneyInput value={handed} onChange={setHanded} />
+
+          {/* 2 · Cash: drawer + safe counted once */}
+          <Card className="space-y-3 p-4">
+            <div className="flex items-center gap-2 font-semibold">
+              <Banknote className="size-4 text-brand" />
+              {t('2. النقود: الدرج + الخزنة معاً', '2. Espèces : tiroir + coffre')}
+            </div>
+            <div className="rounded-xl bg-surface-2/60 px-3 py-1.5">
+              <Line label={t('في بداية الوردية', 'Au début')} hint={`${t('الدرج', 'Tiroir')} ${money(sh.opening_float)} · ${t('الخزنة', 'Coffre')} ${money(sh.opening_safe ?? 0)}`} amount={openingCash} />
+              {corrections.map((c, i) => {
+                const r = reasonLabel(c.reason)
+                return (
+                  <p key={i} className="pb-1 text-xs text-warning">
+                    {c.kind === 'cash' ? t('عند الاستلام: كان المتوقع', 'À l’ouverture : attendu') : t('رياض عند الاستلام: كان المتوقع', 'Riyad à l’ouverture : attendu')} {money(c.expected)} {t('ووُجد', 'trouvé')} {money(c.actual)}
+                    {r && ` · ${t(r[1], r[2])}`}
+                    {c.note && ` · ${c.note}`}
+                  </p>
+                )
+              })}
+              {status.blind ? (
+                <p className="py-1 text-xs text-muted">{t('اكتب ما عددته فعلاً. سيظهر المتوقع بعد التأكيد.', 'Saisissez ce que vous avez compté.')}</p>
+              ) : (
+                <>
+                  <Line label={t('مبيعات نقداً', 'Ventes en espèces')} hint={`(${tot.sales_count})`} amount={tot.sales_cash} signed />
+                  {moves.map(([k, ar, fr]) => (
+                    <Line key={k} label={t(ar, fr)} hint={`(${tot.movements[k].count})`} amount={tot.movements[k].amount} signed />
+                  ))}
+                  {(rin ?? 0) > 0 && <Line label={t('دخل رياض', 'Entrées Riyad')} amount={rin ?? 0} signed />}
+                  {(rout ?? 0) > 0 && <Line label={t('خرج رياض', 'Sorties Riyad')} amount={-(rout ?? 0)} signed />}
+                  {cashExpected !== undefined && <Line label={t('= المتوقع الآن في الدرج والخزنة', '= Attendu tiroir + coffre')} amount={cashExpected} total />}
+                </>
+              )}
+            </div>
+            <Field label={t('مجموع ما عددته (الدرج + الخزنة)', 'Total compté (tiroir + coffre)')} required>
+              <MoneyInput value={counted} onChange={setCounted} />
             </Field>
+            {!status.blind && cashExpected !== undefined && <Gap value={counted} expected={cashExpected} />}
+          </Card>
+
+          {/* 3 · Card terminal */}
+          <Card className="space-y-3 p-4">
+            <div className="flex items-center gap-2 font-semibold">
+              <CreditCard className="size-4 text-info" />
+              {t('3. البطاقة البنكية', '3. Carte bancaire')}
+            </div>
+            <div className="rounded-xl bg-surface-2/60 px-3 py-1.5">
+              <Line label={t('مبيعات بالبطاقة', 'Ventes par carte')} amount={tot.sales_card} />
+              {(tot.card_debts ?? 0) > 0 && <Line label={t('ديون سُدّدت بالبطاقة', 'Dettes payées par carte')} amount={tot.card_debts!} signed />}
+              {(tot.card_refunds ?? 0) > 0 && <Line label={t('إرجاعات على البطاقة', 'Remboursements carte')} amount={-tot.card_refunds!} signed />}
+              <Line label={t('= المتوقع في جهاز الأداء', '= Attendu au TPE')} amount={cardExpected} total />
+            </div>
+            <Field label={t('مجموع تذكرة جهاز الأداء (TPE)', 'Total du ticket TPE')} hint={t('اختياري: من تذكرة إغلاق اليوم في الجهاز', 'Optionnel : ticket de clôture du TPE')}>
+              <MoneyInput value={tpe} onChange={setTpe} />
+            </Field>
+            <Gap value={tpe} expected={cardExpected} />
+          </Card>
+
+          {/* debts of the shift, for information */}
+          {(tot.sales_credit > 0 || (tot.movements.riyad_credit?.amount ?? 0) !== 0 || (tot.movements.debt_payment?.amount ?? 0) !== 0 || (tot.card_debts ?? 0) > 0) && (
+            <div className="rounded-xl border border-border px-3 py-1.5">
+              <div className="pt-1 text-xs font-semibold text-muted">{t('الديون خلال الوردية (للاطلاع)', 'Crédits de la caisse (info)')}</div>
+              {tot.sales_credit > 0 && <Line label={t('بيع بالدين', 'Ventes à crédit')} amount={tot.sales_credit} tone="muted" />}
+              {(tot.movements.riyad_credit?.amount ?? 0) !== 0 && <Line label={t('رياض بالدين', 'Riyad à crédit')} amount={-tot.movements.riyad_credit.amount} tone="muted" />}
+              {(tot.movements.debt_payment?.amount ?? 0) !== 0 && <Line label={t('سُدّد نقداً', 'Payé en espèces')} amount={tot.movements.debt_payment.amount} tone="muted" />}
+              {(tot.card_debts ?? 0) > 0 && <Line label={t('سُدّد بالبطاقة', 'Payé par carte')} amount={tot.card_debts!} tone="muted" />}
+            </div>
           )}
+
+          {/* 4 · What leaves and what stays */}
+          <Card className="space-y-3 p-4">
+            <div className="flex items-center gap-2 font-semibold">
+              <Store className="size-4 text-navy dark:text-white" />
+              {t('4. ما يُسلَّم وما يبقى', '4. Remise et reste')}
+            </div>
+            {can('cash.owner_withdrawal') && (
+              <Field label={t('المبلغ الذي سيُسلَّم للمالك / البنك الآن', 'Montant remis au propriétaire')} hint={t('يُخصم من الخزنة', 'Déduit du coffre')}>
+                <MoneyInput value={handed} onChange={setHanded} />
+              </Field>
+            )}
+            {left !== null && left >= 0 ? (
+              <div className="rounded-xl bg-surface-2/60 px-3 py-1.5">
+                <Line label={t('يبقى في الدرج', 'Reste au tiroir')} hint={`(${t('كان', 'était')} ${money(sh.opening_float)})`} amount={Math.min(float, left)} />
+                <Line label={t('يوضع في الخزنة', 'Au coffre')} hint={`(${t('كانت', 'était')} ${money(sh.opening_safe ?? 0)})`} amount={left - Math.min(float, left)} />
+              </div>
+            ) : (
+              <p className="text-xs text-muted">{t('يظهر هنا ما يبقى في الدرج والخزنة بعد أن تكتب ما عددته.', 'Le reste s’affiche après le comptage.')}</p>
+            )}
+            {left !== null && left < 0 && <p className="text-xs text-danger">{t('المبلغ المُسلَّم أكبر من النقود المعدودة.', 'Remise supérieure au compté.')}</p>}
+          </Card>
+
           <Field label={t('ملاحظات', 'Notes')}>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
           </Field>
-          <Button size="lg" className="w-full" onClick={submit} loading={busy} disabled={counted === null}>
+          <Button size="lg" className="w-full" onClick={submit} loading={busy} disabled={counted === null || (left !== null && left < 0)}>
             <Lock />
             {t('تأكيد الإغلاق', 'Valider la clôture')}
           </Button>
@@ -628,6 +787,13 @@ export function CloseShiftDialog({ status, open, onClose, onClosed }: { device: 
             <Stat label={t('المعدود', 'Compté')} value={money(result.counted)} />
             <Stat label={t('المبيعات', 'Ventes')} value={money(result.totals.sales_total)} />
             <Stat label={t('رسوم رياض', 'Frais Riyad')} value={money(result.totals.riyad_fees)} />
+            {result.card_terminal != null && (
+              <Stat
+                label={t('جهاز البطاقة', 'TPE')}
+                value={money(result.card_terminal)}
+                hint={result.card_terminal !== result.card_expected ? `${t('فرق', 'Écart')}: ${money(result.card_terminal - (result.card_expected ?? 0))}` : '✓'}
+              />
+            )}
             {can('riyad.view_balance') && <Stat label={t('رصيد رياض المتوقع', 'Solde Riyad attendu')} value={money(result.riyad_expected)} />}
             {can('riyad.view_balance') && result.riyad_reported !== null && <Stat label={t('رصيد رياض المُبلغ عنه', 'Solde Riyad déclaré')} value={money(result.riyad_reported)} hint={result.riyad_reported !== result.riyad_expected ? `${t('فرق', 'Écart')}: ${money(result.riyad_reported - result.riyad_expected)}` : '✓'} />}
           </div>
@@ -638,46 +804,77 @@ export function CloseShiftDialog({ status, open, onClose, onClosed }: { device: 
             </Button>
             <Button onClick={finish}>{t('إنهاء', 'Terminer')}</Button>
           </div>
-          {printing && <ShiftPrint status={status} result={result} onDone={() => setPrinting(false)} />}
+          {printing && <ShiftPrint status={status} result={result} riyad={{ in: rin ?? 0, out: rout ?? 0 }} onDone={() => setPrinting(false)} />}
         </div>
       )}
     </Dialog>
   )
 }
 
-function ShiftPrint({ status, result, onDone }: { status: Extract<ShiftStatus, { open: true }>; result: CloseResult; onDone: () => void }) {
+/** Paper report: the same statement as the closing screen. */
+function ShiftPrint({ status, result, riyad, onDone }: { status: Extract<ShiftStatus, { open: true }>; result: CloseResult; riyad: { in: number; out: number }; onDone: () => void }) {
   const { t } = useLang()
-  const rows: [string, number][] = [
-    [t('الدرج في البداية', 'Tiroir début'), status.shift.opening_float],
-    [t('الخزنة في البداية', 'Coffre début'), status.shift.opening_safe ?? 0],
-    [t('المبيعات', 'Ventes'), result.totals.sales_total],
-    [t('نقداً', 'Espèces'), result.totals.sales_cash],
-    [t('بطاقة', 'Carte'), result.totals.sales_card],
-    [t('بالدين', 'Crédit'), result.totals.sales_credit],
-    [t('رسوم رياض', 'Frais Riyad'), result.totals.riyad_fees],
-    [t('حركات الصندوق', 'Mouvements'), result.totals.movements_total],
-    [t('المتوقع', 'Attendu'), result.expected],
-    [t('المعدود', 'Compté'), result.counted],
-    [t('الفرق', 'Écart'), result.difference],
-    ...(result.handed_over ? ([[t('سُلّم للمالك', 'Remis au propriétaire'), result.handed_over]] as [string, number][]) : []),
-    ...(result.drawer !== undefined ? ([[t('تُرك في الدرج', 'Laissé au tiroir'), result.drawer], [t('في الخزنة', 'Au coffre'), result.safe ?? 0]] as [string, number][]) : []),
+  const { can } = useAuth()
+  const tot = result.totals
+  const sh = status.shift
+  type Row = [string, number] | null
+  const section = (title: string, rows: Row[]) => ({ title, rows: rows.filter(Boolean) as [string, number][] })
+  const sections = [
+    section(t('النقود', 'Espèces'), [
+      [t('الدرج في البداية', 'Tiroir début'), sh.opening_float],
+      [t('الخزنة في البداية', 'Coffre début'), sh.opening_safe ?? 0],
+      [t('مبيعات نقداً', 'Ventes espèces'), tot.sales_cash],
+      ...MOVEMENTS.filter(([k]) => (tot.movements[k]?.amount ?? 0) !== 0).map(([k, ar, fr]) => [t(ar, fr), tot.movements[k].amount] as Row),
+      riyad.in ? [t('دخل رياض', 'Entrées Riyad'), riyad.in] : null,
+      riyad.out ? [t('خرج رياض', 'Sorties Riyad'), -riyad.out] : null,
+      [t('المتوقع', 'Attendu'), result.expected],
+      [t('المعدود', 'Compté'), result.counted],
+      [t('الفرق', 'Écart'), result.difference],
+    ]),
+    section(t('رياض', 'Riyad'), [
+      can('riyad.view_balance') && tot.opening_riyad != null ? [t('رصيد البداية', 'Solde début'), tot.opening_riyad] : null,
+      can('riyad.view_balance') && (tot.riyad_owner_effect ?? 0) !== 0 ? [t('عمليات المالك', 'Opérations propriétaire'), tot.riyad_owner_effect!] : null,
+      [t('دخل الصندوق', 'Entrées'), riyad.in],
+      [t('خرج من الصندوق', 'Sorties'), riyad.out],
+      can('riyad.view_balance') ? [t('الرصيد المتوقع', 'Solde attendu'), result.riyad_expected] : null,
+      result.riyad_reported !== null ? [t('الرصيد في المنصة', 'Solde plateforme'), result.riyad_reported] : null,
+      [t('رسوم رياض', 'Frais Riyad'), tot.riyad_fees],
+    ]),
+    section(t('البطاقة', 'Carte'), [
+      [t('مبيعات بالبطاقة', 'Ventes carte'), tot.sales_card],
+      (tot.card_debts ?? 0) > 0 ? [t('ديون بالبطاقة', 'Dettes carte'), tot.card_debts!] : null,
+      (tot.card_refunds ?? 0) > 0 ? [t('إرجاعات بالبطاقة', 'Remb. carte'), -tot.card_refunds!] : null,
+      [t('المتوقع في الجهاز', 'Attendu TPE'), result.card_expected ?? tot.sales_card],
+      result.card_terminal != null ? [t('تذكرة الجهاز', 'Ticket TPE'), result.card_terminal] : null,
+    ]),
+    section(t('المجموع', 'Total'), [
+      [t('المبيعات', 'Ventes'), tot.sales_total],
+      tot.sales_credit ? [t('بالدين', 'Crédit'), tot.sales_credit] : null,
+      result.handed_over ? [t('سُلّم للمالك', 'Remis au propriétaire'), result.handed_over] : null,
+      result.drawer !== undefined ? [t('تُرك في الدرج', 'Laissé au tiroir'), result.drawer] : null,
+      result.drawer !== undefined ? [t('في الخزنة', 'Au coffre'), result.safe ?? 0] : null,
+    ]),
   ]
   return (
     <PrintArea onDone={onDone}>
-    <div style={{ width: '100%', fontSize: 12, color: '#000', direction: 'rtl' }}>
-      <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 14 }}>{t('تقرير الوردية', 'Rapport de caisse')}</div>
-      <div style={{ textAlign: 'center' }}>
-        #{status.shift.number} · {status.employee_name}
-      </div>
-      <div style={{ textAlign: 'center' }}>{format(new Date(), 'dd/MM/yyyy HH:mm')}</div>
-      <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
-      {rows.map(([k, v]) => (
-        <div key={k} style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span>{k}</span>
-          <span style={{ direction: 'ltr' }}>{money(v)}</span>
+      <div style={{ width: '100%', fontSize: 12, color: '#000', direction: 'rtl' }}>
+        <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 14 }}>{t('تقرير الوردية', 'Rapport de caisse')}</div>
+        <div style={{ textAlign: 'center' }}>
+          #{sh.number} · {status.employee_name}
         </div>
-      ))}
-    </div>
+        <div style={{ textAlign: 'center' }}>{format(new Date(), 'dd/MM/yyyy HH:mm')}</div>
+        {sections.map((sec) => (
+          <div key={sec.title}>
+            <div style={{ borderTop: '1px dashed #000', margin: '6px 0 2px', paddingTop: 4, fontWeight: 700 }}>{sec.title}</div>
+            {sec.rows.map(([k, v]) => (
+              <div key={k} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>{k}</span>
+                <span style={{ direction: 'ltr' }}>{money(v)}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
     </PrintArea>
   )
 }

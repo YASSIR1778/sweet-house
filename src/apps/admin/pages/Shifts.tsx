@@ -31,6 +31,7 @@ type Row = {
   opening_riyad?: number | null
   closing_drawer?: number | null
   closing_safe?: number | null
+  card_terminal?: number | null
   employees: { full_name: string; color: string } | null
 }
 
@@ -70,7 +71,7 @@ export function ShiftsPage() {
       closed_by_name: string | null
       device_name: string | null
       notes: string | null
-      totals: { sales_total: number; sales_cash: number; sales_card: number; sales_credit: number; riyad_fees: number; sales_count: number; discounts: number; voided: number; movements_total: number }
+      totals: { sales_total: number; sales_cash: number; sales_card: number; sales_credit: number; riyad_fees: number; sales_count: number; discounts: number; voided: number; movements_total: number; card_expected?: number }
       movements: { type: string; amount: number; note: string | null; created_at: string; customer_name: string | null }[]
     },
   })
@@ -208,6 +209,17 @@ export function ShiftsPage() {
                   <div className="text-xs text-muted">{t('الفرق', 'Écart')}</div>
                   <div className="num text-xl font-bold">{money(d.difference)}</div>
                 </div>
+              </div>
+            )}
+            {d.card_terminal != null && (
+              <div className="flex items-center justify-between rounded-xl border border-border p-3 text-sm">
+                <span>
+                  {t('جهاز البطاقة (TPE): المُدخل / المتوقع', 'TPE : saisi / attendu')}
+                  {d.card_terminal !== (d.totals.card_expected ?? d.totals.sales_card) && <AlertTriangle className="ms-1 inline size-3.5 text-warning" />}
+                </span>
+                <span className="num font-semibold">
+                  {money(d.card_terminal)} / {money(d.totals.card_expected ?? d.totals.sales_card)}
+                </span>
               </div>
             )}
             {d.riyad_balance_reported !== null && (
