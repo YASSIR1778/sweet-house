@@ -86,10 +86,10 @@ begin
     'default_float', coalesce((v_cash->>'opening_float')::bigint, 100000));
 end $$;
 
--- Close: same as before, plus the optional card terminal total checked against the card sales
-drop function public.close_shift(uuid, bigint, bigint, bigint, bigint, bigint, text);
-create function public.close_shift(p_shift uuid, p_counted bigint, p_riyad_in bigint, p_riyad_out bigint,
-                                   p_riyad_balance bigint, p_handed_over bigint, p_notes text, p_card_terminal bigint default null)
+-- Close: same as before, plus the card terminal total (null when not typed) checked against the card sales.
+-- A new overload: the 7-argument version stays for POS screens not yet reloaded.
+create or replace function public.close_shift(p_shift uuid, p_counted bigint, p_riyad_in bigint, p_riyad_out bigint,
+                                              p_riyad_balance bigint, p_handed_over bigint, p_notes text, p_card_terminal bigint)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
   v_s shifts;
