@@ -13,6 +13,7 @@ import {
   Lock,
   Minus,
   Package,
+  PackagePlus,
   PauseCircle,
   Percent,
   Plus,
@@ -44,6 +45,7 @@ import { PrintReceipt, Receipt } from '@/shared/ui/receipt'
 import { findByBarcode, useCatalog, type PosProduct, type PosService } from './catalog'
 import { cartTotals, emptyCart, lineTotal, toPayload, useCart, type CartLine, type CartState } from './cart'
 import { AmountDialog, CustomItemDialog, CustomerDialog, PayDialog, QtyDialog, VariantDialog } from './dialogs'
+import { ProductDialog, type ProductDialogInit } from './products'
 import { beep, type DeviceInfo } from './device'
 import { ShiftSheet, type ShiftStatus } from './shift'
 import { enqueue, isNetworkError, useOfflineQueue } from './offline'
@@ -93,6 +95,8 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
   const [heldOpen, setHeldOpen] = useState(false)
   const [shiftOpen, setShiftOpen] = useState(false)
   const [customOpen, setCustomOpen] = useState(false)
+  // «منتج جديد»: add products to the catalog from the till (products.manage)
+  const [productDlg, setProductDlg] = useState<ProductDialogInit | null>(null)
   const legal = receiptCfg.data?.legal as { tax_rates?: number[]; default_tax_rate?: number } | undefined
   const [onlineOpen, setOnlineOpen] = useState(false)
   // «دليل الخدمات»: the list, or straight to one service's guide (from a cart line)
@@ -195,7 +199,8 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
     }
     if (/^\d{6,}$/.test(code)) {
       sound('error')
-      toast.error(t(`الباركود ${code} غير موجود`, `Code-barres ${code} introuvable`))
+      const add = can('products.manage') && !training
+      toast.error(t(`الباركود ${code} غير موجود`, `Code-barres ${code} introuvable`), add ? { duration: 10_000, action: { label: t('أضفه كمنتج', 'Créer le produit'), onClick: () => setProductDlg({ mode: 'sell', barcode: code }) } } : undefined)
       setSearch('')
     }
   }
@@ -363,6 +368,7 @@ Total : ${money(totals.total)}`,
       if (e.key === 'F4') (e.preventDefault(), setCustomerOpen(true))
       if (e.key === 'F8') (e.preventDefault(), holdCart())
       if (e.key === 'F6' && can('pos.custom_item')) (e.preventDefault(), setCustomOpen(true))
+      if (e.key === 'F7' && can('products.manage') && !training) (e.preventDefault(), setProductDlg({ mode: 'add' }))
       if (e.key === 'Escape' && document.activeElement === searchRef.current) setSearch('')
       // Scanner typing anywhere goes to the search box
       if (/^[\dA-Za-z]$/.test(e.key) && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') searchRef.current?.focus()
@@ -477,7 +483,7 @@ Total : ${money(totals.total)}`,
       <div className="flex min-h-0 flex-1">
         {/* ---------------------------------------------- Catalog */}
         <section className="flex min-w-0 flex-1 flex-col">
-          {(quick.length > 0 || can('pos.custom_item')) && (
+          {(quick.length > 0 || can('pos.custom_item') || can('products.manage')) && (
             <div className="flex gap-2 overflow-x-auto border-b border-border bg-surface/60 px-4 py-3">
               {can('pos.custom_item') && (
                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => setCustomOpen(true)} className="flex shrink-0 items-center gap-2.5 rounded-xl border-2 border-dashed border-brand/50 bg-brand-50 px-4 py-2.5 text-start text-brand transition-all hover:-translate-y-0.5 hover:border-brand">
@@ -485,6 +491,15 @@ Total : ${money(totals.total)}`,
                   <div className="leading-tight">
                     <div className="text-sm font-semibold whitespace-nowrap">{t('بيع يدوي', 'Article libre')}</div>
                     <div className="text-[11px] opacity-75">{t('غير موجود في القائمة', 'Hors catalogue')} · F6</div>
+                  </div>
+                </motion.button>
+              )}
+              {can('products.manage') && (
+                <motion.button whileTap={{ scale: 0.95 }} onClick={notInTraining(() => setProductDlg({ mode: 'add' }))} className="flex shrink-0 items-center gap-2.5 rounded-xl border-2 border-dashed border-border px-4 py-2.5 text-start transition-all hover:-translate-y-0.5 hover:border-brand hover:text-brand">
+                  <PackagePlus className="size-5" />
+                  <div className="leading-tight">
+                    <div className="text-sm font-semibold whitespace-nowrap">{t('منتج جديد', 'Nouveau produit')}</div>
+                    <div className="text-[11px] opacity-75">{t('أضفه للقائمة', 'Au catalogue')} · F7</div>
                   </div>
                 </motion.button>
               )}
@@ -759,6 +774,15 @@ Total : ${money(totals.total)}`,
         taxRates={legal?.tax_rates ?? [0, 7, 10, 14, 20]}
         defaultTax={legal?.default_tax_rate ?? 20}
         onAdd={(i) => (dispatch({ type: 'addCustom', ...i }), sound('ok'))}
+        onSaveAsProduct={can('products.manage') && !training ? (i) => setProductDlg({ mode: 'sell', name: i.name, price: i.price, qty: i.qty, tax: i.tax_rate }) : undefined}
+      />
+      <ProductDialog
+        init={productDlg}
+        catalog={catalog.data}
+        taxRates={legal?.tax_rates ?? [0, 7, 10, 14, 20]}
+        defaultTax={legal?.default_tax_rate ?? 20}
+        onClose={() => (setProductDlg(null), searchRef.current?.focus())}
+        onSell={(p, q) => (dispatch({ type: 'addProduct', product: p, variant: p.variants[0], qty: q }), setLastKey(`p:${p.variants[0].id}:`), sound('ok'))}
       />
       <PayDialog open={!!pay} mode={pay ?? 'cash'} total={totals.total} quickCash={pos?.quick_cash ?? []} onClose={() => setPay(null)} onPay={checkout} busy={paying} customer={cart.customer} allowCredit={can('pos.credit_sale')} onPickCustomer={() => setCustomerOpen(true)} />
       <CustomerDialog open={customerOpen} onClose={() => setCustomerOpen(false)} onPick={(c) => dispatch({ type: 'customer', customer: c })} />

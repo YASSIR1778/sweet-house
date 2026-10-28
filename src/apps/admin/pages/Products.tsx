@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Copy, ExternalLink, Eye, FileSpreadsheet, Megaphone, MoreVertical, Package, Pencil, Plus, Search, SlidersHorizontal, Star, Trash } from 'lucide-react'
+import { CheckCircle2, Clock, Copy, ExternalLink, Eye, FileSpreadsheet, ListPlus, Megaphone, MoreVertical, Package, Pencil, Plus, Search, SlidersHorizontal, Star, Trash } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -15,11 +15,15 @@ import { ProductEditor } from './ProductEditor'
 import { StockDialog } from './StockDialog'
 import { ImportProductsDialog } from './ImportProducts'
 import { LandingEditor } from './LandingEditor'
+import { CustomToProductsDialog } from './CustomToProducts'
 import { SITES } from '@/shared/lib/brand'
 
 export type ProductRow = Product & {
   categories: Pick<Category, 'id' | 'name_ar' | 'name_fr' | 'color'> | null
   product_variants: { id: string; name_ar: string | null; name_fr: string | null; price: number; stock_qty: number; barcode: string | null; deleted_at: string | null }[]
+  /** added by an employee from the till: off the online store until the owner reviews it (any owner edit counts) */
+  needs_review: boolean
+  creator: { full_name: string } | null
 }
 
 export function ProductsPage() {
@@ -35,13 +39,14 @@ export function ProductsPage() {
   const [duplicateOf, setDuplicateOf] = useState<string | null>(null)
   const [stockFor, setStockFor] = useState<ProductRow | null>(null)
   const [importing, setImporting] = useState(false)
+  const [fromCustom, setFromCustom] = useState(false)
 
   const products = useQuery({
     queryKey: ['products'],
     queryFn: async () => {
       const { data, error } = await sb
         .from('products')
-        .select('*, categories(id, name_ar, name_fr, color), product_variants(id, name_ar, name_fr, price, stock_qty, barcode, deleted_at)')
+        .select('*, categories(id, name_ar, name_fr, color), product_variants(id, name_ar, name_fr, price, stock_qty, barcode, deleted_at), creator:employees!products_created_by_fkey(full_name)')
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
       if (error) throw error
@@ -66,6 +71,7 @@ export function ProductsPage() {
       if (stockFilter === 'low' && !(p.track_stock && stock(p) <= p.low_stock_alert)) return false
       if (stockFilter === 'out' && !(p.track_stock && stock(p) <= 0)) return false
       if (stockFilter === 'online' && !p.is_online) return false
+      if (stockFilter === 'review' && !p.needs_review) return false
       if (!q) return true
       return (
         p.name_ar.toLowerCase().includes(q) ||
@@ -89,6 +95,15 @@ export function ProductsPage() {
   const toggleOnline = async (p: ProductRow) => {
     const { error } = await sb.from('products').update({ is_online: !p.is_online }).eq('id', p.id)
     if (error) return toast.error(errorMessage(error, lang))
+    qc.invalidateQueries({ queryKey: ['products'] })
+  }
+
+  // The owner's update clears needs_review on the server; the product stays as it is (till only unless published).
+  const toReview = (products.data ?? []).filter((p) => p.needs_review)
+  const markReviewed = async (ids: string[]) => {
+    const { error } = await sb.from('products').update({ needs_review: false }).in('id', ids)
+    if (error) return toast.error(errorMessage(error, lang))
+    toast.success(t('تمت المراجعة', 'Vérifié'))
     qc.invalidateQueries({ queryKey: ['products'] })
   }
 
@@ -126,6 +141,7 @@ export function ProductsPage() {
             <div className="text-xs text-muted">
               {p.brand && <span>{p.brand} · </span>}
               {p.has_variants ? t(`${p.product_variants.length} أنواع`, `${p.product_variants.length} variantes`) : <span className="num">{p.product_variants[0]?.barcode}</span>}
+              {p.creator && p.needs_review && <span> · {t(`أضافه ${p.creator.full_name}`, `ajouté par ${p.creator.full_name}`)}</span>}
             </div>
           </div>
         </div>
@@ -166,7 +182,13 @@ export function ProductsPage() {
       header: t('الموقع', 'Site'),
       cell: (p) => (
         <button onClick={(e) => (e.stopPropagation(), toggleOnline(p))}>
-          {p.is_online ? <Badge tone="success">{t('🛍️ في المتجر', '🛍️ En ligne')}</Badge> : <Badge>{t('نقطة البيع فقط', 'Caisse seulement')}</Badge>}
+          {p.needs_review ? (
+            <Badge tone="warning">{t('🕓 للمراجعة', '🕓 À vérifier')}</Badge>
+          ) : p.is_online ? (
+            <Badge tone="success">{t('🛍️ في المتجر', '🛍️ En ligne')}</Badge>
+          ) : (
+            <Badge>{t('نقطة البيع فقط', 'Caisse seulement')}</Badge>
+          )}
         </button>
       ),
     },
@@ -208,6 +230,11 @@ export function ProductsPage() {
               <DropdownItem icon={<Megaphone />} onSelect={() => setLanding(p.id)}>
                 {t('صفحة الهبوط (إعلانات)', 'Page de destination (pub)')}
               </DropdownItem>
+              {p.needs_review && (
+                <DropdownItem icon={<CheckCircle2 />} onSelect={() => markReviewed([p.id])}>
+                  {t('تمت المراجعة (يبقى في نقطة البيع فقط)', 'Vérifié (caisse seulement)')}
+                </DropdownItem>
+              )}
               <DropdownItem icon={<Eye />} onSelect={() => toggleOnline(p)}>
                 {p.is_online ? t('إخفاء من الموقع', 'Masquer du site') : t('إظهار في الموقع', 'Afficher sur le site')}
               </DropdownItem>
@@ -232,6 +259,12 @@ export function ProductsPage() {
         description={t('أضف وعدّل منتجاتك، أسعارها، أنواعها ومخزونها', 'Gérez produits, prix, variantes et stock')}
         actions={
           <>
+            {can('reports.sales') && (
+              <Button variant="outline" onClick={() => setFromCustom(true)}>
+                <ListPlus />
+                {t('من البيع اليدوي', 'Des ventes libres')}
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setImporting(true)}>
               <FileSpreadsheet />
               {t('استيراد من Excel', 'Importer Excel')}
@@ -250,6 +283,28 @@ export function ProductsPage() {
         <StatCard index={2} tone="warning" label={t('مخزون منخفض', 'Stock faible')} value={stats.low} icon={<SlidersHorizontal />} loading={products.isLoading} />
         <StatCard index={3} tone="navy" label={t('قيمة المخزون (بثمن البيع)', 'Valeur du stock (prix de vente)')} value={money(stats.value)} icon={<Star />} loading={products.isLoading} />
       </div>
+
+      {toReview.length > 0 && (
+        <Card className="mb-4 flex flex-wrap items-center gap-3 border-warning/40 bg-warning/5 p-4">
+          <Clock className="size-5 shrink-0 text-warning" />
+          <div className="min-w-56 flex-1 text-sm">
+            <div className="font-semibold">{t(`${toReview.length} منتجات أضافها الموظفون بانتظار مراجعتك`, `${toReview.length} produits ajoutés par l’équipe à vérifier`)}</div>
+            <div className="text-muted">{t('تُباع في المحل منذ إضافتها، ولا تظهر في المتجر الإلكتروني حتى تراجعها. أي تعديل منك يعتبر مراجعة.', 'Vendus en caisse dès l’ajout ; invisibles en ligne jusqu’à vérification. Toute modification de votre part vaut vérification.')}</div>
+          </div>
+          <Button variant="outline" onClick={() => setStockFilter('review')}>
+            {t('اعرضها', 'Afficher')}
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={async () => {
+              if (await confirm({ title: t(`اعتماد ${toReview.length} منتجات؟`, `Valider ${toReview.length} produits ?`), description: t('تبقى كما هي في نقطة البيع فقط، ويمكنك إظهار ما تريد منها في المتجر لاحقاً.', 'Ils restent en caisse seulement ; publiez-les en ligne quand vous voulez.') })) markReviewed(toReview.map((p) => p.id))
+            }}
+          >
+            <CheckCircle2 />
+            {t('تمت مراجعة الكل', 'Tout vérifié')}
+          </Button>
+        </Card>
+      )}
 
       <Card className="mb-4 flex flex-wrap items-center gap-3 p-3">
         <div className="min-w-56 flex-1">
@@ -271,6 +326,7 @@ export function ProductsPage() {
             allowEmpty
             emptyLabel={t('كل الحالات', 'Tous')}
             options={[
+              { value: 'review', label: t('بانتظار المراجعة', 'À vérifier') },
               { value: 'low', label: t('مخزون منخفض', 'Stock faible') },
               { value: 'out', label: t('نفد المخزون', 'Rupture') },
               { value: 'online', label: t('ظاهر في الموقع', 'En ligne') },
@@ -313,6 +369,12 @@ export function ProductsPage() {
       />
       <StockDialog product={stockFor} onClose={() => setStockFor(null)} />
       <ImportProductsDialog open={importing} onClose={() => setImporting(false)} />
+      <CustomToProductsDialog
+        open={fromCustom}
+        onClose={() => setFromCustom(false)}
+        existing={(products.data ?? []).flatMap((p) => [p.name_ar, p.name_fr])}
+        categories={categories.data ?? []}
+      />
     </>
   )
 }

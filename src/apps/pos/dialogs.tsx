@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Banknote, CreditCard, Delete, Phone, Plus, Search, UserPlus, UserRound, X } from 'lucide-react'
+import { Banknote, CreditCard, Delete, PackagePlus, Phone, Plus, Search, UserPlus, UserRound, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
@@ -398,7 +398,22 @@ export function CustomerDialog({
 }
 
 // ---------------------------------------------------------------- Hand-typed item (not in the catalog)
-export function CustomItemDialog({ open, onClose, onAdd, taxRates, defaultTax }: { open: boolean; onClose: () => void; onAdd: (i: { name: string; price: number; qty: number; tax_rate: number }) => void; taxRates: number[]; defaultTax: number }) {
+export function CustomItemDialog({
+  open,
+  onClose,
+  onAdd,
+  onSaveAsProduct,
+  taxRates,
+  defaultTax,
+}: {
+  open: boolean
+  onClose: () => void
+  onAdd: (i: { name: string; price: number; qty: number; tax_rate: number }) => void
+  /** «احفظه كمنتج»: continue in the product form instead of a one-off line (products.manage) */
+  onSaveAsProduct?: (i: { name: string; price: number; qty: number; tax_rate: number }) => void
+  taxRates: number[]
+  defaultTax: number
+}) {
   const { t } = useLang()
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
@@ -445,6 +460,12 @@ export function CustomItemDialog({ open, onClose, onAdd, taxRates, defaultTax }:
         <Button type="submit" size="lg" className="w-full" disabled={!ok}>
           {t('إضافة إلى السلة', 'Ajouter au panier')} {ok && <span className="num opacity-80">· {money(Math.round(cents * q))}</span>}
         </Button>
+        {onSaveAsProduct && (
+          <Button type="button" variant="outline" className="w-full" disabled={!ok} onClick={() => (onSaveAsProduct({ name: name.trim(), price: cents, qty: q, tax_rate: tax }), onClose())}>
+            <PackagePlus />
+            {t('احفظه في القائمة كمنتج ثم أضفه', 'L’enregistrer au catalogue puis l’ajouter')}
+          </Button>
+        )}
       </form>
     </Dialog>
   )
