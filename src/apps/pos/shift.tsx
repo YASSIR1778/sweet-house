@@ -1,7 +1,7 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'motion/react'
-import { ArrowDownCircle, ArrowUpCircle, Banknote, Camera, CheckCircle2, CircleDollarSign, CreditCard, HandCoins, Lock, LogOut, Printer, Receipt, Store, Wallet } from 'lucide-react'
+import { ArrowDownCircle, ArrowUpCircle, Banknote, Camera, CheckCircle2, CircleDollarSign, CreditCard, HandCoins, Lock, LogOut, Printer, Receipt, Store, Wallet, Zap } from 'lucide-react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
@@ -89,6 +89,7 @@ const MOVEMENTS: [string, string, string][] = [
   ['expense', 'مصاريف', 'Dépenses'],
   ['refund', 'إرجاعات نقداً', 'Retours'],
   ['owner_withdrawal', 'سحب المالك', 'Retraits du propriétaire'],
+  ['riyad_recharge', 'شحن رياض من نقود المحل', 'Recharge Riyad (caisse)'],
   ['riyad_credit', 'رياض بالدين (لم يُدفع نقداً)', 'Riyad à crédit'],
   ['supplier_payment', 'دفع لمورد', 'Fournisseurs'],
   ['salary_advance', 'تسبيق راتب', 'Avance sur salaire'],
@@ -282,7 +283,7 @@ function ShiftFrame({ children }: { children: ReactNode }) {
 export function ShiftSheet({ device, status, open, onClose, onClosed }: { device: DeviceInfo; status: Extract<ShiftStatus, { open: true }>; open: boolean; onClose: () => void; onClosed: () => void }) {
   const { can } = useAuth()
   const { t } = useLang()
-  const [action, setAction] = useState<null | 'expense' | 'owner_withdrawal' | 'owner_deposit' | 'riyad_credit' | 'debt' | 'close'>(null)
+  const [action, setAction] = useState<null | 'expense' | 'owner_withdrawal' | 'owner_deposit' | 'riyad_credit' | 'riyad_recharge' | 'debt' | 'close'>(null)
   const tot = status.totals
   const mv = (k: string) => tot.movements[k]?.amount ?? 0
   // cash taken from customers: sales paid in cash + debts and online orders paid in cash (a credit sale stays a credit sale)
@@ -290,6 +291,7 @@ export function ShiftSheet({ device, status, open, onClose, onClosed }: { device
 
   const actions = [
     { id: 'riyad_credit', ar: 'رياض بالدَّين', fr: 'Riyad à crédit', icon: Wallet, perm: 'riyad.credit', color: '#16A34A' },
+    { id: 'riyad_recharge', ar: 'شحن رصيد رياض', fr: 'Recharger Riyad', icon: Zap, perm: 'riyad.manage', color: '#7C3AED' },
     { id: 'debt', ar: 'تسديد دين زبون', fr: 'Encaisser une dette', icon: HandCoins, perm: 'debts.collect', color: '#2563EB' },
     { id: 'expense', ar: 'مصروف من الدرج', fr: 'Dépense', icon: ArrowUpCircle, perm: 'cash.expense', color: '#D97706' },
     { id: 'owner_withdrawal', ar: 'سحب المالك', fr: 'Retrait propriétaire', icon: ArrowUpCircle, perm: 'cash.owner_withdrawal', color: '#DC2626' },
@@ -315,6 +317,7 @@ export function ShiftSheet({ device, status, open, onClose, onClosed }: { device
             {mv('expense') !== 0 && <Stat label={t('مصاريف', 'Dépenses')} value={money(-mv('expense'))} />}
             {mv('refund') !== 0 && <Stat label={t('إرجاعات', 'Retours')} value={money(-mv('refund'))} />}
             {mv('owner_withdrawal') !== 0 && <Stat label={t('سحب المالك', 'Retraits')} value={money(-mv('owner_withdrawal'))} />}
+            {mv('riyad_recharge') !== 0 && <Stat label={t('شحن رياض من نقود المحل', 'Recharge Riyad (caisse)')} value={money(-mv('riyad_recharge'))} />}
           </div>
           {tot.expected_before_riyad !== undefined && !status.blind && (
             <div className="rounded-2xl bg-navy p-4 text-white">
@@ -344,6 +347,7 @@ export function ShiftSheet({ device, status, open, onClose, onClosed }: { device
       </Sheet>
       <CashMovementDialog device={device} type={action === 'expense' || action === 'owner_withdrawal' || action === 'owner_deposit' ? action : null} onClose={() => setAction(null)} />
       <RiyadCreditDialog device={device} open={action === 'riyad_credit'} onClose={() => setAction(null)} />
+      <RiyadRechargeDialog device={device} open={action === 'riyad_recharge'} onClose={() => setAction(null)} />
       <DebtPaymentDialog device={device} open={action === 'debt'} onClose={() => setAction(null)} />
       <CloseShiftDialog device={device} status={status} open={action === 'close'} onClose={() => setAction(null)} onClosed={() => (setAction(null), onClose(), onClosed())} />
     </>
@@ -457,6 +461,59 @@ function RiyadCreditDialog({ device, open, onClose }: { device: DeviceInfo; open
         </Field>
         <Button className="w-full" size="lg" onClick={submit} loading={busy} disabled={!customer || !amount}>
           {t('تسجيل الدين', 'Enregistrer le crédit')}
+        </Button>
+      </div>
+    </Dialog>
+  )
+}
+
+// «شحن رصيد رياض»: the platform balance goes up; from the shop's cash, the till goes down by the same amount.
+function RiyadRechargeDialog({ device, open, onClose }: { device: DeviceInfo; open: boolean; onClose: () => void }) {
+  const { sb } = useAuth()
+  const { t, lang } = useLang()
+  const refresh = useRefreshShift(device)
+  const [amount, setAmount] = useState<number | null>(null)
+  const [fromTill, setFromTill] = useState<boolean | null>(null)
+  const [note, setNote] = useState('')
+  const [busy, setBusy] = useState(false)
+  const submit = async () => {
+    if (!amount || fromTill === null) return
+    setBusy(true)
+    const { error } = await sb.rpc('pos_riyad_recharge', { p_device: device.id, p_amount: amount, p_from_till: fromTill, p_note: note || null })
+    setBusy(false)
+    if (error) return toast.error(errorMessage(error, lang))
+    toast.success(t(`سُجّل شحن رياض: ${money(amount)}`, `Recharge Riyad enregistrée : ${money(amount)}`))
+    setAmount(null)
+    setFromTill(null)
+    setNote('')
+    refresh()
+    onClose()
+  }
+  const sources = [
+    { v: true, ar: 'من نقود المحل', fr: 'Argent de la caisse', hint: t('أُخذ من الدرج أو الخزنة: ينقص من النقود المتوقعة', 'Pris du tiroir ou du coffre : déduit des espèces attendues') },
+    { v: false, ar: 'من خارج المحل', fr: 'Hors caisse', hint: t('من المالك أو البنك: لا يمسّ نقود الصندوق', 'Par le propriétaire ou la banque : la caisse ne bouge pas') },
+  ]
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()} size="sm" title={t('شحن رصيد رياض', 'Recharger Riyad')} description={t('يزيد رصيد المنصة المتوقع في هذه الوردية بنفس المبلغ', 'Le solde Riyad attendu de cette caisse augmente d’autant')}>
+      <div className="space-y-4">
+        <Field label={t('مبلغ الشحن', 'Montant rechargé')} required>
+          <MoneyInput value={amount} onChange={setAmount} autoFocus />
+        </Field>
+        <Field label={t('من أين جاء المبلغ؟', 'D’où vient l’argent ?')} required>
+          <div className="grid gap-2">
+            {sources.map((s) => (
+              <button key={String(s.v)} type="button" onClick={() => setFromTill(s.v)} className={cn('rounded-xl border p-3 text-start transition-colors', fromTill === s.v ? 'border-brand bg-brand-50' : 'border-border hover:border-brand/50')}>
+                <div className="text-sm font-semibold">{t(s.ar, s.fr)}</div>
+                <div className="text-xs text-muted">{s.hint}</div>
+              </button>
+            ))}
+          </div>
+        </Field>
+        <Field label={t('ملاحظة', 'Note')}>
+          <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('مثلاً: إيداع في الوكالة البنكية', 'ex : dépôt en agence')} />
+        </Field>
+        <Button className="w-full" size="lg" onClick={submit} loading={busy} disabled={!amount || fromTill === null}>
+          {t('تسجيل الشحن', 'Enregistrer la recharge')}
         </Button>
       </div>
     </Dialog>
@@ -643,7 +700,7 @@ export function CloseShiftDialog({ status, open, onClose, onClosed }: { device: 
                   <Line label={t('رصيد رياض المسجّل في النظام', 'Solde Riyad enregistré')} amount={tot.riyad_base} />
                 )}
                 {tot.opening_riyad != null && (tot.riyad_owner_effect ?? 0) !== 0 && (
-                  <Line label={t('عمليات المالك خلال الوردية (شحن، سحب…)', 'Opérations du propriétaire')} hint={`(${tot.riyad_owner_count})`} amount={tot.riyad_owner_effect!} signed />
+                  <Line label={t('شحن أو سحب سُجّل خلال الوردية', 'Recharges / retraits pendant la caisse')} hint={`(${tot.riyad_owner_count})`} amount={tot.riyad_owner_effect!} signed />
                 )}
                 {(rin ?? 0) > 0 && <Line label={t('دخل الصندوق من رياض', 'Entrées Riyad')} amount={-(rin ?? 0)} signed />}
                 {(rout ?? 0) > 0 && <Line label={t('خرج من الصندوق لرياض', 'Sorties Riyad')} amount={rout ?? 0} signed />}
@@ -835,7 +892,7 @@ function ShiftPrint({ status, result, riyad, onDone }: { status: Extract<ShiftSt
     ]),
     section(t('رياض', 'Riyad'), [
       can('riyad.view_balance') && tot.opening_riyad != null ? [t('رصيد البداية', 'Solde début'), tot.opening_riyad] : null,
-      can('riyad.view_balance') && (tot.riyad_owner_effect ?? 0) !== 0 ? [t('عمليات المالك', 'Opérations propriétaire'), tot.riyad_owner_effect!] : null,
+      can('riyad.view_balance') && (tot.riyad_owner_effect ?? 0) !== 0 ? [t('شحن أو سحب خلال الوردية', 'Recharges / retraits'), tot.riyad_owner_effect!] : null,
       [t('دخل الصندوق', 'Entrées'), riyad.in],
       [t('خرج من الصندوق', 'Sorties'), riyad.out],
       can('riyad.view_balance') ? [t('الرصيد المتوقع', 'Solde attendu'), result.riyad_expected] : null,

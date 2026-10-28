@@ -41,6 +41,7 @@ const MV: Record<string, [string, string]> = {
   owner_deposit: ['إيداع', 'Dépôt'],
   debt_payment: ['تسديد دين', 'Dette encaissée'],
   riyad_credit: ['رياض بالدين', 'Riyad crédit'],
+  riyad_recharge: ['شحن رياض من نقود المحل', 'Recharge Riyad (caisse)'],
   refund: ['إرجاع', 'Retour'],
   supplier_payment: ['تسديد مورد', 'Fournisseur'],
   salary_advance: ['تسبيق راتب', 'Avance'],
