@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { Check, ScanBarcode } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
@@ -13,6 +14,40 @@ import { Select } from '@/shared/ui/select'
 import { findByBarcode, type Catalog, type PosProduct } from './catalog'
 
 export type ProductDialogInit = { mode: 'sell' | 'add'; barcode?: string; name?: string; price?: number; qty?: number; tax?: number }
+
+/**
+ * Create a simple product (one variant) and return it ready for the cart. Off the online store; for staff the
+ * server also marks it «للمراجعة». Without a quantity, stock is not followed (no low-stock alerts until the owner counts it).
+ */
+export async function createProduct(sb: SupabaseClient, f: { name: string; price: number; tax: number; category?: string | null; barcode?: string | null; cost?: number | null; stock?: number | null }): Promise<PosProduct> {
+  const id = uuid()
+  const vid = uuid()
+  const track = f.stock != null
+  const { error } = await sb.rpc('save_product', {
+    p: {
+      id,
+      category_id: f.category ?? null,
+      name_ar: f.name,
+      tax_rate: f.tax,
+      track_stock: track,
+      is_online: false,
+      variants: [{ id: vid, barcode: f.barcode ?? null, price: f.price, ...(f.cost != null ? { cost: f.cost } : {}), initial_stock: f.stock ?? 0, packs: [] }],
+    },
+  })
+  if (error) throw error
+  return {
+    id,
+    category_id: f.category ?? null,
+    name_ar: f.name,
+    name_fr: f.name,
+    image: null,
+    tax_rate: f.tax,
+    track_stock: track,
+    low_stock_alert: 5,
+    has_variants: false,
+    variants: [{ id: vid, name_ar: null, name_fr: null, sku: null, barcode: f.barcode ?? null, price: f.price, stock_qty: f.stock ?? 0, image_url: null, packs: [] }],
+  }
+}
 
 /**
  * Add a product to the catalog from the till (or fix a simple one).
@@ -107,37 +142,12 @@ export function ProductDialog({ init, catalog, taxRates, defaultTax, onClose, on
         barcodeRef.current?.focus()
         return
       }
-      const pid = uuid()
-      const vid = uuid()
       const code = barcode.trim() || null
-      const { error } = await sb.rpc('save_product', {
-        p: {
-          id: pid,
-          category_id: cat,
-          name_ar: name.trim(),
-          tax_rate: tax,
-          // no quantity typed: stock is not followed (no low-stock alerts until the owner counts it)
-          track_stock: stockQty !== null,
-          is_online: false,
-          variants: [{ id: vid, barcode: code, price: cents, ...(canCost && costCents !== null ? { cost: costCents } : {}), initial_stock: stockQty ?? 0, packs: [] }],
-        },
-      })
-      if (error) throw error
+      const product = await createProduct(sb, { name: name.trim(), price: cents, tax, category: cat, barcode: code, cost: canCost ? costCents : null, stock: stockQty })
       changed.current = true
       // without a barcode the server gives an internal code: read it back to show it
-      const saved = code ?? ((await sb.from('product_variants').select('barcode').eq('id', vid).maybeSingle()).data?.barcode as string | null) ?? null
-      const product: PosProduct = {
-        id: pid,
-        category_id: cat,
-        name_ar: name.trim(),
-        name_fr: name.trim(),
-        image: null,
-        tax_rate: tax,
-        track_stock: stockQty !== null,
-        low_stock_alert: 5,
-        has_variants: false,
-        variants: [{ id: vid, name_ar: null, name_fr: null, sku: null, barcode: saved, price: cents, stock_qty: stockQty ?? 0, image_url: null, packs: [] }],
-      }
+      const saved = code ?? ((await sb.from('product_variants').select('barcode').eq('id', product.variants[0].id).maybeSingle()).data?.barcode as string | null) ?? null
+      product.variants[0].barcode = saved
       if (mode === 'sell') {
         onSell(product, init?.qty ?? 1)
         close()

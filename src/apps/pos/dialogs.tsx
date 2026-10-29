@@ -1,17 +1,19 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Banknote, CreditCard, Delete, PackagePlus, Phone, Plus, Search, UserPlus, UserRound, X } from 'lucide-react'
+import { Banknote, CreditCard, Delete, Package, Phone, Plus, Search, UserPlus, UserRound, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@/shared/lib/auth'
 import { useLang } from '@/shared/lib/i18n'
 import { errorMessage } from '@/shared/lib/errors'
 import { money, parseMoney } from '@/shared/lib/money'
-import { cn, normalizePhone } from '@/shared/lib/utils'
+import { cn, normalizePhone, normalizeSearch } from '@/shared/lib/utils'
 import type { Customer } from '@/shared/lib/types'
 import { Avatar, Button, Field, Input, Kbd } from '@/shared/ui/primitives'
 import { Dialog } from '@/shared/ui/overlay'
-import type { PosPack, PosProduct, PosService, PosVariant } from './catalog'
+import { DynamicIcon } from '@/shared/ui/icon'
+import type { Catalog, PosPack, PosProduct, PosService, PosVariant } from './catalog'
 import { servicePrice } from './catalog'
+import { createProduct } from './products'
 
 // ---------------------------------------------------------------- Numeric keypad
 export function Keypad({ value, onChange, decimals = true }: { value: string; onChange: (v: string) => void; decimals?: boolean }) {
@@ -398,49 +400,177 @@ export function CustomerDialog({
 }
 
 // ---------------------------------------------------------------- Hand-typed item (not in the catalog)
+export type CatalogHit = { kind: 'product'; product: PosProduct } | { kind: 'service'; service: PosService }
+type CustomItem = { name: string; price: number; qty: number; tax_rate: number }
+
+// words that say nothing about the item when matching names
+const STOP_WORDS = new Set(['في', 'من', 'على', 'الى', 'الي', 'عن', 'مع', 'او', 'de', 'la', 'le', 'les', 'du', 'des', 'et', 'en'])
+
+/**
+ * «بيع يدوي». While the name is typed, items of the catalog sharing its words are offered: choosing one sells it
+ * like a tap in the grid. A new name is saved to the catalog in the same tap (name + price, completed later
+ * from the dashboard); if that fails or the line is slow, the item is still sold by hand.
+ */
 export function CustomItemDialog({
   open,
+  initialName,
+  catalog,
+  canRegister,
   onClose,
   onAdd,
-  onSaveAsProduct,
+  onPick,
+  onSell,
   taxRates,
   defaultTax,
 }: {
   open: boolean
+  initialName?: string
+  catalog: Catalog | undefined
+  /** products.manage, online and not training */
+  canRegister: boolean
   onClose: () => void
-  onAdd: (i: { name: string; price: number; qty: number; tax_rate: number }) => void
-  /** «احفظه كمنتج»: continue in the product form instead of a one-off line (products.manage) */
-  onSaveAsProduct?: (i: { name: string; price: number; qty: number; tax_rate: number }) => void
+  onAdd: (i: CustomItem) => void
+  onPick: (hit: CatalogHit) => void
+  /** the item was just saved to the catalog: sell it as that product */
+  onSell: (p: PosProduct, qty: number) => void
   taxRates: number[]
   defaultTax: number
 }) {
-  const { t } = useLang()
+  const { sb } = useAuth()
+  const { t, pick, lang } = useLang()
+  const qc = useQueryClient()
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
   const [qtyV, setQtyV] = useState('1')
   const [tax, setTax] = useState(defaultTax)
+  // null: decided by what is typed (see registerOn)
+  const [register, setRegister] = useState<boolean | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [listOpen, setListOpen] = useState(true)
+  const [active, setActive] = useState(-1)
+  const priceRef = useRef<HTMLInputElement>(null)
   useEffect(() => {
-    if (open) (setName(''), setPrice(''), setQtyV('1'), setTax(defaultTax))
-  }, [open, defaultTax])
+    if (open) (setName(initialName ?? ''), setPrice(''), setQtyV('1'), setTax(defaultTax), setRegister(null), setListOpen(true), setActive(-1))
+  }, [open, initialName, defaultTax])
+
+  // catalog names, normalized once
+  const index = useMemo(
+    () =>
+      [
+        ...(catalog?.products ?? []).map((p) => ({ hit: { kind: 'product', product: p } as CatalogHit, ar: p.name_ar, fr: p.name_fr })),
+        ...(catalog?.services ?? []).map((s) => ({ hit: { kind: 'service', service: s } as CatalogHit, ar: s.name_ar, fr: s.name_fr })),
+      ].map((x) => ({ ...x, words: normalizeSearch(`${x.ar} ${x.fr}`), keys: [normalizeSearch(x.ar).join(' '), normalizeSearch(x.fr).join(' ')] })),
+    [catalog],
+  )
+  // most shared words first, then all of them, then a name that starts the same way, then the shortest.
+  // similar: an item holding every typed word («قلم» → «قلم بيك»), so the typed name is a variant of it, not a new item
+  const { hits, exact, similar } = useMemo(() => {
+    const all = normalizeSearch(name)
+    const words = all.filter((w) => w.length > 1 && !STOP_WORDS.has(w))
+    if (!words.length) return { hits: [] as CatalogHit[], exact: null as CatalogHit | null, similar: null as CatalogHit | null }
+    const scored = index
+      .flatMap((x) => {
+        const n = words.filter((w) => x.words.some((h) => h.startsWith(w) || (w.length > 2 && h.includes(w)))).length
+        return n ? [{ x, n, score: n * 10 + (n === words.length ? 3 : 0) + (x.words[0]?.startsWith(words[0]) ? 2 : 0) }] : []
+      })
+      .sort((a, b) => b.score - a.score || a.x.ar.length - b.x.ar.length)
+    return {
+      hits: scored.slice(0, 6).map((s) => s.x.hit),
+      exact: index.find((x) => x.keys.includes(all.join(' ')))?.hit ?? null,
+      similar: scored.find((s) => s.n === words.length)?.x.hit ?? null,
+    }
+  }, [index, name])
+
   const cents = parseMoney(price) ?? 0
   const q = Number(qtyV.replace(',', '.')) || 0
   const ok = name.trim().length >= 2 && cents > 0 && q > 0
-  const submit = (e: React.FormEvent) => {
+  // a new name is saved unless it looks like something already in the catalog; the employee can always change it
+  const registerOn = register ?? !similar
+  const saveNew = canRegister && registerOn && !exact
+  const shown = listOpen && hits.length > 0
+
+  const hitName = (h: CatalogHit) => pick(h.kind === 'product' ? h.product : h.service, 'name')
+  const hitPrice = (h: CatalogHit) => {
+    if (h.kind === 'product') {
+      const v = h.product.variants
+      return (v.length > 1 || v.some((x) => x.packs.length) ? t('من ', 'dès ') : '') + money(Math.min(...v.map((x) => x.price)))
+    }
+    const s = h.service
+    return s.pricing_mode === 'open' ? t('مبلغ حر', 'Libre') : s.price ? money(s.price) + (s.unit_ar ? ` / ${pick(s, 'unit')}` : '') : t('السعر عند البيع', 'Prix libre')
+  }
+  const choose = (h: CatalogHit) => (onPick(h), onClose())
+
+  const onNameKey = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown' && shown) (e.preventDefault(), setActive((a) => Math.min(a + 1, hits.length - 1)))
+    else if (e.key === 'ArrowUp' && shown) (e.preventDefault(), setActive((a) => Math.max(a - 1, -1)))
+    else if (e.key === 'Enter' && shown && active >= 0) (e.preventDefault(), choose(hits[active]))
+    else if (e.key === 'Enter' && !ok) (e.preventDefault(), priceRef.current?.focus())
+  }
+
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!ok) return
-    onAdd({ name: name.trim(), price: cents, qty: q, tax_rate: tax })
+    if (!ok || busy) return
+    const i = { name: name.trim(), price: cents, qty: q, tax_rate: tax }
+    if (!saveNew) return (onAdd(i), onClose())
+    setBusy(true)
+    try {
+      const saving = createProduct(sb, { name: i.name, price: i.price, tax: i.tax_rate })
+      saving.then(() => qc.invalidateQueries({ queryKey: ['pos-catalog'] }), () => {})
+      // a slow line must not keep the customer waiting: after 5 s it is sold by hand and the save goes on alone
+      const p = await Promise.race([saving, new Promise<never>((_, no) => setTimeout(() => no(new Error('timeout')), 5000))])
+      onSell(p, i.qty)
+      toast.success(t(`سُجِّل «${i.name}» في القائمة`, `«${i.name}» ajouté au catalogue`))
+    } catch (err) {
+      onAdd(i)
+      toast.warning(t('أُضيف إلى السلة كبيع يدوي', 'Ajouté en article libre'), {
+        description:
+          err instanceof Error && err.message === 'timeout'
+            ? t('الإنترنت بطيء: سيظهر في القائمة إن اكتمل حفظه', 'Connexion lente : il apparaîtra au catalogue une fois enregistré')
+            : `${t('لم يُسجَّل في القائمة', 'Non enregistré au catalogue')}: ${errorMessage(err, lang)}`,
+      })
+    }
+    setBusy(false)
     onClose()
   }
+
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()} size="sm" title={t('بيع يدوي', 'Article libre')} description={t('سلعة أو خدمة غير موجودة في القائمة', 'Produit ou service hors catalogue')}>
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()} size="sm" title={t('بيع يدوي', 'Article libre')} description={t('اكتب الاسم: إن كان في القائمة يظهر لك لتختاره', 'Tapez le nom : s’il est au catalogue, il vous est proposé')}>
       <form onSubmit={submit} className="space-y-4">
         <Field label={t('الاسم', 'Désignation')} required>
-          <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus placeholder={t('مثلاً: كتابة طلب، قلم خاص…', 'ex : rédaction, stylo…')} />
+          <Input
+            value={name}
+            onChange={(e) => (setName(e.target.value), setListOpen(true), setActive(-1))}
+            onFocus={() => setListOpen(true)}
+            onBlur={() => setTimeout(() => setListOpen(false), 150)}
+            onKeyDown={onNameKey}
+            autoFocus
+            autoComplete="off"
+            placeholder={t('مثلاً: كتابة طلب، قلم خاص…', 'ex : rédaction, stylo…')}
+          />
+          {shown && (
+            <div className="mt-1.5 overflow-hidden rounded-xl border border-border">
+              <div className="bg-surface-2/60 px-3 py-1 text-[11px] text-muted">{t('في القائمة: اختره ليُسجَّل البيع عليه', 'Au catalogue : choisissez-le')}</div>
+              {hits.map((h, i) => (
+                <button
+                  key={h.kind === 'product' ? h.product.id : h.service.id}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => choose(h)}
+                  className={cn('flex w-full items-center gap-2.5 px-3 py-2 text-start text-sm transition-colors hover:bg-surface-2', i === active && 'bg-brand-50')}
+                >
+                  {h.kind === 'product' ? <Package className="size-4 shrink-0 text-subtle" /> : <DynamicIcon name={h.service.icon} className="size-4 shrink-0 text-subtle" />}
+                  <span className="min-w-0 flex-1 truncate">{hitName(h)}</span>
+                  <span className="shrink-0 text-[11px] text-subtle">{h.kind === 'product' ? t('سلعة', 'Produit') : t('خدمة', 'Service')}</span>
+                  <span className="num shrink-0 font-semibold text-brand">{hitPrice(h)}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </Field>
         <div className="grid grid-cols-[1fr_6rem] gap-3">
           <Field label={t('الثمن للوحدة', 'Prix unitaire')} required>
             <div className="relative">
-              <Input value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d.,]/g, ''))} inputMode="decimal" dir="ltr" className="num h-12 pe-12 text-center text-xl font-bold" />
+              <Input ref={priceRef} value={price} onChange={(e) => setPrice(e.target.value.replace(/[^\d.,]/g, ''))} inputMode="decimal" dir="ltr" className="num h-12 pe-12 text-center text-xl font-bold" />
               <span className="absolute inset-y-0 end-3 flex items-center text-xs text-muted">DH</span>
             </div>
           </Field>
@@ -457,15 +587,32 @@ export function CustomItemDialog({
             ))}
           </div>
         </Field>
-        <Button type="submit" size="lg" className="w-full" disabled={!ok}>
-          {t('إضافة إلى السلة', 'Ajouter au panier')} {ok && <span className="num opacity-80">· {money(Math.round(cents * q))}</span>}
+        {name.trim().length >= 2 &&
+          (exact ? (
+            <button type="button" onClick={() => choose(exact)} className="w-full rounded-xl border border-info/30 bg-info/5 px-3 py-2.5 text-start text-sm transition-colors hover:bg-info/10">
+              <span className="font-medium">
+                «{hitName(exact)}» {t('موجود في القائمة', 'est au catalogue')} · <span className="num">{hitPrice(exact)}</span>
+              </span>
+              <span className="block text-xs text-muted">{t('اضغط هنا لبيعه من القائمة', 'Touchez pour le vendre depuis le catalogue')}</span>
+            </button>
+          ) : (
+            canRegister && (
+              <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-border bg-surface-2/50 px-3 py-2.5">
+                <input type="checkbox" checked={registerOn} onChange={(e) => setRegister(e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-brand" />
+                <span className="text-sm">
+                  <span className="font-medium">{t('سجّله في القائمة', 'L’enregistrer au catalogue')}</span>
+                  <span className="block text-xs text-muted">
+                    {register === null && similar
+                      ? t(`يشبه «${hitName(similar)}» الموجود في القائمة، لذلك لن يُسجَّل إلا بوضع العلامة.`, `Ressemble à «${hitName(similar)}» : cochez seulement si c’est un nouvel article.`)
+                      : t('بالاسم والثمن فقط ليظهر في المرة القادمة، ويُكمَل لاحقاً من لوحة التحكم. أزل العلامة لشيء لن يتكرر.', 'Nom et prix seulement, pour la prochaine fois. Décochez pour un article ponctuel.')}
+                  </span>
+                </span>
+              </label>
+            )
+          ))}
+        <Button type="submit" size="lg" className="w-full" disabled={!ok} loading={busy}>
+          {saveNew ? t('سجّله وأضفه إلى السلة', 'Enregistrer et ajouter') : t('إضافة إلى السلة', 'Ajouter au panier')} {ok && <span className="num opacity-80">· {money(Math.round(cents * q))}</span>}
         </Button>
-        {onSaveAsProduct && (
-          <Button type="button" variant="outline" className="w-full" disabled={!ok} onClick={() => (onSaveAsProduct({ name: name.trim(), price: cents, qty: q, tax_rate: tax }), onClose())}>
-            <PackagePlus />
-            {t('احفظه في القائمة كمنتج ثم أضفه', 'L’enregistrer au catalogue puis l’ajouter')}
-          </Button>
-        )}
       </form>
     </Dialog>
   )

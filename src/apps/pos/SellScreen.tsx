@@ -94,7 +94,8 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
   const [historyOpen, setHistoryOpen] = useState(false)
   const [heldOpen, setHeldOpen] = useState(false)
   const [shiftOpen, setShiftOpen] = useState(false)
-  const [customOpen, setCustomOpen] = useState(false)
+  // «بيع يدوي»: null = closed, else the name it starts from (what was being searched)
+  const [customFor, setCustomFor] = useState<string | null>(null)
   // «منتج جديد»: add products to the catalog from the till (products.manage)
   const [productDlg, setProductDlg] = useState<ProductDialogInit | null>(null)
   const legal = receiptCfg.data?.legal as { tax_rates?: number[]; default_tax_rate?: number } | undefined
@@ -180,6 +181,10 @@ export function SellScreen({ device, shift, onShiftChange }: { device: DeviceInf
     setLastKey(`s:${s.id}`)
     sound('ok')
   }
+
+  const openCustom = () => (setCustomFor(search.trim()), setSearch(''))
+  // a product just created from the till goes straight into the cart
+  const sellNew = (p: PosProduct, q: number) => (dispatch({ type: 'addProduct', product: p, variant: p.variants[0], qty: q }), setLastKey(`p:${p.variants[0].id}:`), sound('ok'))
 
   const onSearchEnter = () => {
     const code = search.trim()
@@ -367,7 +372,7 @@ Total : ${money(totals.total)}`,
       if (e.key === 'F3' && cart.lines.length) (e.preventDefault(), setPay('card'))
       if (e.key === 'F4') (e.preventDefault(), setCustomerOpen(true))
       if (e.key === 'F8') (e.preventDefault(), holdCart())
-      if (e.key === 'F6' && can('pos.custom_item')) (e.preventDefault(), setCustomOpen(true))
+      if (e.key === 'F6' && can('pos.custom_item')) (e.preventDefault(), openCustom())
       if (e.key === 'F7' && can('products.manage') && !training) (e.preventDefault(), setProductDlg({ mode: 'add' }))
       if (e.key === 'Escape' && document.activeElement === searchRef.current) setSearch('')
       // Scanner typing anywhere goes to the search box
@@ -486,7 +491,7 @@ Total : ${money(totals.total)}`,
           {(quick.length > 0 || can('pos.custom_item') || can('products.manage')) && (
             <div className="flex gap-2 overflow-x-auto border-b border-border bg-surface/60 px-4 py-3">
               {can('pos.custom_item') && (
-                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setCustomOpen(true)} className="flex shrink-0 items-center gap-2.5 rounded-xl border-2 border-dashed border-brand/50 bg-brand-50 px-4 py-2.5 text-start text-brand transition-all hover:-translate-y-0.5 hover:border-brand">
+                <motion.button whileTap={{ scale: 0.95 }} onClick={openCustom} className="flex shrink-0 items-center gap-2.5 rounded-xl border-2 border-dashed border-brand/50 bg-brand-50 px-4 py-2.5 text-start text-brand transition-all hover:-translate-y-0.5 hover:border-brand">
                   <Plus className="size-5" />
                   <div className="leading-tight">
                     <div className="text-sm font-semibold whitespace-nowrap">{t('بيع يدوي', 'Article libre')}</div>
@@ -535,7 +540,20 @@ Total : ${money(totals.total)}`,
                 <Spinner />
               </div>
             ) : !filtered.products.length && !filtered.services.length ? (
-              <EmptyState icon={<Package />} title={search ? t('لا نتائج', 'Aucun résultat') : t('لا توجد منتجات', 'Aucun produit')} description={!search ? t('أضف منتجاتك من لوحة التحكم', 'Ajoutez vos produits dans le tableau de bord') : undefined} />
+              <EmptyState
+                icon={<Package />}
+                title={search ? t('لا نتائج', 'Aucun résultat') : t('لا توجد منتجات', 'Aucun produit')}
+                description={!search ? t('أضف منتجاتك من لوحة التحكم', 'Ajoutez vos produits dans le tableau de bord') : undefined}
+                action={
+                  search.trim() && can('pos.custom_item') ? (
+                    <Button onClick={openCustom}>
+                      <Plus />
+                      {t(`بيع «${search.trim()}» يدوياً`, `Vendre «${search.trim()}» en article libre`)}
+                      <Kbd>F6</Kbd>
+                    </Button>
+                  ) : undefined
+                }
+              />
             ) : (
               <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3">
                 {filtered.services.map((s) => (
@@ -769,12 +787,16 @@ Total : ${money(totals.total)}`,
         }}
       />
       <CustomItemDialog
-        open={customOpen}
-        onClose={() => (setCustomOpen(false), searchRef.current?.focus())}
+        open={customFor !== null}
+        initialName={customFor ?? ''}
+        catalog={catalog.data}
+        canRegister={can('products.manage') && !training && online}
+        onClose={() => (setCustomFor(null), searchRef.current?.focus())}
         taxRates={legal?.tax_rates ?? [0, 7, 10, 14, 20]}
         defaultTax={legal?.default_tax_rate ?? 20}
         onAdd={(i) => (dispatch({ type: 'addCustom', ...i }), sound('ok'))}
-        onSaveAsProduct={can('products.manage') && !training ? (i) => setProductDlg({ mode: 'sell', name: i.name, price: i.price, qty: i.qty, tax: i.tax_rate }) : undefined}
+        onPick={(h) => (h.kind === 'product' ? addProduct(h.product) : addService(h.service))}
+        onSell={sellNew}
       />
       <ProductDialog
         init={productDlg}
@@ -782,7 +804,7 @@ Total : ${money(totals.total)}`,
         taxRates={legal?.tax_rates ?? [0, 7, 10, 14, 20]}
         defaultTax={legal?.default_tax_rate ?? 20}
         onClose={() => (setProductDlg(null), searchRef.current?.focus())}
-        onSell={(p, q) => (dispatch({ type: 'addProduct', product: p, variant: p.variants[0], qty: q }), setLastKey(`p:${p.variants[0].id}:`), sound('ok'))}
+        onSell={sellNew}
       />
       <PayDialog open={!!pay} mode={pay ?? 'cash'} total={totals.total} quickCash={pos?.quick_cash ?? []} onClose={() => setPay(null)} onPay={checkout} busy={paying} customer={cart.customer} allowCredit={can('pos.credit_sale')} onPickCustomer={() => setCustomerOpen(true)} />
       <CustomerDialog open={customerOpen} onClose={() => setCustomerOpen(false)} onPick={(c) => dispatch({ type: 'customer', customer: c })} />
